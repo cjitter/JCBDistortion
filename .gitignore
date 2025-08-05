@@ -1,6 +1,43 @@
+# ────────────────────────────────
+# Archivos del sistema
+# ────────────────────────────────
 **/.DS_Store
-**/Assets
+
+# ────────────────────────────────
+# Carpetas generadas por IDEs y herramientas
+# ────────────────────────────────
+.idea/
+Testing/
+pluginval_temp/
+pluginval_logs/
+build/
+build-xcode/
+cmake-build-*/
+
+# ────────────────────────────────
+# Archivos y carpetas de builds generados por JUCE
+# ────────────────────────────────
 **/JuceLibraryCode
 **/Builds/MacOSX/build/Debug
 **/Builds/MacOSX/build/Release
+
+# ────────────────────────────────
+# Archivos y carpetas temporales o antiguas
+# ────────────────────────────────
+zOld/
 **/zVar
+DELTA_SYNC_SOLUTION.md
+MIGRATION_STATUS.md
+
+# ────────────────────────────────
+# Archivos de configuración o documentación local
+# ────────────────────────────────
+CLAUDE.md
+
+# ────────────────────────────────
+# Scripts manuales de compilación
+# ────────────────────────────────
+build-xcode-aax-release.sh
+build-xcode-vst3-au-release.sh
+build-xcode-au_script.sh
+build-xcode-vst3_script.sh
