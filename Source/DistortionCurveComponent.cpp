@@ -329,14 +329,22 @@ juce::String DistortionCurveComponent::getModeFormula()
     
     switch (mode)
     {
-        case 0: return JUCE_UTF8("x - x³/3 (|x| ≤ 1)\nsgn(x)·⅔ (|x| > 1)");
+        /*case 0: return JUCE_UTF8("x - x³/3 (|x| ≤ 1)\nsgn(x)·⅔ (|x| > 1)");
         case 1: return JUCE_UTF8("2/(1 + e^(-k·x)) - 1\nk = -(D + C)");
         case 2: return JUCE_UTF8("sgn(x)·|x·D|·0.707");
         case 3: return JUCE_UTF8("sgn(x)·(1-e^(-|x·D + C|))");
         case 4: return JUCE_UTF8("tanh(x·D + C) / tanh(D)");
         case 5: return JUCE_UTF8("max(x,0)·D·0.5");
         case 6: return JUCE_UTF8("(2/π) atan(2(x·D + C))");
-        case 7: return JUCE_UTF8("clip(x + C, -L/D, L/D)");
+        case 7: return JUCE_UTF8("clip(x + C, -L/D, L/D)");*/
+        case 0: return JUCE_UTF8("((x+C)·D) - ((x+C)·D)³/3\n|norm| ≤ 1, else ⅔");
+        case 1: return JUCE_UTF8("2/(1 + e^(-D·(x+C))) - 1");
+        case 2: return JUCE_UTF8("sgn(x+C)·|(x+C)·D|·0.707");
+        case 3: return JUCE_UTF8("sgn(x+C)·(1-e^(-|(x+C)·D|))");
+        case 4: return JUCE_UTF8("tanh((x+C)·D)/tanh(D)");
+        case 5: return JUCE_UTF8("max(x+C,0)·D·0.5");
+        case 6: return JUCE_UTF8("(2/π)atan(2(x+C)·D)");
+        case 7: return JUCE_UTF8("clip((x+C)·D, ±L)");
         default: return "";
     }
 }

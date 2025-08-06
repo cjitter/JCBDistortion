@@ -68,51 +68,50 @@ static const int GENLIB_LOOPCOUNT_BAIL = 100000;
 // The State struct contains all the state and procedures for the gendsp kernel
 typedef struct State {
 	CommonState __commonstate;
-	DCBlock __m_dcblock_95;
-	DCBlock __m_dcblock_89;
-	DCBlock __m_dcblock_88;
-	DCBlock __m_dcblock_90;
-	DCBlock __m_dcblock_91;
 	DCBlock __m_dcblock_94;
+	DCBlock __m_dcblock_88;
+	DCBlock __m_dcblock_87;
+	DCBlock __m_dcblock_91;
+	DCBlock __m_dcblock_92;
+	DCBlock __m_dcblock_93;
 	int __exception;
 	int vectorsize;
 	t_sample m_tiltL_5;
-	t_sample m_h_BITSON_30;
-	t_sample m_g_BITS_31;
-	t_sample m_i_TILT_29;
-	t_sample m_j_DELTA_28;
+	t_sample m_h_BITSON_29;
+	t_sample m_g_BITS_30;
+	t_sample m_i_TILT_28;
 	t_sample m_k_INPUT_27;
-	t_sample m_f_BYPASS_32;
 	t_sample m_l_OUTPUT_26;
+	t_sample m_f_BYPASS_31;
 	t_sample m_m_DOWNSAMPLE_25;
-	t_sample m_e_CEILING_33;
-	t_sample m_c_DC_35;
+	t_sample m_n_DOWNSAMPLEON_24;
+	t_sample m_e_CEILING_32;
+	t_sample m_c_DC_34;
 	t_sample m_tiltR_1;
 	t_sample samplerate;
-	t_sample m_d_MODE_34;
+	t_sample m_d_MODE_33;
 	t_sample m_tiltR_2;
-	t_sample m_b_DRIVE_36;
-	t_sample m_a_DRYWET_37;
+	t_sample m_b_DRIVE_35;
+	t_sample m_a_DRYWET_36;
 	t_sample m_tiltR_4;
-	t_sample m_n_DOWNSAMPLEON_24;
-	t_sample m_hDc_22;
+	t_sample m_hDrive_23;
+	t_sample m_hDrywet_21;
 	t_sample m_dsHeldL_10;
 	t_sample m_dsCounter_11;
-	t_sample m_hDownsampleOn_12;
+	t_sample m_hBypass_12;
 	t_sample m_dsHeldR_9;
 	t_sample m_tiltL_7;
 	t_sample m_tiltL_8;
 	t_sample m_tiltL_6;
-	t_sample m_hDrive_23;
-	t_sample m_hDownsample_13;
+	t_sample m_hDc_22;
+	t_sample m_hDownsampleOn_13;
 	t_sample m_hMode_15;
-	t_sample m_tiltR_3;
-	t_sample m_hDrywet_21;
-	t_sample m_hDelta_14;
 	t_sample m_hBitson_19;
-	t_sample m_hInput_17;
+	t_sample m_tiltR_3;
+	t_sample m_hDownsample_14;
 	t_sample m_hTilt_18;
 	t_sample m_hOutput_16;
+	t_sample m_hInput_17;
 	t_sample m_hBits_20;
 	// re-initialize all member variables;
 	inline void reset(t_param __sr, int __vs) {
@@ -130,9 +129,9 @@ typedef struct State {
 		m_dsHeldR_9 = ((int)0);
 		m_dsHeldL_10 = ((int)0);
 		m_dsCounter_11 = ((int)0);
-		m_hDownsampleOn_12 = ((int)0);
-		m_hDownsample_13 = ((int)0);
-		m_hDelta_14 = ((int)0);
+		m_hBypass_12 = ((int)0);
+		m_hDownsampleOn_13 = ((int)0);
+		m_hDownsample_14 = ((int)0);
 		m_hMode_15 = ((int)0);
 		m_hOutput_16 = ((int)0);
 		m_hInput_17 = ((int)0);
@@ -146,22 +145,21 @@ typedef struct State {
 		m_m_DOWNSAMPLE_25 = 0;
 		m_l_OUTPUT_26 = 0;
 		m_k_INPUT_27 = 0;
-		m_j_DELTA_28 = 0;
-		m_i_TILT_29 = 0;
-		m_h_BITSON_30 = 0;
-		m_g_BITS_31 = 24;
-		m_f_BYPASS_32 = 0;
-		m_e_CEILING_33 = 0;
-		m_d_MODE_34 = 0;
-		m_c_DC_35 = 0;
-		m_b_DRIVE_36 = 1;
-		m_a_DRYWET_37 = 1;
+		m_i_TILT_28 = 0;
+		m_h_BITSON_29 = 0;
+		m_g_BITS_30 = 16;
+		m_f_BYPASS_31 = 0;
+		m_e_CEILING_32 = 0;
+		m_d_MODE_33 = 0;
+		m_c_DC_34 = 0;
+		m_b_DRIVE_35 = 1;
+		m_a_DRYWET_36 = 1;
+		__m_dcblock_87.reset();
 		__m_dcblock_88.reset();
-		__m_dcblock_89.reset();
-		__m_dcblock_90.reset();
 		__m_dcblock_91.reset();
+		__m_dcblock_92.reset();
+		__m_dcblock_93.reset();
 		__m_dcblock_94.reset();
-		__m_dcblock_95.reset();
 		genlib_reset_complete(this);
 		
 	};
@@ -183,8 +181,7 @@ typedef struct State {
 			return __exception;
 			
 		};
-		t_sample ceiling = dbtoa(m_e_CEILING_33);
-		t_sample bypass = (((int)1) - m_f_BYPASS_32);
+		t_sample ceiling = dbtoa(m_e_CEILING_32);
 		t_sample omega = safediv(((t_sample)5026.5482457437), samplerate);
 		t_sample sn = sin(omega);
 		t_sample cs = cos(omega);
@@ -194,29 +191,29 @@ typedef struct State {
 			const t_sample in2 = (*(__in2++));
 			t_sample lIn = in1;
 			t_sample rIn = in2;
-			m_hDrive_23 = ((m_hDrive_23 * ((t_sample)0.999)) + (m_b_DRIVE_36 * ((t_sample)0.001)));
+			m_hDrive_23 = ((m_hDrive_23 * ((t_sample)0.999)) + (m_b_DRIVE_35 * ((t_sample)0.001)));
 			t_sample drive = m_hDrive_23;
-			m_hDc_22 = ((m_hDc_22 * ((t_sample)0.999)) + (m_c_DC_35 * ((t_sample)0.001)));
+			m_hDc_22 = ((m_hDc_22 * ((t_sample)0.999)) + (m_c_DC_34 * ((t_sample)0.001)));
 			t_sample dc = m_hDc_22;
-			m_hDrywet_21 = ((m_hDrywet_21 * ((t_sample)0.999)) + (m_a_DRYWET_37 * ((t_sample)0.001)));
+			m_hDrywet_21 = ((m_hDrywet_21 * ((t_sample)0.999)) + (m_a_DRYWET_36 * ((t_sample)0.001)));
 			t_sample drywet = m_hDrywet_21;
-			m_hBits_20 = ((m_hBits_20 * ((t_sample)0.999)) + (m_g_BITS_31 * ((t_sample)0.001)));
+			m_hBits_20 = ((m_hBits_20 * ((t_sample)0.999)) + (m_g_BITS_30 * ((t_sample)0.001)));
 			t_sample bits = m_hBits_20;
-			m_hBitson_19 = ((m_hBitson_19 * ((t_sample)0.999)) + (m_h_BITSON_30 * ((t_sample)0.001)));
+			m_hBitson_19 = ((m_hBitson_19 * ((t_sample)0.999)) + (m_h_BITSON_29 * ((t_sample)0.001)));
 			t_sample bitson = m_hBitson_19;
-			m_hTilt_18 = ((m_hTilt_18 * ((t_sample)0.999)) + (m_i_TILT_29 * ((t_sample)0.001)));
+			m_hTilt_18 = ((m_hTilt_18 * ((t_sample)0.999)) + (m_i_TILT_28 * ((t_sample)0.001)));
 			t_sample tiltDb = m_hTilt_18;
 			m_hInput_17 = ((m_hInput_17 * ((t_sample)0.999)) + (m_k_INPUT_27 * ((t_sample)0.001)));
 			t_sample inputTrimDb = m_hInput_17;
 			m_hOutput_16 = ((m_hOutput_16 * ((t_sample)0.999)) + (m_l_OUTPUT_26 * ((t_sample)0.001)));
 			t_sample outputMakeupDb = m_hOutput_16;
-			m_hMode_15 = ((m_hMode_15 * ((t_sample)0.99)) + (m_d_MODE_34 * ((t_sample)0.01)));
+			m_hMode_15 = ((m_hMode_15 * ((t_sample)0.99)) + (m_d_MODE_33 * ((t_sample)0.01)));
 			t_sample smoothedMode = m_hMode_15;
-			m_hDelta_14 = ((m_hDelta_14 * ((t_sample)0.999)) + (m_j_DELTA_28 * ((t_sample)0.001)));
-			t_sample deltaAmount = m_hDelta_14;
-			m_hDownsample_13 = ((m_hDownsample_13 * ((t_sample)0.999)) + (m_m_DOWNSAMPLE_25 * ((t_sample)0.001)));
-			m_hDownsampleOn_12 = ((m_hDownsampleOn_12 * ((t_sample)0.999)) + (m_n_DOWNSAMPLEON_24 * ((t_sample)0.001)));
-			t_sample downsampleOn = m_hDownsampleOn_12;
+			m_hDownsample_14 = ((m_hDownsample_14 * ((t_sample)0.999)) + (m_m_DOWNSAMPLE_25 * ((t_sample)0.001)));
+			m_hDownsampleOn_13 = ((m_hDownsampleOn_13 * ((t_sample)0.999)) + (m_n_DOWNSAMPLEON_24 * ((t_sample)0.001)));
+			t_sample downsampleOn = m_hDownsampleOn_13;
+			m_hBypass_12 = ((m_hBypass_12 * ((t_sample)0.999)) + ((((int)1) - m_f_BYPASS_31) * ((t_sample)0.001)));
+			t_sample bypass = m_hBypass_12;
 			t_sample inputTrimLinear = dbtoa(inputTrimDb);
 			t_sample outputMakeupLinear = dbtoa(outputMakeupDb);
 			t_sample lTrimmed = (lIn * inputTrimLinear);
@@ -250,120 +247,110 @@ typedef struct State {
 			t_sample b2Hs = ((((aInv + ((int)1)) - ((aInv - ((int)1)) * cs)) - (betaHs * sn)) * b0Hs);
 			t_sample lTilt = (((((a0Hs * lLs) + (a1Hs * m_tiltL_7)) + (a2Hs * m_tiltL_8)) - (b1Hs * m_tiltL_5)) - (b2Hs * m_tiltL_6));
 			t_sample rTilt = (((((a0Hs * rLs) + (a1Hs * m_tiltR_3)) + (a2Hs * m_tiltR_4)) - (b1Hs * m_tiltR_1)) - (b2Hs * m_tiltR_2));
-			t_sample driveFactor = (drive + (dc * ((t_sample)0.9)));
-			t_sample dcFactor = ((dc * drive) * ((t_sample)0.9));
+			t_sample return_39;
 			t_sample return_40;
-			t_sample return_41;
-			softclip_d_d_d((lTilt * driveFactor), (rTilt * driveFactor), ceiling, return_40, return_41);
-			t_sample softL = return_40;
-			t_sample softR = return_41;
+			softclip_d_d_d_d_d(lTilt, rTilt, drive, dc, ceiling, return_39, return_40);
+			t_sample softL = return_39;
+			t_sample softR = return_40;
+			t_sample return_45;
 			t_sample return_46;
-			t_sample return_47;
-			sigmoid_d_d_d_d_d(lTilt, rTilt, drive, dcFactor, ceiling, return_46, return_47);
-			t_sample sigmL = return_46;
-			t_sample sigmR = return_47;
+			sigmoid_d_d_d_d_d(lTilt, rTilt, drive, dc, ceiling, return_45, return_46);
+			t_sample sigmL = return_45;
+			t_sample sigmR = return_46;
+			t_sample return_49;
 			t_sample return_50;
-			t_sample return_51;
-			rectF_d_d_d_d(lTilt, rTilt, drive, ceiling, return_50, return_51);
-			t_sample rectL = return_50;
-			t_sample rectR = return_51;
+			rectF_d_d_d_d_d(lTilt, rTilt, drive, dc, ceiling, return_49, return_50);
+			t_sample rectL = return_49;
+			t_sample rectR = return_50;
+			t_sample return_53;
 			t_sample return_54;
-			t_sample return_55;
-			fuzzExp1_d_d_d_d_d(lTilt, rTilt, drive, dcFactor, ceiling, return_54, return_55);
-			t_sample fuzz1L = return_54;
-			t_sample fuzz1R = return_55;
+			fuzzExp1_d_d_d_d_d(lTilt, rTilt, drive, dc, ceiling, return_53, return_54);
+			t_sample fuzz1L = return_53;
+			t_sample fuzz1R = return_54;
+			t_sample return_59;
 			t_sample return_60;
-			t_sample return_61;
-			tangenteHiperbolica_d_d_d_d_d(lTilt, rTilt, drive, dcFactor, ceiling, return_60, return_61);
-			t_sample tanhL = return_60;
-			t_sample tanhR = return_61;
+			tangenteHiperbolica_d_d_d_d_d(lTilt, rTilt, drive, dc, ceiling, return_59, return_60);
+			t_sample tanhL = return_59;
+			t_sample tanhR = return_60;
+			t_sample return_65;
 			t_sample return_66;
+			rectH_d_d_d_d_d(lTilt, rTilt, drive, dc, ceiling, return_65, return_66);
+			t_sample recthL = return_65;
+			t_sample recthR = return_66;
 			t_sample return_67;
-			rectH_d_d_d_d(lTilt, rTilt, drive, ceiling, return_66, return_67);
-			t_sample recthL = return_66;
-			t_sample recthR = return_67;
 			t_sample return_68;
-			t_sample return_69;
-			arctangent_d_d_d_d_d(lTilt, rTilt, drive, dcFactor, ceiling, return_68, return_69);
-			t_sample atanL = return_68;
-			t_sample atanR = return_69;
+			arctangent_d_d_d_d_d(lTilt, rTilt, drive, dc, ceiling, return_67, return_68);
+			t_sample atanL = return_67;
+			t_sample atanR = return_68;
+			t_sample return_77;
 			t_sample return_78;
-			t_sample return_79;
-			hardClip_d_d_d_d_d(lTilt, rTilt, drive, dcFactor, ceiling, return_78, return_79);
-			t_sample hardL = return_78;
-			t_sample hardR = return_79;
+			hardClip_d_d_d_d_d(lTilt, rTilt, drive, dc, ceiling, return_77, return_78);
+			t_sample hardL = return_77;
+			t_sample hardR = return_78;
 			t_sample mode = smoothedMode;
-			t_sample maxb_80 = (((int)1) - fabs((mode - ((int)0))));
-			t_sample w0 = ((((int)0) < maxb_80) ? maxb_80 : ((int)0));
-			t_sample maxb_81 = (((int)1) - fabs((mode - ((int)1))));
-			t_sample w1 = ((((int)0) < maxb_81) ? maxb_81 : ((int)0));
-			t_sample maxb_82 = (((int)1) - fabs((mode - ((int)2))));
-			t_sample w2 = ((((int)0) < maxb_82) ? maxb_82 : ((int)0));
-			t_sample maxb_83 = (((int)1) - fabs((mode - ((int)3))));
-			t_sample w3 = ((((int)0) < maxb_83) ? maxb_83 : ((int)0));
-			t_sample maxb_84 = (((int)1) - fabs((mode - ((int)4))));
-			t_sample w4 = ((((int)0) < maxb_84) ? maxb_84 : ((int)0));
-			t_sample maxb_85 = (((int)1) - fabs((mode - ((int)5))));
-			t_sample w5 = ((((int)0) < maxb_85) ? maxb_85 : ((int)0));
-			t_sample maxb_86 = (((int)1) - fabs((mode - ((int)6))));
-			t_sample w6 = ((((int)0) < maxb_86) ? maxb_86 : ((int)0));
-			t_sample maxb_87 = (((int)1) - fabs((mode - ((int)7))));
-			t_sample w7 = ((((int)0) < maxb_87) ? maxb_87 : ((int)0));
+			t_sample maxb_79 = (((int)1) - fabs((mode - ((int)0))));
+			t_sample w0 = ((((int)0) < maxb_79) ? maxb_79 : ((int)0));
+			t_sample maxb_80 = (((int)1) - fabs((mode - ((int)1))));
+			t_sample w1 = ((((int)0) < maxb_80) ? maxb_80 : ((int)0));
+			t_sample maxb_81 = (((int)1) - fabs((mode - ((int)2))));
+			t_sample w2 = ((((int)0) < maxb_81) ? maxb_81 : ((int)0));
+			t_sample maxb_82 = (((int)1) - fabs((mode - ((int)3))));
+			t_sample w3 = ((((int)0) < maxb_82) ? maxb_82 : ((int)0));
+			t_sample maxb_83 = (((int)1) - fabs((mode - ((int)4))));
+			t_sample w4 = ((((int)0) < maxb_83) ? maxb_83 : ((int)0));
+			t_sample maxb_84 = (((int)1) - fabs((mode - ((int)5))));
+			t_sample w5 = ((((int)0) < maxb_84) ? maxb_84 : ((int)0));
+			t_sample maxb_85 = (((int)1) - fabs((mode - ((int)6))));
+			t_sample w6 = ((((int)0) < maxb_85) ? maxb_85 : ((int)0));
+			t_sample maxb_86 = (((int)1) - fabs((mode - ((int)7))));
+			t_sample w7 = ((((int)0) < maxb_86) ? maxb_86 : ((int)0));
 			t_sample sumWeights = ((((((((w0 + w1) + w2) + w3) + w4) + w5) + w6) + w7) + ((t_sample)0.0001));
-			t_sample w_1377 = safediv(w0, sumWeights);
-			t_sample w_1378 = safediv(w1, sumWeights);
-			t_sample w_1379 = safediv(w2, sumWeights);
-			t_sample w_1380 = safediv(w3, sumWeights);
-			t_sample w_1381 = safediv(w4, sumWeights);
-			t_sample w_1382 = safediv(w5, sumWeights);
-			t_sample w_1383 = safediv(w6, sumWeights);
-			t_sample w_1384 = safediv(w7, sumWeights);
-			t_sample distL = ((((((((softL * w_1377) + (sigmL * w_1378)) + (rectL * w_1379)) + (fuzz1L * w_1380)) + (tanhL * w_1381)) + (recthL * w_1382)) + (atanL * w_1383)) + (hardL * w_1384));
-			t_sample distR = ((((((((softR * w_1377) + (sigmR * w_1378)) + (rectR * w_1379)) + (fuzz1R * w_1380)) + (tanhR * w_1381)) + (recthR * w_1382)) + (atanR * w_1383)) + (hardR * w_1384));
-			t_sample distortedL = distL;
-			t_sample distortedR = distR;
-			t_sample dcL = __m_dcblock_88(distL);
-			t_sample dcR = __m_dcblock_89(distR);
-			t_sample deltaL = (distortedL - lTilt);
-			t_sample deltaR = (distortedR - rTilt);
-			t_sample deltaDcL = __m_dcblock_90(deltaL);
-			t_sample deltaDcR = __m_dcblock_91(deltaR);
-			t_sample mix_1400 = (dcL + (deltaAmount * (deltaDcL - dcL)));
-			t_sample processedL = mix_1400;
-			t_sample mix_1401 = (dcR + (deltaAmount * (deltaDcR - dcR)));
-			t_sample processedR = mix_1401;
-			t_sample return_92;
-			t_sample return_93;
-			bitCrusher_d_d_d(processedL, processedR, bits, return_92, return_93);
-			t_sample bitL = return_92;
-			t_sample bitR = return_93;
-			t_sample bcL = __m_dcblock_94(bitL);
-			t_sample bcR = __m_dcblock_95(bitR);
-			t_sample mix_1402 = (processedL + (bitson * (bcL - processedL)));
-			t_sample withBitCrusherL = mix_1402;
-			t_sample mix_1403 = (processedR + (bitson * (bcR - processedR)));
-			t_sample withBitCrusherR = mix_1403;
+			t_sample w_302 = safediv(w0, sumWeights);
+			t_sample w_303 = safediv(w1, sumWeights);
+			t_sample w_304 = safediv(w2, sumWeights);
+			t_sample w_305 = safediv(w3, sumWeights);
+			t_sample w_306 = safediv(w4, sumWeights);
+			t_sample w_307 = safediv(w5, sumWeights);
+			t_sample w_308 = safediv(w6, sumWeights);
+			t_sample w_309 = safediv(w7, sumWeights);
+			t_sample distL = ((((((((softL * w_302) + (sigmL * w_303)) + (rectL * w_304)) + (fuzz1L * w_305)) + (tanhL * w_306)) + (recthL * w_307)) + (atanL * w_308)) + (hardL * w_309));
+			t_sample distR = ((((((((softR * w_302) + (sigmR * w_303)) + (rectR * w_304)) + (fuzz1R * w_305)) + (tanhR * w_306)) + (recthR * w_307)) + (atanR * w_308)) + (hardR * w_309));
+			t_sample processedL = __m_dcblock_87(distL);
+			t_sample processedR = __m_dcblock_88(distR);
+			t_sample return_89;
+			t_sample return_90;
+			bitCrusher_d_d_d(processedL, processedR, bits, return_89, return_90);
+			t_sample bitL = return_89;
+			t_sample bitR = return_90;
+			t_sample bcL = __m_dcblock_91(bitL);
+			t_sample bcR = __m_dcblock_92(bitR);
+			t_sample mix_331 = (processedL + (bitson * (bcL - processedL)));
+			t_sample withBitCrusherL = mix_331;
+			t_sample mix_332 = (processedR + (bitson * (bcR - processedR)));
+			t_sample withBitCrusherR = mix_332;
 			m_dsCounter_11 = (m_dsCounter_11 + ((int)1));
-			t_sample skipSamples = (floor(m_hDownsample_13) + ((int)1));
-			if (((m_dsCounter_11 >= skipSamples) || (m_hDownsample_13 < ((t_sample)0.5)))) {
+			t_sample skipSamples = (floor(m_hDownsample_14) + ((int)1));
+			if (((m_dsCounter_11 >= skipSamples) || (m_hDownsample_14 < ((t_sample)0.5)))) {
 				m_dsHeldL_10 = withBitCrusherL;
 				m_dsHeldR_9 = withBitCrusherR;
 				m_dsCounter_11 = ((int)0);
 				
 			};
-			t_sample mix_1404 = (withBitCrusherL + (downsampleOn * (m_dsHeldL_10 - withBitCrusherL)));
-			t_sample mix_1405 = (withBitCrusherR + (downsampleOn * (m_dsHeldR_9 - withBitCrusherR)));
-			t_sample mix_1406 = (lTrimmed + (drywet * (mix_1404 - lTrimmed)));
-			t_sample mix_1407 = (rTrimmed + (drywet * (mix_1405 - rTrimmed)));
-			t_sample finalWithMakeupL = (mix_1406 * outputMakeupLinear);
-			t_sample finalWithMakeupR = (mix_1407 * outputMakeupLinear);
-			t_sample mix_1408 = (lIn + (bypass * (finalWithMakeupL - lIn)));
-			t_sample mix_1409 = (rIn + (bypass * (finalWithMakeupR - rIn)));
+			t_sample mix_333 = (withBitCrusherL + (downsampleOn * (m_dsHeldL_10 - withBitCrusherL)));
+			t_sample mix_334 = (withBitCrusherR + (downsampleOn * (m_dsHeldR_9 - withBitCrusherR)));
+			t_sample mix_335 = (lTrimmed + (drywet * (mix_333 - lTrimmed)));
+			t_sample mix_336 = (rTrimmed + (drywet * (mix_334 - rTrimmed)));
+			t_sample finalWithMakeupL = (mix_335 * outputMakeupLinear);
+			t_sample finalWithMakeupR = (mix_336 * outputMakeupLinear);
+			t_sample finalDcBlockedL = __m_dcblock_93(finalWithMakeupL);
+			t_sample finalDcBlockedR = __m_dcblock_94(finalWithMakeupR);
+			t_sample mix_337 = (lIn + (bypass * (finalDcBlockedL - lIn)));
+			t_sample mix_338 = (rIn + (bypass * (finalDcBlockedR - rIn)));
 			t_sample out3 = ((int)0);
 			t_sample out4 = lTrimmed;
-			t_sample out2 = mix_1409;
 			t_sample out5 = rTrimmed;
-			t_sample out1 = mix_1408;
+			t_sample out1 = mix_337;
+			t_sample out2 = mix_338;
 			// assign results to output buffer;
 			(*(__out1++)) = out1;
 			(*(__out2++)) = out2;
@@ -387,120 +374,131 @@ typedef struct State {
 	inline void set_k_INPUT(t_param _value) {
 		m_k_INPUT_27 = (_value < -12 ? -12 : (_value > 12 ? 12 : _value));
 	};
-	inline void set_j_DELTA(t_param _value) {
-		m_j_DELTA_28 = (_value < 0 ? 0 : (_value > 1 ? 1 : _value));
-	};
 	inline void set_i_TILT(t_param _value) {
-		m_i_TILT_29 = (_value < -6 ? -6 : (_value > 6 ? 6 : _value));
+		m_i_TILT_28 = (_value < -6 ? -6 : (_value > 6 ? 6 : _value));
 	};
 	inline void set_h_BITSON(t_param _value) {
-		m_h_BITSON_30 = (_value < 0 ? 0 : (_value > 1 ? 1 : _value));
+		m_h_BITSON_29 = (_value < 0 ? 0 : (_value > 1 ? 1 : _value));
 	};
 	inline void set_g_BITS(t_param _value) {
-		m_g_BITS_31 = (_value < 1 ? 1 : (_value > 24 ? 24 : _value));
+		m_g_BITS_30 = (_value < 3 ? 3 : (_value > 16 ? 16 : _value));
 	};
 	inline void set_f_BYPASS(t_param _value) {
-		m_f_BYPASS_32 = (_value < 0 ? 0 : (_value > 1 ? 1 : _value));
+		m_f_BYPASS_31 = (_value < 0 ? 0 : (_value > 1 ? 1 : _value));
 	};
 	inline void set_e_CEILING(t_param _value) {
-		m_e_CEILING_33 = (_value < -20 ? -20 : (_value > 6 ? 6 : _value));
+		m_e_CEILING_32 = (_value < -20 ? -20 : (_value > 6 ? 6 : _value));
 	};
 	inline void set_d_MODE(t_param _value) {
-		m_d_MODE_34 = (_value < 0 ? 0 : (_value > 7 ? 7 : _value));
+		m_d_MODE_33 = (_value < 0 ? 0 : (_value > 7 ? 7 : _value));
 	};
 	inline void set_c_DC(t_param _value) {
-		m_c_DC_35 = (_value < 0 ? 0 : (_value > 1 ? 1 : _value));
+		m_c_DC_34 = (_value < 0 ? 0 : (_value > 1 ? 1 : _value));
 	};
 	inline void set_b_DRIVE(t_param _value) {
-		m_b_DRIVE_36 = (_value < 1 ? 1 : (_value > 50 ? 50 : _value));
+		m_b_DRIVE_35 = (_value < 1 ? 1 : (_value > 50 ? 50 : _value));
 	};
 	inline void set_a_DRYWET(t_param _value) {
-		m_a_DRYWET_37 = (_value < 0 ? 0 : (_value > 1 ? 1 : _value));
+		m_a_DRYWET_36 = (_value < 0 ? 0 : (_value > 1 ? 1 : _value));
 	};
-	inline void softclip_d_d_d(t_sample inl, t_sample inr, t_sample cell, t_sample& out1, t_sample& out2) {
-		t_sample lNorm = safediv(inl, cell);
-		t_sample rNorm = safediv(inr, cell);
+	inline void softclip_d_d_d_d_d(t_sample inl, t_sample inr, t_sample dr, t_sample dc, t_sample cell, t_sample& out1, t_sample& out2) {
+		t_sample lWithDC = (inl + (dc * ((t_sample)0.05)));
+		t_sample rWithDC = (inr + (dc * ((t_sample)0.05)));
+		t_sample lNorm = safediv((lWithDC * dr), cell);
+		t_sample rNorm = safediv((rWithDC * dr), cell);
 		t_sample lCubic = (lNorm - (((lNorm * lNorm) * lNorm) * ((t_sample)0.33333333333333)));
 		t_sample rCubic = (rNorm - (((rNorm * rNorm) * rNorm) * ((t_sample)0.33333333333333)));
 		t_sample lLimited = (((lNorm > 0) ? 1 : ((lNorm < 0) ? -1 : 0)) * (((int)2) * ((t_sample)0.33333333333333)));
 		t_sample rLimited = (((rNorm > 0) ? 1 : ((rNorm < 0) ? -1 : 0)) * (((int)2) * ((t_sample)0.33333333333333)));
-		int cond_38 = (fabs(lNorm) <= ((int)1));
-		t_sample lOut = (cond_38 ? lCubic : lLimited);
-		int cond_39 = (fabs(rNorm) <= ((int)1));
-		t_sample rOut = (cond_39 ? rCubic : rLimited);
+		int cond_37 = (fabs(lNorm) <= ((int)1));
+		t_sample lOut = (cond_37 ? lCubic : lLimited);
+		int cond_38 = (fabs(rNorm) <= ((int)1));
+		t_sample rOut = (cond_38 ? rCubic : rLimited);
 		out1 = (lOut * cell);
 		out2 = (rOut * cell);
 		
 	};
 	inline void sigmoid_d_d_d_d_d(t_sample inl, t_sample inr, t_sample dr, t_sample dc, t_sample cell, t_sample& out1, t_sample& out2) {
-		t_sample factor = ((-((int)1)) * (dr + dc));
-		t_sample l = ((((int)2) * safediv(((int)1), (((int)1) + exp((factor * inl))))) - ((int)1));
-		t_sample r = ((((int)2) * safediv(((int)1), (((int)1) + exp((factor * inr))))) - ((int)1));
-		t_sample v_42 = (l * cell);
-		t_sample min_43 = (-cell);
-		t_sample lOut = ((v_42 <= min_43) ? min_43 : ((v_42 >= cell) ? cell : v_42));
-		t_sample v_44 = (r * cell);
-		t_sample min_45 = (-cell);
-		t_sample rOut = ((v_44 <= min_45) ? min_45 : ((v_44 >= cell) ? cell : v_44));
+		t_sample lWithDC = (inl + (dc * ((t_sample)0.05)));
+		t_sample rWithDC = (inr + (dc * ((t_sample)0.05)));
+		t_sample factor = ((-((int)1)) * dr);
+		t_sample l = ((((int)2) * safediv(((int)1), (((int)1) + exp((factor * lWithDC))))) - ((int)1));
+		t_sample r = ((((int)2) * safediv(((int)1), (((int)1) + exp((factor * rWithDC))))) - ((int)1));
+		t_sample v_41 = (l * cell);
+		t_sample min_42 = (-cell);
+		t_sample lOut = ((v_41 <= min_42) ? min_42 : ((v_41 >= cell) ? cell : v_41));
+		t_sample v_43 = (r * cell);
+		t_sample min_44 = (-cell);
+		t_sample rOut = ((v_43 <= min_44) ? min_44 : ((v_43 >= cell) ? cell : v_43));
 		out1 = lOut;
 		out2 = rOut;
 		
 	};
-	inline void rectF_d_d_d_d(t_sample inl, t_sample inr, t_sample dr, t_sample cell, t_sample& out1, t_sample& out2) {
-		t_sample l = ((((inl > 0) ? 1 : ((inl < 0) ? -1 : 0)) * fabs((inl * dr))) * ((t_sample)0.707));
-		t_sample r = ((((inr > 0) ? 1 : ((inr < 0) ? -1 : 0)) * fabs((inr * dr))) * ((t_sample)0.707));
+	inline void rectF_d_d_d_d_d(t_sample inl, t_sample inr, t_sample dr, t_sample dc, t_sample cell, t_sample& out1, t_sample& out2) {
+		t_sample lWithDC = (inl + (dc * ((t_sample)0.05)));
+		t_sample rWithDC = (inr + (dc * ((t_sample)0.05)));
+		t_sample l = ((((lWithDC > 0) ? 1 : ((lWithDC < 0) ? -1 : 0)) * fabs((lWithDC * dr))) * ((t_sample)0.707));
+		t_sample r = ((((rWithDC > 0) ? 1 : ((rWithDC < 0) ? -1 : 0)) * fabs((rWithDC * dr))) * ((t_sample)0.707));
+		t_sample min_47 = (-cell);
+		t_sample lOut = ((l <= min_47) ? min_47 : ((l >= cell) ? cell : l));
 		t_sample min_48 = (-cell);
-		t_sample lOut = ((l <= min_48) ? min_48 : ((l >= cell) ? cell : l));
-		t_sample min_49 = (-cell);
-		t_sample rOut = ((r <= min_49) ? min_49 : ((r >= cell) ? cell : r));
+		t_sample rOut = ((r <= min_48) ? min_48 : ((r >= cell) ? cell : r));
 		out1 = lOut;
 		out2 = rOut;
 		
 	};
 	inline void fuzzExp1_d_d_d_d_d(t_sample inl, t_sample inr, t_sample dr, t_sample dc, t_sample cell, t_sample& out1, t_sample& out2) {
-		int signl = ((inl > 0) ? 1 : ((inl < 0) ? -1 : 0));
-		int signr = ((inr > 0) ? 1 : ((inr < 0) ? -1 : 0));
-		t_sample lScaled = fabs(((inl * dr) + (dc * ((t_sample)0.01))));
-		t_sample rScaled = fabs(((inr * dr) + (dc * ((t_sample)0.01))));
+		t_sample lWithDC = (inl + (dc * ((t_sample)0.05)));
+		t_sample rWithDC = (inr + (dc * ((t_sample)0.05)));
+		int signl = ((lWithDC > 0) ? 1 : ((lWithDC < 0) ? -1 : 0));
+		int signr = ((rWithDC > 0) ? 1 : ((rWithDC < 0) ? -1 : 0));
+		t_sample lScaled = fabs((lWithDC * dr));
+		t_sample rScaled = fabs((rWithDC * dr));
 		t_sample l = (signl * (((int)1) - exp((-lScaled))));
 		t_sample r = (signr * (((int)1) - exp((-rScaled))));
+		t_sample min_51 = (-cell);
+		t_sample lOut = ((l <= min_51) ? min_51 : ((l >= cell) ? cell : l));
 		t_sample min_52 = (-cell);
-		t_sample lOut = ((l <= min_52) ? min_52 : ((l >= cell) ? cell : l));
-		t_sample min_53 = (-cell);
-		t_sample rOut = ((r <= min_53) ? min_53 : ((r >= cell) ? cell : r));
+		t_sample rOut = ((r <= min_52) ? min_52 : ((r >= cell) ? cell : r));
 		out1 = lOut;
 		out2 = rOut;
 		
 	};
 	inline void tangenteHiperbolica_d_d_d_d_d(t_sample inl, t_sample inr, t_sample dr, t_sample dc, t_sample cell, t_sample& out1, t_sample& out2) {
-		t_sample v_56 = ((inl * dr) + (dc * ((t_sample)0.01)));
-		t_sample min_57 = (-cell);
-		t_sample l = ((v_56 <= min_57) ? min_57 : ((v_56 >= cell) ? cell : v_56));
-		t_sample v_58 = ((inr * dr) + (dc * ((t_sample)0.01)));
-		t_sample min_59 = (-cell);
-		t_sample r = ((v_58 <= min_59) ? min_59 : ((v_58 >= cell) ? cell : v_58));
+		t_sample lWithDC = (inl + (dc * ((t_sample)0.05)));
+		t_sample rWithDC = (inr + (dc * ((t_sample)0.05)));
+		t_sample v_55 = (lWithDC * dr);
+		t_sample min_56 = (-cell);
+		t_sample l = ((v_55 <= min_56) ? min_56 : ((v_55 >= cell) ? cell : v_55));
+		t_sample v_57 = (rWithDC * dr);
+		t_sample min_58 = (-cell);
+		t_sample r = ((v_57 <= min_58) ? min_58 : ((v_57 >= cell) ? cell : v_57));
 		t_sample lOut = safediv(tanh(l), tanh(dr));
 		t_sample rOut = safediv(tanh(r), tanh(dr));
 		out1 = lOut;
 		out2 = rOut;
 		
 	};
-	inline void rectH_d_d_d_d(t_sample inl, t_sample inr, t_sample dr, t_sample cell, t_sample& out1, t_sample& out2) {
-		t_sample lPositive = ((inl < ((int)0)) ? ((int)0) : inl);
-		t_sample rPositive = ((inr < ((int)0)) ? ((int)0) : inr);
-		t_sample v_62 = ((lPositive * dr) * ((t_sample)0.5));
-		t_sample min_63 = (-cell);
-		t_sample l = ((v_62 <= min_63) ? min_63 : ((v_62 >= cell) ? cell : v_62));
-		t_sample v_64 = ((rPositive * dr) * ((t_sample)0.5));
-		t_sample min_65 = (-cell);
-		t_sample r = ((v_64 <= min_65) ? min_65 : ((v_64 >= cell) ? cell : v_64));
+	inline void rectH_d_d_d_d_d(t_sample inl, t_sample inr, t_sample dr, t_sample dc, t_sample cell, t_sample& out1, t_sample& out2) {
+		t_sample lWithDC = (inl + (dc * ((t_sample)0.05)));
+		t_sample rWithDC = (inr + (dc * ((t_sample)0.05)));
+		t_sample lPositive = ((lWithDC < ((int)0)) ? ((int)0) : lWithDC);
+		t_sample rPositive = ((rWithDC < ((int)0)) ? ((int)0) : rWithDC);
+		t_sample v_61 = ((lPositive * dr) * ((t_sample)0.5));
+		t_sample min_62 = (-cell);
+		t_sample l = ((v_61 <= min_62) ? min_62 : ((v_61 >= cell) ? cell : v_61));
+		t_sample v_63 = ((rPositive * dr) * ((t_sample)0.5));
+		t_sample min_64 = (-cell);
+		t_sample r = ((v_63 <= min_64) ? min_64 : ((v_63 >= cell) ? cell : v_63));
 		out1 = l;
 		out2 = r;
 		
 	};
 	inline void arctangent_d_d_d_d_d(t_sample inl, t_sample inr, t_sample dr, t_sample dc, t_sample cell, t_sample& out1, t_sample& out2) {
-		t_sample lScaled = (((inl * dr) + (dc * ((t_sample)0.01))) * ((int)2));
-		t_sample rScaled = (((inr * dr) + (dc * ((t_sample)0.01))) * ((int)2));
+		t_sample lWithDC = (inl + (dc * ((t_sample)0.05)));
+		t_sample rWithDC = (inr + (dc * ((t_sample)0.05)));
+		t_sample lScaled = ((lWithDC * dr) * ((int)2));
+		t_sample rScaled = ((rWithDC * dr) * ((int)2));
 		t_sample l = ((((int)2) * ((t_sample)0.31830988618379)) * atan(lScaled));
 		t_sample r = ((((int)2) * ((t_sample)0.31830988618379)) * atan(rScaled));
 		t_sample lOut = (l * cell);
@@ -510,20 +508,20 @@ typedef struct State {
 		
 	};
 	inline void hardClip_d_d_d_d_d(t_sample inl, t_sample inr, t_sample dr, t_sample dc, t_sample cell, t_sample& out1, t_sample& out2) {
-		t_sample threshold = safediv(cell, dr);
-		t_sample dcReduced = (dc * ((t_sample)0.01));
-		t_sample lOffset = (inl + dcReduced);
-		t_sample rOffset = (inr + dcReduced);
-		int cond_70 = (lOffset > threshold);
-		int cond_71 = (lOffset < (-threshold));
-		t_sample iftrue_72 = (-threshold);
-		t_sample iffalse_73 = (cond_71 ? iftrue_72 : lOffset);
-		t_sample l = (cond_70 ? threshold : iffalse_73);
-		int cond_74 = (rOffset > threshold);
-		int cond_75 = (rOffset < (-threshold));
-		t_sample iftrue_76 = (-threshold);
-		t_sample iffalse_77 = (cond_75 ? iftrue_76 : rOffset);
-		t_sample r = (cond_74 ? threshold : iffalse_77);
+		t_sample lWithDC = (inl + (dc * ((t_sample)0.05)));
+		t_sample rWithDC = (inr + (dc * ((t_sample)0.05)));
+		t_sample lDriven = (lWithDC * dr);
+		t_sample rDriven = (rWithDC * dr);
+		int cond_69 = (lDriven > cell);
+		int cond_70 = (lDriven < (-cell));
+		t_sample iftrue_71 = (-cell);
+		t_sample iffalse_72 = (cond_70 ? iftrue_71 : lDriven);
+		t_sample l = (cond_69 ? cell : iffalse_72);
+		int cond_73 = (rDriven > cell);
+		int cond_74 = (rDriven < (-cell));
+		t_sample iftrue_75 = (-cell);
+		t_sample iffalse_76 = (cond_74 ? iftrue_75 : rDriven);
+		t_sample r = (cond_73 ? cell : iffalse_76);
 		out1 = l;
 		out2 = r;
 		
@@ -552,7 +550,7 @@ int gen_kernel_numouts = 5;
 
 int num_inputs() { return gen_kernel_numins; }
 int num_outputs() { return gen_kernel_numouts; }
-int num_params() { return 14; }
+int num_params() { return 13; }
 
 /// Assistive lables for the signal inputs and outputs
 
@@ -587,11 +585,10 @@ void setparameter(CommonState *cself, long index, t_param value, void *ref) {
 		case 6: self->set_g_BITS(value); break;
 		case 7: self->set_h_BITSON(value); break;
 		case 8: self->set_i_TILT(value); break;
-		case 9: self->set_j_DELTA(value); break;
-		case 10: self->set_k_INPUT(value); break;
-		case 11: self->set_l_OUTPUT(value); break;
-		case 12: self->set_m_DOWNSAMPLE(value); break;
-		case 13: self->set_n_DOWNSAMPLEON(value); break;
+		case 9: self->set_k_INPUT(value); break;
+		case 10: self->set_l_OUTPUT(value); break;
+		case 11: self->set_m_DOWNSAMPLE(value); break;
+		case 12: self->set_n_DOWNSAMPLEON(value); break;
 		
 		default: break;
 	}
@@ -602,20 +599,19 @@ void setparameter(CommonState *cself, long index, t_param value, void *ref) {
 void getparameter(CommonState *cself, long index, t_param *value) {
 	State *self = (State *)cself;
 	switch (index) {
-		case 0: *value = self->m_a_DRYWET_37; break;
-		case 1: *value = self->m_b_DRIVE_36; break;
-		case 2: *value = self->m_c_DC_35; break;
-		case 3: *value = self->m_d_MODE_34; break;
-		case 4: *value = self->m_e_CEILING_33; break;
-		case 5: *value = self->m_f_BYPASS_32; break;
-		case 6: *value = self->m_g_BITS_31; break;
-		case 7: *value = self->m_h_BITSON_30; break;
-		case 8: *value = self->m_i_TILT_29; break;
-		case 9: *value = self->m_j_DELTA_28; break;
-		case 10: *value = self->m_k_INPUT_27; break;
-		case 11: *value = self->m_l_OUTPUT_26; break;
-		case 12: *value = self->m_m_DOWNSAMPLE_25; break;
-		case 13: *value = self->m_n_DOWNSAMPLEON_24; break;
+		case 0: *value = self->m_a_DRYWET_36; break;
+		case 1: *value = self->m_b_DRIVE_35; break;
+		case 2: *value = self->m_c_DC_34; break;
+		case 3: *value = self->m_d_MODE_33; break;
+		case 4: *value = self->m_e_CEILING_32; break;
+		case 5: *value = self->m_f_BYPASS_31; break;
+		case 6: *value = self->m_g_BITS_30; break;
+		case 7: *value = self->m_h_BITSON_29; break;
+		case 8: *value = self->m_i_TILT_28; break;
+		case 9: *value = self->m_k_INPUT_27; break;
+		case 10: *value = self->m_l_OUTPUT_26; break;
+		case 11: *value = self->m_m_DOWNSAMPLE_25; break;
+		case 12: *value = self->m_n_DOWNSAMPLEON_24; break;
 		
 		default: break;
 	}
@@ -696,13 +692,13 @@ void *create(t_param sr, long vs) {
 	self->__commonstate.numouts = gen_kernel_numouts;
 	self->__commonstate.sr = sr;
 	self->__commonstate.vs = vs;
-	self->__commonstate.params = (ParamInfo *)genlib_sysmem_newptr(14 * sizeof(ParamInfo));
-	self->__commonstate.numparams = 14;
-	// initialize parameter 0 ("m_a_DRYWET_37")
+	self->__commonstate.params = (ParamInfo *)genlib_sysmem_newptr(13 * sizeof(ParamInfo));
+	self->__commonstate.numparams = 13;
+	// initialize parameter 0 ("m_a_DRYWET_36")
 	pi = self->__commonstate.params + 0;
 	pi->name = "a_DRYWET";
 	pi->paramtype = GENLIB_PARAMTYPE_FLOAT;
-	pi->defaultvalue = self->m_a_DRYWET_37;
+	pi->defaultvalue = self->m_a_DRYWET_36;
 	pi->defaultref = 0;
 	pi->hasinputminmax = false;
 	pi->inputmin = 0;
@@ -712,11 +708,11 @@ void *create(t_param sr, long vs) {
 	pi->outputmax = 1;
 	pi->exp = 0;
 	pi->units = "";		// no units defined
-	// initialize parameter 1 ("m_b_DRIVE_36")
+	// initialize parameter 1 ("m_b_DRIVE_35")
 	pi = self->__commonstate.params + 1;
 	pi->name = "b_DRIVE";
 	pi->paramtype = GENLIB_PARAMTYPE_FLOAT;
-	pi->defaultvalue = self->m_b_DRIVE_36;
+	pi->defaultvalue = self->m_b_DRIVE_35;
 	pi->defaultref = 0;
 	pi->hasinputminmax = false;
 	pi->inputmin = 0;
@@ -726,11 +722,11 @@ void *create(t_param sr, long vs) {
 	pi->outputmax = 50;
 	pi->exp = 0;
 	pi->units = "";		// no units defined
-	// initialize parameter 2 ("m_c_DC_35")
+	// initialize parameter 2 ("m_c_DC_34")
 	pi = self->__commonstate.params + 2;
 	pi->name = "c_DC";
 	pi->paramtype = GENLIB_PARAMTYPE_FLOAT;
-	pi->defaultvalue = self->m_c_DC_35;
+	pi->defaultvalue = self->m_c_DC_34;
 	pi->defaultref = 0;
 	pi->hasinputminmax = false;
 	pi->inputmin = 0;
@@ -740,11 +736,11 @@ void *create(t_param sr, long vs) {
 	pi->outputmax = 1;
 	pi->exp = 0;
 	pi->units = "";		// no units defined
-	// initialize parameter 3 ("m_d_MODE_34")
+	// initialize parameter 3 ("m_d_MODE_33")
 	pi = self->__commonstate.params + 3;
 	pi->name = "d_MODE";
 	pi->paramtype = GENLIB_PARAMTYPE_FLOAT;
-	pi->defaultvalue = self->m_d_MODE_34;
+	pi->defaultvalue = self->m_d_MODE_33;
 	pi->defaultref = 0;
 	pi->hasinputminmax = false;
 	pi->inputmin = 0;
@@ -754,11 +750,11 @@ void *create(t_param sr, long vs) {
 	pi->outputmax = 7;
 	pi->exp = 0;
 	pi->units = "";		// no units defined
-	// initialize parameter 4 ("m_e_CEILING_33")
+	// initialize parameter 4 ("m_e_CEILING_32")
 	pi = self->__commonstate.params + 4;
 	pi->name = "e_CEILING";
 	pi->paramtype = GENLIB_PARAMTYPE_FLOAT;
-	pi->defaultvalue = self->m_e_CEILING_33;
+	pi->defaultvalue = self->m_e_CEILING_32;
 	pi->defaultref = 0;
 	pi->hasinputminmax = false;
 	pi->inputmin = 0;
@@ -768,11 +764,11 @@ void *create(t_param sr, long vs) {
 	pi->outputmax = 6;
 	pi->exp = 0;
 	pi->units = "";		// no units defined
-	// initialize parameter 5 ("m_f_BYPASS_32")
+	// initialize parameter 5 ("m_f_BYPASS_31")
 	pi = self->__commonstate.params + 5;
 	pi->name = "f_BYPASS";
 	pi->paramtype = GENLIB_PARAMTYPE_FLOAT;
-	pi->defaultvalue = self->m_f_BYPASS_32;
+	pi->defaultvalue = self->m_f_BYPASS_31;
 	pi->defaultref = 0;
 	pi->hasinputminmax = false;
 	pi->inputmin = 0;
@@ -782,25 +778,25 @@ void *create(t_param sr, long vs) {
 	pi->outputmax = 1;
 	pi->exp = 0;
 	pi->units = "";		// no units defined
-	// initialize parameter 6 ("m_g_BITS_31")
+	// initialize parameter 6 ("m_g_BITS_30")
 	pi = self->__commonstate.params + 6;
 	pi->name = "g_BITS";
 	pi->paramtype = GENLIB_PARAMTYPE_FLOAT;
-	pi->defaultvalue = self->m_g_BITS_31;
+	pi->defaultvalue = self->m_g_BITS_30;
 	pi->defaultref = 0;
 	pi->hasinputminmax = false;
 	pi->inputmin = 0;
 	pi->inputmax = 1;
 	pi->hasminmax = true;
-	pi->outputmin = 1;
-	pi->outputmax = 24;
+	pi->outputmin = 3;
+	pi->outputmax = 16;
 	pi->exp = 0;
 	pi->units = "";		// no units defined
-	// initialize parameter 7 ("m_h_BITSON_30")
+	// initialize parameter 7 ("m_h_BITSON_29")
 	pi = self->__commonstate.params + 7;
 	pi->name = "h_BITSON";
 	pi->paramtype = GENLIB_PARAMTYPE_FLOAT;
-	pi->defaultvalue = self->m_h_BITSON_30;
+	pi->defaultvalue = self->m_h_BITSON_29;
 	pi->defaultref = 0;
 	pi->hasinputminmax = false;
 	pi->inputmin = 0;
@@ -810,11 +806,11 @@ void *create(t_param sr, long vs) {
 	pi->outputmax = 1;
 	pi->exp = 0;
 	pi->units = "";		// no units defined
-	// initialize parameter 8 ("m_i_TILT_29")
+	// initialize parameter 8 ("m_i_TILT_28")
 	pi = self->__commonstate.params + 8;
 	pi->name = "i_TILT";
 	pi->paramtype = GENLIB_PARAMTYPE_FLOAT;
-	pi->defaultvalue = self->m_i_TILT_29;
+	pi->defaultvalue = self->m_i_TILT_28;
 	pi->defaultref = 0;
 	pi->hasinputminmax = false;
 	pi->inputmin = 0;
@@ -824,22 +820,8 @@ void *create(t_param sr, long vs) {
 	pi->outputmax = 6;
 	pi->exp = 0;
 	pi->units = "";		// no units defined
-	// initialize parameter 9 ("m_j_DELTA_28")
+	// initialize parameter 9 ("m_k_INPUT_27")
 	pi = self->__commonstate.params + 9;
-	pi->name = "j_DELTA";
-	pi->paramtype = GENLIB_PARAMTYPE_FLOAT;
-	pi->defaultvalue = self->m_j_DELTA_28;
-	pi->defaultref = 0;
-	pi->hasinputminmax = false;
-	pi->inputmin = 0;
-	pi->inputmax = 1;
-	pi->hasminmax = true;
-	pi->outputmin = 0;
-	pi->outputmax = 1;
-	pi->exp = 0;
-	pi->units = "";		// no units defined
-	// initialize parameter 10 ("m_k_INPUT_27")
-	pi = self->__commonstate.params + 10;
 	pi->name = "k_INPUT";
 	pi->paramtype = GENLIB_PARAMTYPE_FLOAT;
 	pi->defaultvalue = self->m_k_INPUT_27;
@@ -852,8 +834,8 @@ void *create(t_param sr, long vs) {
 	pi->outputmax = 12;
 	pi->exp = 0;
 	pi->units = "";		// no units defined
-	// initialize parameter 11 ("m_l_OUTPUT_26")
-	pi = self->__commonstate.params + 11;
+	// initialize parameter 10 ("m_l_OUTPUT_26")
+	pi = self->__commonstate.params + 10;
 	pi->name = "l_OUTPUT";
 	pi->paramtype = GENLIB_PARAMTYPE_FLOAT;
 	pi->defaultvalue = self->m_l_OUTPUT_26;
@@ -866,8 +848,8 @@ void *create(t_param sr, long vs) {
 	pi->outputmax = 12;
 	pi->exp = 0;
 	pi->units = "";		// no units defined
-	// initialize parameter 12 ("m_m_DOWNSAMPLE_25")
-	pi = self->__commonstate.params + 12;
+	// initialize parameter 11 ("m_m_DOWNSAMPLE_25")
+	pi = self->__commonstate.params + 11;
 	pi->name = "m_DOWNSAMPLE";
 	pi->paramtype = GENLIB_PARAMTYPE_FLOAT;
 	pi->defaultvalue = self->m_m_DOWNSAMPLE_25;
@@ -880,8 +862,8 @@ void *create(t_param sr, long vs) {
 	pi->outputmax = 99;
 	pi->exp = 0;
 	pi->units = "";		// no units defined
-	// initialize parameter 13 ("m_n_DOWNSAMPLEON_24")
-	pi = self->__commonstate.params + 13;
+	// initialize parameter 12 ("m_n_DOWNSAMPLEON_24")
+	pi = self->__commonstate.params + 12;
 	pi->name = "n_DOWNSAMPLEON";
 	pi->paramtype = GENLIB_PARAMTYPE_FLOAT;
 	pi->defaultvalue = self->m_n_DOWNSAMPLEON_24;

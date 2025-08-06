@@ -15,7 +15,7 @@
 		"boxes" : [ 			{
 				"box" : 				{
 					"format" : 6,
-					"id" : "obj-83",
+					"id" : "obj-13",
 					"maxclass" : "flonum",
 					"maximum" : 100.0,
 					"minimum" : 0.0,
@@ -23,19 +23,43 @@
 					"numoutlets" : 2,
 					"outlettype" : [ "", "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 912.0, 632.0, 103.0, 22.0 ]
+					"patching_rect" : [ 1017.0, 257.0, 103.0, 22.0 ]
 				}
 
 			}
 , 			{
 				"box" : 				{
-					"id" : "obj-81",
+					"id" : "obj-29",
 					"maxclass" : "message",
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 911.0, 660.0, 129.0, 22.0 ],
+					"patching_rect" : [ 1016.0, 285.0, 129.0, 22.0 ],
 					"text" : "m_DOWNSAMPLE $1"
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-9",
+					"maxclass" : "toggle",
+					"numinlets" : 1,
+					"numoutlets" : 1,
+					"outlettype" : [ "int" ],
+					"parameter_enable" : 0,
+					"patching_rect" : [ 863.0, 256.0, 24.0, 24.0 ]
+				}
+
+			}
+, 			{
+				"box" : 				{
+					"id" : "obj-10",
+					"maxclass" : "message",
+					"numinlets" : 2,
+					"numoutlets" : 1,
+					"outlettype" : [ "" ],
+					"patching_rect" : [ 863.0, 285.0, 143.0, 22.0 ],
+					"text" : "n_DOWNSAMPLEON $1"
 				}
 
 			}
@@ -46,67 +70,8 @@
 					"numinlets" : 0,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 128.0, 303.0, 49.0, 22.0 ],
+					"patching_rect" : [ 106.5, 250.0, 49.0, 22.0 ],
 					"text" : "r parms"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-79",
-					"maxclass" : "newobj",
-					"numinlets" : 1,
-					"numoutlets" : 0,
-					"patching_rect" : [ 892.0, 719.0, 51.0, 22.0 ],
-					"text" : "s parms"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-78",
-					"maxclass" : "toggle",
-					"numinlets" : 1,
-					"numoutlets" : 1,
-					"outlettype" : [ "int" ],
-					"parameter_enable" : 0,
-					"patching_rect" : [ 892.0, 566.0, 24.0, 24.0 ]
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-76",
-					"maxclass" : "message",
-					"numinlets" : 2,
-					"numoutlets" : 1,
-					"outlettype" : [ "" ],
-					"patching_rect" : [ 892.0, 595.0, 143.0, 22.0 ],
-					"text" : "n_DOWNSAMPLEON $1"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-74",
-					"maxclass" : "toggle",
-					"numinlets" : 1,
-					"numoutlets" : 1,
-					"outlettype" : [ "int" ],
-					"parameter_enable" : 0,
-					"patching_rect" : [ 1363.0, 199.0, 24.0, 24.0 ]
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-75",
-					"maxclass" : "message",
-					"numinlets" : 2,
-					"numoutlets" : 1,
-					"outlettype" : [ "" ],
-					"patching_rect" : [ 1363.0, 229.0, 71.0, 22.0 ],
-					"text" : "j_DELTA $1"
 				}
 
 			}
@@ -144,7 +109,7 @@
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "signal", "signal" ],
-					"patching_rect" : [ 1090.0, 526.0, 82.0, 22.0 ],
+					"patching_rect" : [ 1107.0, 465.0, 82.0, 22.0 ],
 					"text" : "adoutput~ 1 2"
 				}
 
@@ -219,7 +184,7 @@
 					"numoutlets" : 2,
 					"outlettype" : [ "", "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 1220.0, 305.0, 50.0, 22.0 ]
+					"patching_rect" : [ 1253.0, 301.0, 50.0, 22.0 ]
 				}
 
 			}
@@ -230,7 +195,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 1220.0, 350.0, 84.0, 22.0 ],
+					"patching_rect" : [ 1253.0, 346.0, 84.0, 22.0 ],
 					"text" : "l_OUTPUT $1"
 				}
 
@@ -246,7 +211,7 @@
 					"numoutlets" : 2,
 					"outlettype" : [ "", "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 259.5, 305.0, 50.0, 22.0 ]
+					"patching_rect" : [ 431.0, 235.0, 50.0, 22.0 ]
 				}
 
 			}
@@ -257,56 +222,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 259.5, 350.0, 74.0, 22.0 ],
+					"patching_rect" : [ 431.0, 280.0, 74.0, 22.0 ],
 					"text" : "k_INPUT $1"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-71",
-					"maxclass" : "toggle",
-					"numinlets" : 1,
-					"numoutlets" : 1,
-					"outlettype" : [ "int" ],
-					"parameter_enable" : 0,
-					"patching_rect" : [ 852.0, 156.0, 24.0, 24.0 ]
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-67",
-					"maxclass" : "toggle",
-					"numinlets" : 1,
-					"numoutlets" : 1,
-					"outlettype" : [ "int" ],
-					"parameter_enable" : 0,
-					"patching_rect" : [ 700.0, 156.0, 24.0, 24.0 ]
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-66",
-					"maxclass" : "toggle",
-					"numinlets" : 1,
-					"numoutlets" : 1,
-					"outlettype" : [ "int" ],
-					"parameter_enable" : 0,
-					"patching_rect" : [ 548.0, 123.0, 57.0, 57.0 ]
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-65",
-					"maxclass" : "toggle",
-					"numinlets" : 1,
-					"numoutlets" : 1,
-					"outlettype" : [ "int" ],
-					"parameter_enable" : 0,
-					"patching_rect" : [ 394.0, 156.0, 24.0, 24.0 ]
 				}
 
 			}
@@ -345,7 +262,7 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "int" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 137.0, 93.0, 24.0, 24.0 ]
+					"patching_rect" : [ 119.0, 88.0, 24.0, 24.0 ]
 				}
 
 			}
@@ -359,7 +276,7 @@
 					"numoutlets" : 1,
 					"numpoints" : 441,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 1090.0, 572.0, 276.0, 219.0 ],
+					"patching_rect" : [ 1107.0, 511.0, 276.0, 219.0 ],
 					"prototypename" : "Audio Scope - Light",
 					"subplots" : [ 						{
 							"color" : [ 0.100000001490116, 0.899999976158142, 0.100000001490116, 1.0 ],
@@ -394,7 +311,7 @@
 					"numoutlets" : 2,
 					"outlettype" : [ "", "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 137.0, 124.0, 50.0, 22.0 ]
+					"patching_rect" : [ 119.0, 119.0, 50.0, 22.0 ]
 				}
 
 			}
@@ -405,8 +322,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "signal" ],
-					"patching_rect" : [ 73.0, 162.0, 83.0, 22.0 ],
-					"text" : "*~ 0.01"
+					"patching_rect" : [ 55.0, 157.0, 83.0, 22.0 ],
+					"text" : "*~ 0."
 				}
 
 			}
@@ -455,7 +372,7 @@
 					"numoutlets" : 2,
 					"outlettype" : [ "", "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 770.0, 303.0, 50.0, 22.0 ]
+					"patching_rect" : [ 775.0, 100.5, 50.0, 22.0 ]
 				}
 
 			}
@@ -466,7 +383,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 770.0, 350.0, 58.0, 22.0 ],
+					"patching_rect" : [ 775.0, 147.5, 58.0, 22.0 ],
 					"text" : "i_TILT $1"
 				}
 
@@ -477,12 +394,12 @@
 					"id" : "obj-53",
 					"maxclass" : "flonum",
 					"maximum" : 16.0,
-					"minimum" : 1.0,
+					"minimum" : 3.0,
 					"numinlets" : 1,
 					"numoutlets" : 2,
 					"outlettype" : [ "", "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 975.0, 303.0, 50.0, 22.0 ]
+					"patching_rect" : [ 966.0, 157.0, 50.0, 22.0 ]
 				}
 
 			}
@@ -493,7 +410,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 975.0, 350.0, 65.0, 22.0 ],
+					"patching_rect" : [ 966.0, 204.0, 65.0, 22.0 ],
 					"text" : "g_BITS $1"
 				}
 
@@ -506,7 +423,7 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "int" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 1048.0, 303.0, 24.0, 24.0 ]
+					"patching_rect" : [ 1039.0, 157.0, 24.0, 24.0 ]
 				}
 
 			}
@@ -517,7 +434,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 1048.0, 350.0, 83.0, 22.0 ],
+					"patching_rect" : [ 1039.0, 204.0, 83.0, 22.0 ],
 					"text" : "h_BITSON $1"
 				}
 
@@ -531,7 +448,7 @@
 					"numoutlets" : 2,
 					"outlettype" : [ "", "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 73.0, 85.0, 50.0, 22.0 ]
+					"patching_rect" : [ 55.0, 80.0, 50.0, 22.0 ]
 				}
 
 			}
@@ -542,7 +459,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "signal" ],
-					"patching_rect" : [ 73.0, 124.0, 60.0, 22.0 ],
+					"patching_rect" : [ 55.0, 119.0, 60.0, 22.0 ],
 					"text" : "cycle~ 60"
 				}
 
@@ -625,7 +542,7 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "int" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 1318.0, 315.0, 24.0, 24.0 ]
+					"patching_rect" : [ 1378.0, 134.0, 24.0, 24.0 ]
 				}
 
 			}
@@ -636,276 +553,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 1318.0, 345.0, 82.0, 22.0 ],
+					"patching_rect" : [ 1378.0, 164.0, 82.0, 22.0 ],
 					"text" : "f_BYPASS $1"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"basictuning" : 440,
-					"data" : 					{
-						"clips" : [ 							{
-								"absolutepath" : "jongly.aif",
-								"filename" : "jongly.aif",
-								"filekind" : "audiofile",
-								"id" : "u110010879",
-								"loop" : 1,
-								"content_state" : 								{
-									"loop" : 1
-								}
-
-							}
- ]
-					}
-,
-					"followglobaltempo" : 0,
-					"formantcorrection" : 0,
-					"id" : "obj-36",
-					"maxclass" : "playlist~",
-					"mode" : "basic",
-					"numinlets" : 1,
-					"numoutlets" : 5,
-					"originallength" : [ 0.0, "ticks" ],
-					"originaltempo" : 120.0,
-					"outlettype" : [ "signal", "signal", "signal", "", "dictionary" ],
-					"parameter_enable" : 0,
-					"patching_rect" : [ 852.0, 187.0, 150.0, 30.0 ],
-					"pitchcorrection" : 0,
-					"quality" : "basic",
-					"saved_attribute_attributes" : 					{
-						"candicane2" : 						{
-							"expression" : ""
-						}
-,
-						"candicane3" : 						{
-							"expression" : ""
-						}
-,
-						"candicane4" : 						{
-							"expression" : ""
-						}
-,
-						"candicane5" : 						{
-							"expression" : ""
-						}
-,
-						"candicane6" : 						{
-							"expression" : ""
-						}
-,
-						"candicane7" : 						{
-							"expression" : ""
-						}
-,
-						"candicane8" : 						{
-							"expression" : ""
-						}
-
-					}
-,
-					"timestretch" : [ 0 ]
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"basictuning" : 440,
-					"data" : 					{
-						"clips" : [ 							{
-								"absolutepath" : "eroica.aiff",
-								"filename" : "eroica.aiff",
-								"filekind" : "audiofile",
-								"id" : "u296010872",
-								"loop" : 1,
-								"content_state" : 								{
-									"loop" : 1
-								}
-
-							}
- ]
-					}
-,
-					"followglobaltempo" : 0,
-					"formantcorrection" : 0,
-					"id" : "obj-34",
-					"maxclass" : "playlist~",
-					"mode" : "basic",
-					"numinlets" : 1,
-					"numoutlets" : 5,
-					"originallength" : [ 0.0, "ticks" ],
-					"originaltempo" : 120.0,
-					"outlettype" : [ "signal", "signal", "signal", "", "dictionary" ],
-					"parameter_enable" : 0,
-					"patching_rect" : [ 700.0, 187.0, 150.0, 30.0 ],
-					"pitchcorrection" : 0,
-					"quality" : "basic",
-					"saved_attribute_attributes" : 					{
-						"candicane2" : 						{
-							"expression" : ""
-						}
-,
-						"candicane3" : 						{
-							"expression" : ""
-						}
-,
-						"candicane4" : 						{
-							"expression" : ""
-						}
-,
-						"candicane5" : 						{
-							"expression" : ""
-						}
-,
-						"candicane6" : 						{
-							"expression" : ""
-						}
-,
-						"candicane7" : 						{
-							"expression" : ""
-						}
-,
-						"candicane8" : 						{
-							"expression" : ""
-						}
-
-					}
-,
-					"timestretch" : [ 0 ]
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"basictuning" : 440,
-					"data" : 					{
-						"clips" : [ 							{
-								"absolutepath" : "drumLoop.aif",
-								"filename" : "drumLoop.aif",
-								"filekind" : "audiofile",
-								"id" : "u236010865",
-								"loop" : 1,
-								"content_state" : 								{
-									"loop" : 1
-								}
-
-							}
- ]
-					}
-,
-					"followglobaltempo" : 0,
-					"formantcorrection" : 0,
-					"id" : "obj-32",
-					"maxclass" : "playlist~",
-					"mode" : "basic",
-					"numinlets" : 1,
-					"numoutlets" : 5,
-					"originallength" : [ 0.0, "ticks" ],
-					"originaltempo" : 120.0,
-					"outlettype" : [ "signal", "signal", "signal", "", "dictionary" ],
-					"parameter_enable" : 0,
-					"patching_rect" : [ 548.0, 187.0, 150.0, 30.0 ],
-					"pitchcorrection" : 0,
-					"quality" : "basic",
-					"saved_attribute_attributes" : 					{
-						"candicane2" : 						{
-							"expression" : ""
-						}
-,
-						"candicane3" : 						{
-							"expression" : ""
-						}
-,
-						"candicane4" : 						{
-							"expression" : ""
-						}
-,
-						"candicane5" : 						{
-							"expression" : ""
-						}
-,
-						"candicane6" : 						{
-							"expression" : ""
-						}
-,
-						"candicane7" : 						{
-							"expression" : ""
-						}
-,
-						"candicane8" : 						{
-							"expression" : ""
-						}
-
-					}
-,
-					"timestretch" : [ 0 ]
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"basictuning" : 440,
-					"data" : 					{
-						"clips" : [ 							{
-								"absolutepath" : "cherokee.aif",
-								"filename" : "cherokee.aif",
-								"filekind" : "audiofile",
-								"id" : "u689010858",
-								"loop" : 1,
-								"content_state" : 								{
-									"loop" : 1
-								}
-
-							}
- ]
-					}
-,
-					"followglobaltempo" : 0,
-					"formantcorrection" : 0,
-					"id" : "obj-30",
-					"maxclass" : "playlist~",
-					"mode" : "basic",
-					"numinlets" : 1,
-					"numoutlets" : 5,
-					"originallength" : [ 0.0, "ticks" ],
-					"originaltempo" : 120.0,
-					"outlettype" : [ "signal", "signal", "signal", "", "dictionary" ],
-					"parameter_enable" : 0,
-					"patching_rect" : [ 394.0, 187.0, 150.0, 30.0 ],
-					"pitchcorrection" : 0,
-					"quality" : "basic",
-					"saved_attribute_attributes" : 					{
-						"candicane2" : 						{
-							"expression" : ""
-						}
-,
-						"candicane3" : 						{
-							"expression" : ""
-						}
-,
-						"candicane4" : 						{
-							"expression" : ""
-						}
-,
-						"candicane5" : 						{
-							"expression" : ""
-						}
-,
-						"candicane6" : 						{
-							"expression" : ""
-						}
-,
-						"candicane7" : 						{
-							"expression" : ""
-						}
-,
-						"candicane8" : 						{
-							"expression" : ""
-						}
-
-					}
-,
-					"timestretch" : [ 0 ]
 				}
 
 			}
@@ -920,7 +569,7 @@
 					"numoutlets" : 2,
 					"outlettype" : [ "", "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 677.5, 303.0, 50.0, 22.0 ]
+					"patching_rect" : [ 843.0, 100.5, 50.0, 22.0 ]
 				}
 
 			}
@@ -931,7 +580,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 677.5, 350.0, 87.0, 22.0 ],
+					"patching_rect" : [ 843.0, 147.5, 87.0, 22.0 ],
 					"text" : "e_CEILING $1"
 				}
 
@@ -1047,41 +696,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "signal" ],
-					"patching_rect" : [ 531.0, 628.0, 79.0, 22.0 ],
-					"text" : "*~ 0.01"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-13",
-					"maxclass" : "comment",
-					"numinlets" : 1,
-					"numoutlets" : 0,
-					"patching_rect" : [ 525.5, 280.0, 39.0, 20.0 ],
-					"text" : "0 - 1"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-10",
-					"maxclass" : "comment",
-					"numinlets" : 1,
-					"numoutlets" : 0,
-					"patching_rect" : [ 435.5, 280.0, 39.0, 20.0 ],
-					"text" : "1 - 50"
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"id" : "obj-9",
-					"maxclass" : "comment",
-					"numinlets" : 1,
-					"numoutlets" : 0,
-					"patching_rect" : [ 348.5, 280.0, 33.0, 20.0 ],
-					"text" : "0 - 1"
+					"patching_rect" : [ 531.0, 628.0, 40.0, 22.0 ],
+					"text" : "*~ 0.1"
 				}
 
 			}
@@ -1092,7 +708,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 220.0, 89.0, 68.0, 22.0 ],
+					"patching_rect" : [ 192.5, 74.0, 68.0, 22.0 ],
 					"text" : "exportcode"
 				}
 
@@ -1104,7 +720,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 339.5, 350.0, 90.0, 22.0 ],
+					"patching_rect" : [ 526.0, 147.5, 90.0, 22.0 ],
 					"text" : "a_DRYWET $1"
 				}
 
@@ -1120,7 +736,7 @@
 					"numoutlets" : 2,
 					"outlettype" : [ "", "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 339.5, 304.0, 50.0, 22.0 ]
+					"patching_rect" : [ 526.0, 101.5, 50.0, 22.0 ]
 				}
 
 			}
@@ -1135,7 +751,7 @@
 					"numoutlets" : 2,
 					"outlettype" : [ "", "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 520.5, 303.0, 50.0, 22.0 ]
+					"patching_rect" : [ 707.0, 100.5, 50.0, 22.0 ]
 				}
 
 			}
@@ -1150,7 +766,7 @@
 					"numoutlets" : 2,
 					"outlettype" : [ "", "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 435.5, 303.0, 50.0, 22.0 ]
+					"patching_rect" : [ 622.0, 100.5, 50.0, 22.0 ]
 				}
 
 			}
@@ -1189,19 +805,7 @@
 					"numoutlets" : 2,
 					"outlettype" : [ "", "bang" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 381.0, 560.0, 50.0, 22.0 ]
-				}
-
-			}
-, 			{
-				"box" : 				{
-					"fontsize" : 47.0,
-					"id" : "obj-39",
-					"maxclass" : "comment",
-					"numinlets" : 1,
-					"numoutlets" : 0,
-					"patching_rect" : [ 1090.0, 452.0, 318.0, 59.0 ],
-					"text" : "gen~ distortion"
+					"patching_rect" : [ 381.0, 584.0, 50.0, 22.0 ]
 				}
 
 			}
@@ -1212,7 +816,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 520.5, 350.0, 55.0, 22.0 ],
+					"patching_rect" : [ 707.0, 147.5, 55.0, 22.0 ],
 					"text" : "c_DC $1"
 				}
 
@@ -1224,7 +828,7 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 435.5, 350.0, 75.0, 22.0 ],
+					"patching_rect" : [ 622.0, 147.5, 75.0, 22.0 ],
 					"text" : "b_DRIVE $1"
 				}
 
@@ -1246,8 +850,8 @@
 					"numinlets" : 2,
 					"numoutlets" : 1,
 					"outlettype" : [ "signal" ],
-					"patching_rect" : [ 209.0, 635.0, 79.0, 22.0 ],
-					"text" : "*~ 0.01"
+					"patching_rect" : [ 209.0, 635.0, 40.0, 22.0 ],
+					"text" : "*~ 0.1"
 				}
 
 			}
@@ -1289,7 +893,7 @@
 									"maxclass" : "newobj",
 									"numinlets" : 1,
 									"numoutlets" : 0,
-									"patching_rect" : [ 318.666666666666686, 846.0, 35.0, 22.0 ],
+									"patching_rect" : [ 453.0, 853.0, 35.0, 22.0 ],
 									"text" : "out 3"
 								}
 
@@ -1300,7 +904,7 @@
 									"maxclass" : "newobj",
 									"numinlets" : 1,
 									"numoutlets" : 0,
-									"patching_rect" : [ 587.333333333333371, 846.0, 35.0, 22.0 ],
+									"patching_rect" : [ 856.0, 853.0, 35.0, 22.0 ],
 									"text" : "out 5"
 								}
 
@@ -1311,7 +915,7 @@
 									"maxclass" : "newobj",
 									"numinlets" : 1,
 									"numoutlets" : 0,
-									"patching_rect" : [ 453.0, 846.0, 35.0, 22.0 ],
+									"patching_rect" : [ 654.5, 853.0, 35.0, 22.0 ],
 									"text" : "out 4"
 								}
 
@@ -1322,7 +926,7 @@
 									"maxclass" : "newobj",
 									"numinlets" : 1,
 									"numoutlets" : 0,
-									"patching_rect" : [ 184.333333333333343, 846.0, 35.0, 22.0 ],
+									"patching_rect" : [ 251.5, 853.0, 35.0, 22.0 ],
 									"text" : "out 2"
 								}
 
@@ -1353,7 +957,7 @@
 							}
 , 							{
 								"box" : 								{
-									"code" : "// =============================================================================\n// MULTI-ALGORITHM DISTORTION WITH CONTINUOUS MORPHING\n// =============================================================================\n// Plugin de distorsión con múltiples algoritmos y morphing continuo\n// Incluye filtros tilt pre/post, bit crusher opcional y controles completos\n// =============================================================================\n\n// -----------------------------------------------------------------------------\n// FUNCIONES DE DISTORSIÓN (en orden de modo)\n// -----------------------------------------------------------------------------\n\n// MODO 0 - Soft Clipping - Saturación suave con función cúbica\n// Fuente: Julius O. Smith III (CCRMA Stanford) - https://ccrma.stanford.edu/~jos/pasp/Soft_Clipping.html\nsoftclip(inl, inr, cell) {\n    lNorm = inl / cell;\n    rNorm = inr / cell;\n    \n    lCubic = lNorm - (lNorm * lNorm * lNorm) / 3;\n    rCubic = rNorm - (rNorm * rNorm * rNorm) / 3;\n    \n    lLimited = sign(lNorm) * (2.0 / 3.0);\n    rLimited = sign(rNorm) * (2.0 / 3.0);\n    \n    lOut = (abs(lNorm) <= 1) ? lCubic : lLimited;\n    rOut = (abs(rNorm) <= 1) ? rCubic : rLimited;\n    \n    return lOut * cell, rOut * cell;\n}\n\n// MODO 1 - Sigmoid - Curva en S para saturación suave\n// Fuente: Función logística estándar adaptada para audio\nsigmoid(inl, inr, dr, dc, cell) {\n    factor = (-1) * (dr + dc);\n    l = (2 * (1 / (1 + exp(factor * inl)))) - 1;\n    r = (2 * (1 / (1 + exp(factor * inr)))) - 1;\n    \n    // Aplicar ceiling para limitar la salida\n    lOut = clip(l * cell, -cell, cell);\n    rOut = clip(r * cell, -cell, cell);\n    \n    return lOut, rOut;\n}\n\n// MODO 2 - Rectificador Full Wave - Bipolar con compensación de ganancia\n// Fuente: Diseño propio basado en rectificación con preservación de polaridad\nrectF(inl, inr, dr, cell) {\n    l = sign(inl) * abs(inl * dr) * 0.707;\n    r = sign(inr) * abs(inr * dr) * 0.707;\n    lOut = clip(l, -cell, cell);\n    rOut = clip(r, -cell, cell);\n    return lOut, rOut;\n}\n\n// MODO 3 - Fuzz Exponencial 1 - Distorsión tipo fuzz con curva exponencial\n// Fuente: DAFX de Udo Zölzer (fórmula corregida) - f(x) = sgn(x) * (1 - e^(-|x|))\nfuzzExp1(inl, inr, dr, dc, cell) {\n    signl = sign(inl);\n    signr = sign(inr);\n    \n    lScaled = abs(inl * dr + dc * 0.01);\n    rScaled = abs(inr * dr + dc * 0.01);\n    \n    l = signl * (1 - exp(-lScaled));\n    r = signr * (1 - exp(-rScaled));\n    \n    lOut = clip(l, -cell, cell);\n    rOut = clip(r, -cell, cell);\n    return lOut, rOut;\n}\n\n// MODO 4 - Tangente Hiperbólica - Distorsión suave tipo saturación de cinta\n// Fuente: Algoritmo clásico de saturación analógica - tanh(x)/tanh(drive)\ntangenteHiperbolica(inl, inr, dr, dc, cell) {\n    l = clip((inl * dr) + (dc * 0.01), -cell, cell);\n    r = clip((inr * dr) + (dc * 0.01), -cell, cell);\n    lOut = (tanh(l)) / (tanh(dr));\n    rOut = (tanh(r)) / (tanh(dr));\n    return lOut, rOut;\n}\n\n// MODO 5 - Rectificador Half Wave - Solo valores positivos\n// Fuente: Emulación de diodo rectificador clásico\nrectH(inl, inr, dr, cell) {\n    lPositive = max(inl, 0);\n    rPositive = max(inr, 0);\n    l = clip((lPositive * dr) * 0.5, -cell, cell);\n    r = clip((rPositive * dr) * 0.5, -cell, cell);\n    return l, r;\n}\n\n// MODO 6 - Arctangente puro - Distorsión suave con compresión natural\n// Fuente: Función arctangente estándar para saturación suave\narctangent(inl, inr, dr, dc, cell) {\n    lScaled = (inl * dr + dc * 0.01) * 2;\n    rScaled = (inr * dr + dc * 0.01) * 2;\n    \n    l = (2 / pi) * atan(lScaled);\n    r = (2 / pi) * atan(rScaled);\n    \n    lOut = l * cell;\n    rOut = r * cell;\n    \n    return lOut, rOut;\n}\n\n// MODO 7 - Hard Clip - Recorte abrupto de la señal\n// Fuente: Clipping digital clásico - saturación dura\nhardClip(inl, inr, dr, dc, cell) {\n    threshold = cell / dr;\n    \n    // Aplicar DC offset reducido (solo 10% del efecto para evitar silenciar)\n    dcReduced = dc * 0.01;  // Reducido de 0.1 a 0.01\n    lOffset = inl + dcReduced;\n    rOffset = inr + dcReduced;\n    \n    l = (lOffset > threshold) ? threshold : ((lOffset < -threshold) ? -threshold : lOffset);\n    r = (rOffset > threshold) ? threshold : ((rOffset < -threshold) ? -threshold : rOffset);\n    \n    return l, r;\n}\n\n// Bit Crusher - Reduce la resolución de bits\n// Fuente: Algoritmo estándar de reducción de bits/cuantización\nbitCrusher(inl, inr, bits) {\n    steps = pow(2, bits) - 1;\n    invSteps = 1 / steps;\n    l = ceil(inl * steps) * invSteps;\n    r = ceil(inr * steps) * invSteps;\n    return l, r;\n}\n\n// -----------------------------------------------------------------------------\n// PARÁMETROS\n// -----------------------------------------------------------------------------\nParam a_DRYWET(1, min=0, default=1, max=1);\nParam b_DRIVE(1, min=1, default=1, max=50);\nParam c_DC(0, min=0, default=0, max=1);         // DC offset - añade armónicos pares (asimetría)\nParam d_MODE(1, min=0, default=0, max=7);       // Continuo 0-7 (8 algoritmos)\nParam e_CEILING(0, min=-20, default=0, max=6);\nParam f_BYPASS(0, min=0, default=0, max=1);\nParam g_BITS(24, min=1, default=24, max=24);\nParam h_BITSON(0, min=0, default=0, max=1);\nParam i_TILT(0, min=-6, default=0, max=6);\nParam j_DELTA(0, min=0, default=0, max=1);      // Modo Delta - escuchar solo lo que añade la distorsión\nParam k_INPUT(0, min=-12, default=0, max=12);   // Input trim gain\nParam l_OUTPUT(0, min=-12, default=0, max=12);  // Output makeup gain\nParam m_DOWNSAMPLE(0, min=0, default=0, max=99); // Factor de downsampling (0 = sin efecto)\nParam n_DOWNSAMPLEON(0, min=0, default=0, max=1); // Activar downsampling\n\n// -----------------------------------------------------------------------------\n// HISTORIALES PARA SMOOTHING\n// -----------------------------------------------------------------------------\nHistory hDrive(0);\nHistory hDc(0);\nHistory hDrywet(0);\nHistory hBits(0);\nHistory hBitson(0);\nHistory hTilt(0);\nHistory hInput(0);\nHistory hOutput(0);\nHistory hMode(0);     // Para suavizar cambios de modo\nHistory hDelta(0);    // Para suavizar modo delta\nHistory hDownsample(0); // Para suavizar factor de downsampling\nHistory hDownsampleOn(0); // Para suavizar activación de downsampling\n\n// Historiales para el downsampler\nHistory dsCounter(0);\nHistory dsHeldL(0);\nHistory dsHeldR(0);\n\n// Historiales para filtros Tilt\nHistory tiltL1(0), tiltL2(0), tiltL3(0), tiltL4(0);\nHistory tiltR1(0), tiltR2(0), tiltR3(0), tiltR4(0);\n\n// -----------------------------------------------------------------------------\n// PROCESAMIENTO PRINCIPAL\n// -----------------------------------------------------------------------------\n\n// Entrada\nlIn = in1;\nrIn = in2;\n\n// Smoothing de parámetros\nsmoothFactor = 0.999;\nhDrive = hDrive * smoothFactor + b_DRIVE * (1 - smoothFactor);\ndrive = hDrive;\nhDc = hDc * smoothFactor + c_DC * (1 - smoothFactor);\ndc = hDc;\nhDrywet = hDrywet * smoothFactor + a_DRYWET * (1 - smoothFactor);\ndrywet = hDrywet;\nhBits = hBits * smoothFactor + g_BITS * (1 - smoothFactor);\nbits = hBits;\nhBitson = hBitson * smoothFactor + h_BITSON * (1 - smoothFactor);\nbitson = hBitson;\nhTilt = hTilt * smoothFactor + i_TILT * (1 - smoothFactor);\ntiltDb = hTilt;\nhInput = hInput * smoothFactor + k_INPUT * (1 - smoothFactor);\ninputTrimDb = hInput;\nhOutput = hOutput * smoothFactor + l_OUTPUT * (1 - smoothFactor);\noutputMakeupDb = hOutput;\n\n// Suavizado especial para MODE con factor más agresivo para evitar clicks\nmodeSmoothFactor = 0.99;  // Más rápido que otros parámetros pero aún suave\nhMode = hMode * modeSmoothFactor + d_MODE * (1 - modeSmoothFactor);\nsmoothedMode = hMode;  // Definir la variable aquí\n\n// Suavizado del modo Delta\nhDelta = hDelta * smoothFactor + j_DELTA * (1 - smoothFactor);\ndeltaAmount = hDelta;\n\n// Suavizado del downsampling\nhDownsample = hDownsample * smoothFactor + m_DOWNSAMPLE * (1 - smoothFactor);\nhDownsampleOn = hDownsampleOn * smoothFactor + n_DOWNSAMPLEON * (1 - smoothFactor);\ndownsampleOn = hDownsampleOn;\n\n// Conversiones\nceiling = dbtoa(e_CEILING);\nbypass = 1 - f_BYPASS;\ninputTrimLinear = dbtoa(inputTrimDb);\noutputMakeupLinear = dbtoa(outputMakeupDb);\n\n// -----------------------------------------------------------------------------\n// INPUT TRIM\n// -----------------------------------------------------------------------------\nlTrimmed = lIn * inputTrimLinear;\nrTrimmed = rIn * inputTrimLinear;\n\n// -----------------------------------------------------------------------------\n// FILTRO TILT PRE-DISTORSIÓN\n// -----------------------------------------------------------------------------\nfc = 800.0;\nq = 0.7071;\n\n// Cálculo de coeficientes para Tilt (invertido para UI intuitiva)\ntiltGain = dbtoa(-tiltDb);\nomega = (fc * twopi) / samplerate;\nsn = sin(omega);\ncs = cos(omega);\nA = sqrt(tiltGain);\nbeta = sqrt((A * A + 1) / q - (A - 1) * (A - 1));\n\n// Coeficientes Low Shelf\nb0Ls = 1 / ((A + 1) + (A - 1) * cs + beta * sn);\na0Ls = A * ((A + 1) - (A - 1) * cs + beta * sn) * b0Ls;\na1Ls = 2 * A * ((A - 1) - (A + 1) * cs) * b0Ls;\na2Ls = A * ((A + 1) - (A - 1) * cs - beta * sn) * b0Ls;\nb1Ls = -2 * ((A - 1) + (A + 1) * cs) * b0Ls;\nb2Ls = ((A + 1) + (A - 1) * cs - beta * sn) * b0Ls;\n\n// Aplicar Low Shelf\nlLs = a0Ls * lTrimmed + a1Ls * tiltL2 + a2Ls * tiltL1 - b1Ls * tiltL4 - b2Ls * tiltL3;\ntiltL1 = tiltL2;\ntiltL2 = lTrimmed;\ntiltL3 = tiltL4;\ntiltL4 = lLs;\n\nrLs = a0Ls * rTrimmed + a1Ls * tiltR2 + a2Ls * tiltR1 - b1Ls * tiltR4 - b2Ls * tiltR3;\ntiltR1 = tiltR2;\ntiltR2 = rTrimmed;\ntiltR3 = tiltR4;\ntiltR4 = rLs;\n\n// Coeficientes High Shelf\naInv = sqrt(1/tiltGain);\nbetaHs = sqrt((aInv * aInv + 1) / q - (aInv - 1) * (aInv - 1));\n\nb0Hs = 1 / ((aInv + 1) - (aInv - 1) * cs + betaHs * sn);\na0Hs = aInv * ((aInv + 1) + (aInv - 1) * cs + betaHs * sn) * b0Hs;\na1Hs = -2 * aInv * ((aInv - 1) + (aInv + 1) * cs) * b0Hs;\na2Hs = aInv * ((aInv + 1) + (aInv - 1) * cs - betaHs * sn) * b0Hs;\nb1Hs = 2 * ((aInv - 1) - (aInv + 1) * cs) * b0Hs;\nb2Hs = ((aInv + 1) - (aInv - 1) * cs - betaHs * sn) * b0Hs;\n\nlTilt = a0Hs * lLs + a1Hs * tiltL2 + a2Hs * tiltL1 - b1Hs * tiltL4 - b2Hs * tiltL3;\nrTilt = a0Hs * rLs + a1Hs * tiltR2 + a2Hs * tiltR1 - b1Hs * tiltR4 - b2Hs * tiltR3;\n\n// -----------------------------------------------------------------------------\n// PROCESAMIENTO DE DISTORSIÓN CON MORPHING\n// -----------------------------------------------------------------------------\n\n// Calcular factores\ndriveFactor = drive + dc * 0.9;\ndcFactor = dc * drive * 0.9;\n\n// Ejecutar TODOS los algoritmos\nsoftL, softR = softclip(lTilt * driveFactor, rTilt * driveFactor, ceiling);\nsigmL, sigmR = sigmoid(lTilt, rTilt, drive, dcFactor, ceiling);\nrectL, rectR = rectF(lTilt, rTilt, drive, ceiling);\nfuzz1L, fuzz1R = fuzzExp1(lTilt, rTilt, drive, dcFactor, ceiling);\ntanhL, tanhR = tangenteHiperbolica(lTilt, rTilt, drive, dcFactor, ceiling);\nrecthL, recthR = rectH(lTilt, rTilt, drive, ceiling);\natanL, atanR = arctangent(lTilt, rTilt, drive, dcFactor, ceiling);\nhardL, hardR = hardClip(lTilt, rTilt, drive, dcFactor, ceiling);\n\n// Sistema de morphing continuo\nmode = smoothedMode;  // Usar el modo suavizado\n\n// Calcular pesos (ahora solo 8 algoritmos)\nw0 = max(0, 1 - abs(mode - 0));      // Softclip\nw1 = max(0, 1 - abs(mode - 1));      // Sigmoid\nw2 = max(0, 1 - abs(mode - 2));      // RectF\nw3 = max(0, 1 - abs(mode - 3));      // Fuzz1\nw4 = max(0, 1 - abs(mode - 4));      // TanH\nw5 = max(0, 1 - abs(mode - 5));      // RectH\nw6 = max(0, 1 - abs(mode - 6));      // Arctangent\nw7 = max(0, 1 - abs(mode - 7));      // HardClip\n\n// Normalizar pesos\nsumWeights = w0 + w1 + w2 + w3 + w4 + w5 + w6 + w7 + 0.0001;\nw0 /= sumWeights; w1 /= sumWeights; w2 /= sumWeights; w3 /= sumWeights;\nw4 /= sumWeights; w5 /= sumWeights; w6 /= sumWeights; w7 /= sumWeights;\n\n// Mezclar algoritmos\ndistL = softL * w0 + sigmL * w1 + rectL * w2 + fuzz1L * w3 +\n        tanhL * w4 + recthL * w5 + atanL * w6 + hardL * w7;\n\ndistR = softR * w0 + sigmR * w1 + rectR * w2 + fuzz1R * w3 +\n        tanhR * w4 + recthR * w5 + atanR * w6 + hardR * w7;\n\n// Guardar señal distorsionada antes del DC Blocker para el modo Delta\ndistortedL = distL;\ndistortedR = distR;\n\n// DC Blocker\ndcL = dcblock(distL);\ndcR = dcblock(distR);\n\n// Calcular señal Delta (diferencia entre procesado y original)\n// Nota: usamos lTilt/rTilt (post-tilt) para que el delta refleje solo la distorsión\ndeltaL = distortedL - lTilt;\ndeltaR = distortedR - rTilt;\n\n// Aplicar DC blocker al delta también\ndeltaDcL = dcblock(deltaL);\ndeltaDcR = dcblock(deltaR);\n\n// Seleccionar entre señal normal y delta según parámetro\nprocessedL = mix(dcL, deltaDcL, deltaAmount);\nprocessedR = mix(dcR, deltaDcR, deltaAmount);\n\n// -----------------------------------------------------------------------------\n// BIT CRUSHER Y DOWNSAMPLING OPCIONAL (ANTES DEL DRY/WET)\n// -----------------------------------------------------------------------------\n// Bit Crusher\nbitL, bitR = bitCrusher(processedL, processedR, bits);\nbcL = dcblock(bitL);\nbcR = dcblock(bitR);\n\nwithBitCrusherL = mix(processedL, bcL, bitson);\nwithBitCrusherR = mix(processedR, bcR, bitson);\n\n// Downsampling simple\n// Incrementar contador\ndsCounter = dsCounter + 1;\n\n// Calcular cuántas muestras saltar (0 = ninguna, 99 = saltar 99)\nskipSamples = floor(hDownsample) + 1;\n\n// Si es momento de tomar nueva muestra o no hay downsampling\nif (dsCounter >= skipSamples || hDownsample < 0.5) {\n    dsHeldL = withBitCrusherL;\n    dsHeldR = withBitCrusherR;\n    dsCounter = 0;\n}\n\n// Aplicar downsampling\nwetFinalL = mix(withBitCrusherL, dsHeldL, downsampleOn);\nwetFinalR = mix(withBitCrusherR, dsHeldR, downsampleOn);\n\n// -----------------------------------------------------------------------------\n// MEZCLA DRY/WET\n// -----------------------------------------------------------------------------\nmixedL = mix(lTrimmed, wetFinalL, drywet);\nmixedR = mix(rTrimmed, wetFinalR, drywet);\n\n// -----------------------------------------------------------------------------\n// SALIDA FINAL CON BYPASS Y OUTPUT MAKEUP\n// -----------------------------------------------------------------------------\nfinalWithMakeupL = mixedL * outputMakeupLinear;\nfinalWithMakeupR = mixedR * outputMakeupLinear;\n\n// Salidas principales\nout1 = mix(lIn, finalWithMakeupL, bypass);\nout2 = mix(rIn, finalWithMakeupR, bypass);\n\n// Salida 3 vacía para mantener consistencia\nout3 = 0;\n\n// Salidas post Input Trim (para medidores)\nout4 = lTrimmed;  // L post trim\nout5 = rTrimmed;  // R post trim",
+									"code" : "// =============================================================================\n// MULTI-ALGORITHM DISTORTION WITH CONTINUOUS MORPHING\n// =============================================================================\n// Plugin de distorsión con múltiples algoritmos y morphing continuo\n// Incluye filtros tilt pre/post, bit crusher opcional y controles completos\n// =============================================================================\n\n// -----------------------------------------------------------------------------\n// FUNCIONES DE DISTORSIÓN (en orden de modo)\n// -----------------------------------------------------------------------------\n\n// MODO 0 - Soft Clipping - Saturación suave con función cúbica\n// Fuente: Julius O. Smith III (CCRMA Stanford) - https://ccrma.stanford.edu/~jos/pasp/Soft_Clipping.html\nsoftclip(inl, inr, dr, dc, cell) {\n    // Añadir DC offset para generar asimetría (armónicos pares)\n    lWithDC = inl + (dc * 0.05);\n    rWithDC = inr + (dc * 0.05);\n    \n    // Aplicar drive y normalizar\n    lNorm = (lWithDC * dr) / cell;\n    rNorm = (rWithDC * dr) / cell;\n    \n    lCubic = lNorm - (lNorm * lNorm * lNorm) / 3;\n    rCubic = rNorm - (rNorm * rNorm * rNorm) / 3;\n    \n    lLimited = sign(lNorm) * (2.0 / 3.0);\n    rLimited = sign(rNorm) * (2.0 / 3.0);\n    \n    lOut = (abs(lNorm) <= 1) ? lCubic : lLimited;\n    rOut = (abs(rNorm) <= 1) ? rCubic : rLimited;\n    \n    return lOut * cell, rOut * cell;\n}\n\n// MODO 1 - Sigmoid - Curva en S para saturación suave\n// Fuente: Función logística estándar adaptada para audio\nsigmoid(inl, inr, dr, dc, cell) {\n    // Añadir DC offset para generar asimetría\n    lWithDC = inl + (dc * 0.05);\n    rWithDC = inr + (dc * 0.05);\n    \n    factor = (-1) * dr;\n    l = (2 * (1 / (1 + exp(factor * lWithDC)))) - 1;\n    r = (2 * (1 / (1 + exp(factor * rWithDC)))) - 1;\n    \n    // Aplicar ceiling para limitar la salida\n    lOut = clip(l * cell, -cell, cell);\n    rOut = clip(r * cell, -cell, cell);\n    \n    return lOut, rOut;\n}\n\n// MODO 2 - Rectificador Full Wave - Bipolar con compensación de ganancia\n// Fuente: Diseño propio basado en rectificación con preservación de polaridad\nrectF(inl, inr, dr, dc, cell) {\n    // Añadir DC offset para cambiar el punto de rectificación\n    lWithDC = inl + (dc * 0.05);\n    rWithDC = inr + (dc * 0.05);\n    \n    l = sign(lWithDC) * abs(lWithDC * dr) * 0.707;\n    r = sign(rWithDC) * abs(rWithDC * dr) * 0.707;\n    lOut = clip(l, -cell, cell);\n    rOut = clip(r, -cell, cell);\n    return lOut, rOut;\n}\n\n// MODO 3 - Fuzz Exponencial 1 - Distorsión tipo fuzz con curva exponencial\n// Fuente: DAFX de Udo Zölzer (fórmula corregida) - f(x) = sgn(x) * (1 - e^(-|x|))\nfuzzExp1(inl, inr, dr, dc, cell) {\n    // Añadir DC offset ANTES del procesamiento para generar asimetría\n    lWithDC = inl + (dc * 0.05);\n    rWithDC = inr + (dc * 0.05);\n    \n    signl = sign(lWithDC);\n    signr = sign(rWithDC);\n    \n    lScaled = abs(lWithDC * dr);\n    rScaled = abs(rWithDC * dr);\n    \n    l = signl * (1 - exp(-lScaled));\n    r = signr * (1 - exp(-rScaled));\n    \n    lOut = clip(l, -cell, cell);\n    rOut = clip(r, -cell, cell);\n    return lOut, rOut;\n}\n\n// MODO 4 - Tangente Hiperbólica - Distorsión suave tipo saturación de cinta\n// Fuente: Algoritmo clásico de saturación analógica - tanh(x)/tanh(drive)\ntangenteHiperbolica(inl, inr, dr, dc, cell) {\n    // Añadir DC offset para generar asimetría\n    lWithDC = inl + (dc * 0.05);\n    rWithDC = inr + (dc * 0.05);\n    \n    l = clip(lWithDC * dr, -cell, cell);\n    r = clip(rWithDC * dr, -cell, cell);\n    lOut = (tanh(l)) / (tanh(dr));\n    rOut = (tanh(r)) / (tanh(dr));\n    return lOut, rOut;\n}\n\n// MODO 5 - Rectificador Half Wave - Solo valores positivos\n// Fuente: Emulación de diodo rectificador clásico\nrectH(inl, inr, dr, dc, cell) {\n    // Añadir DC offset para cambiar el punto de rectificación\n    lWithDC = inl + (dc * 0.05);\n    rWithDC = inr + (dc * 0.05);\n    \n    lPositive = max(lWithDC, 0);\n    rPositive = max(rWithDC, 0);\n    l = clip((lPositive * dr) * 0.5, -cell, cell);\n    r = clip((rPositive * dr) * 0.5, -cell, cell);\n    return l, r;\n}\n\n// MODO 6 - Arctangente puro - Distorsión suave con compresión natural\n// Fuente: Función arctangente estándar para saturación suave\narctangent(inl, inr, dr, dc, cell) {\n    // Añadir DC offset para generar asimetría\n    lWithDC = inl + (dc * 0.05);\n    rWithDC = inr + (dc * 0.05);\n    \n    lScaled = lWithDC * dr * 2;\n    rScaled = rWithDC * dr * 2;\n    \n    l = (2 / pi) * atan(lScaled);\n    r = (2 / pi) * atan(rScaled);\n    \n    lOut = l * cell;\n    rOut = r * cell;\n    \n    return lOut, rOut;\n}\n\n// MODO 7 - Hard Clip - Recorte abrupto de la señal\n// Fuente: Clipping digital clásico - saturación dura\nhardClip(inl, inr, dr, dc, cell) {\n    // Añadir DC offset para generar asimetría\n    lWithDC = inl + (dc * 0.05);\n    rWithDC = inr + (dc * 0.05);\n    \n    // Aplicar drive y calcular threshold\n    lDriven = lWithDC * dr;\n    rDriven = rWithDC * dr;\n    \n    // Clipear a ±cell\n    l = (lDriven > cell) ? cell : ((lDriven < -cell) ? -cell : lDriven);\n    r = (rDriven > cell) ? cell : ((rDriven < -cell) ? -cell : rDriven);\n    \n    return l, r;\n}\n\n// Bit Crusher - Reduce la resolución de bits\n// Fuente: Algoritmo estándar de reducción de bits/cuantización\nbitCrusher(inl, inr, bits) {\n    steps = pow(2, bits) - 1;\n    invSteps = 1 / steps;\n    l = ceil(inl * steps) * invSteps;\n    r = ceil(inr * steps) * invSteps;\n    return l, r;\n}\n\n// -----------------------------------------------------------------------------\n// PARÁMETROS\n// -----------------------------------------------------------------------------\nParam a_DRYWET(1, min=0, default=1, max=1);\nParam b_DRIVE(1, min=1, default=1, max=50);\nParam c_DC(0, min=0, default=0, max=1);         // DC offset - añade armónicos pares (asimetría)\nParam d_MODE(1, min=0, default=0, max=7);       // Continuo 0-7 (8 algoritmos)\nParam e_CEILING(0, min=-20, default=0, max=6);\nParam f_BYPASS(0, min=0, default=0, max=1);\nParam g_BITS(16, min=3, default=16, max=16);\nParam h_BITSON(0, min=0, default=0, max=1);\nParam i_TILT(0, min=-6, default=0, max=6);\n\nParam k_INPUT(0, min=-12, default=0, max=12);   // Input trim gain\nParam l_OUTPUT(0, min=-12, default=0, max=12);  // Output makeup gain\nParam m_DOWNSAMPLE(0, min=0, default=0, max=99); // Factor de downsampling (0 = sin efecto)\nParam n_DOWNSAMPLEON(0, min=0, default=0, max=1); // Activar downsampling\n\n// -----------------------------------------------------------------------------\n// HISTORIALES PARA SMOOTHING\n// -----------------------------------------------------------------------------\nHistory hDrive(0);\nHistory hDc(0);\nHistory hDrywet(0);\nHistory hBits(0);\nHistory hBitson(0);\nHistory hTilt(0);\nHistory hInput(0);\nHistory hOutput(0);\nHistory hMode(0);     // Para suavizar cambios de modo\n\nHistory hDownsample(0); // Para suavizar factor de downsampling\nHistory hDownsampleOn(0); // Para suavizar activación de downsampling\nHistory hBypass(0);   // Para suavizar bypass y evitar clicks\n\n// Historiales para el downsampler\nHistory dsCounter(0);\nHistory dsHeldL(0);\nHistory dsHeldR(0);\n\n// Historiales para filtros Tilt\nHistory tiltL1(0), tiltL2(0), tiltL3(0), tiltL4(0);\nHistory tiltR1(0), tiltR2(0), tiltR3(0), tiltR4(0);\n\n// -----------------------------------------------------------------------------\n// PROCESAMIENTO PRINCIPAL\n// -----------------------------------------------------------------------------\n\n// Entrada\nlIn = in1;\nrIn = in2;\n\n// Smoothing de parámetros\nsmoothFactor = 0.999;\nhDrive = hDrive * smoothFactor + b_DRIVE * (1 - smoothFactor);\ndrive = hDrive;\nhDc = hDc * smoothFactor + c_DC * (1 - smoothFactor);\ndc = hDc;\nhDrywet = hDrywet * smoothFactor + a_DRYWET * (1 - smoothFactor);\ndrywet = hDrywet;\nhBits = hBits * smoothFactor + g_BITS * (1 - smoothFactor);\nbits = hBits;\nhBitson = hBitson * smoothFactor + h_BITSON * (1 - smoothFactor);\nbitson = hBitson;\nhTilt = hTilt * smoothFactor + i_TILT * (1 - smoothFactor);\ntiltDb = hTilt;\nhInput = hInput * smoothFactor + k_INPUT * (1 - smoothFactor);\ninputTrimDb = hInput;\nhOutput = hOutput * smoothFactor + l_OUTPUT * (1 - smoothFactor);\noutputMakeupDb = hOutput;\n\n// Suavizado especial para MODE con factor más agresivo para evitar clicks\nmodeSmoothFactor = 0.99;  // Más rápido que otros parámetros pero aún suave\nhMode = hMode * modeSmoothFactor + d_MODE * (1 - modeSmoothFactor);\nsmoothedMode = hMode;  // Definir la variable aquí\n\n// Suavizado del downsampling\nhDownsample = hDownsample * smoothFactor + m_DOWNSAMPLE * (1 - smoothFactor);\nhDownsampleOn = hDownsampleOn * smoothFactor + n_DOWNSAMPLEON * (1 - smoothFactor);\ndownsampleOn = hDownsampleOn;\n\n// Suavizado del bypass\nhBypass = hBypass * smoothFactor + (1 - f_BYPASS) * (1 - smoothFactor);\nbypass = hBypass;\n\n// Conversiones\nceiling = dbtoa(e_CEILING);\ninputTrimLinear = dbtoa(inputTrimDb);\noutputMakeupLinear = dbtoa(outputMakeupDb);\n\n// -----------------------------------------------------------------------------\n// INPUT TRIM\n// -----------------------------------------------------------------------------\nlTrimmed = lIn * inputTrimLinear;\nrTrimmed = rIn * inputTrimLinear;\n\n// -----------------------------------------------------------------------------\n// FILTRO TILT PRE-DISTORSIÓN\n// -----------------------------------------------------------------------------\nfc = 800.0;\nq = 0.7071;\n\n// Cálculo de coeficientes para Tilt (invertido para UI intuitiva)\ntiltGain = dbtoa(-tiltDb);\nomega = (fc * twopi) / samplerate;\nsn = sin(omega);\ncs = cos(omega);\nA = sqrt(tiltGain);\nbeta = sqrt((A * A + 1) / q - (A - 1) * (A - 1));\n\n// Coeficientes Low Shelf\nb0Ls = 1 / ((A + 1) + (A - 1) * cs + beta * sn);\na0Ls = A * ((A + 1) - (A - 1) * cs + beta * sn) * b0Ls;\na1Ls = 2 * A * ((A - 1) - (A + 1) * cs) * b0Ls;\na2Ls = A * ((A + 1) - (A - 1) * cs - beta * sn) * b0Ls;\nb1Ls = -2 * ((A - 1) + (A + 1) * cs) * b0Ls;\nb2Ls = ((A + 1) + (A - 1) * cs - beta * sn) * b0Ls;\n\n// Aplicar Low Shelf\nlLs = a0Ls * lTrimmed + a1Ls * tiltL2 + a2Ls * tiltL1 - b1Ls * tiltL4 - b2Ls * tiltL3;\ntiltL1 = tiltL2;\ntiltL2 = lTrimmed;\ntiltL3 = tiltL4;\ntiltL4 = lLs;\n\nrLs = a0Ls * rTrimmed + a1Ls * tiltR2 + a2Ls * tiltR1 - b1Ls * tiltR4 - b2Ls * tiltR3;\ntiltR1 = tiltR2;\ntiltR2 = rTrimmed;\ntiltR3 = tiltR4;\ntiltR4 = rLs;\n\n// Coeficientes High Shelf\naInv = sqrt(1/tiltGain);\nbetaHs = sqrt((aInv * aInv + 1) / q - (aInv - 1) * (aInv - 1));\n\nb0Hs = 1 / ((aInv + 1) - (aInv - 1) * cs + betaHs * sn);\na0Hs = aInv * ((aInv + 1) + (aInv - 1) * cs + betaHs * sn) * b0Hs;\na1Hs = -2 * aInv * ((aInv - 1) + (aInv + 1) * cs) * b0Hs;\na2Hs = aInv * ((aInv + 1) + (aInv - 1) * cs - betaHs * sn) * b0Hs;\nb1Hs = 2 * ((aInv - 1) - (aInv + 1) * cs) * b0Hs;\nb2Hs = ((aInv + 1) - (aInv - 1) * cs - betaHs * sn) * b0Hs;\n\nlTilt = a0Hs * lLs + a1Hs * tiltL2 + a2Hs * tiltL1 - b1Hs * tiltL4 - b2Hs * tiltL3;\nrTilt = a0Hs * rLs + a1Hs * tiltR2 + a2Hs * tiltR1 - b1Hs * tiltR4 - b2Hs * tiltR3;\n\n// -----------------------------------------------------------------------------\n// PROCESAMIENTO DE DISTORSIÓN CON MORPHING\n// -----------------------------------------------------------------------------\n\n// Ejecutar TODOS los algoritmos con implementación consistente de DC\n// Ahora todas las funciones reciben los mismos parámetros y aplican DC de forma uniforme\nsoftL, softR = softclip(lTilt, rTilt, drive, dc, ceiling);\nsigmL, sigmR = sigmoid(lTilt, rTilt, drive, dc, ceiling);\nrectL, rectR = rectF(lTilt, rTilt, drive, dc, ceiling);\nfuzz1L, fuzz1R = fuzzExp1(lTilt, rTilt, drive, dc, ceiling);\ntanhL, tanhR = tangenteHiperbolica(lTilt, rTilt, drive, dc, ceiling);\nrecthL, recthR = rectH(lTilt, rTilt, drive, dc, ceiling);\natanL, atanR = arctangent(lTilt, rTilt, drive, dc, ceiling);\nhardL, hardR = hardClip(lTilt, rTilt, drive, dc, ceiling);\n\n// Sistema de morphing continuo\nmode = smoothedMode;  // Usar el modo suavizado\n\n// Calcular pesos (ahora solo 8 algoritmos)\nw0 = max(0, 1 - abs(mode - 0));      // Softclip\nw1 = max(0, 1 - abs(mode - 1));      // Sigmoid\nw2 = max(0, 1 - abs(mode - 2));      // RectF\nw3 = max(0, 1 - abs(mode - 3));      // Fuzz1\nw4 = max(0, 1 - abs(mode - 4));      // TanH\nw5 = max(0, 1 - abs(mode - 5));      // RectH\nw6 = max(0, 1 - abs(mode - 6));      // Arctangent\nw7 = max(0, 1 - abs(mode - 7));      // HardClip\n\n// Normalizar pesos\nsumWeights = w0 + w1 + w2 + w3 + w4 + w5 + w6 + w7 + 0.0001;\nw0 /= sumWeights; w1 /= sumWeights; w2 /= sumWeights; w3 /= sumWeights;\nw4 /= sumWeights; w5 /= sumWeights; w6 /= sumWeights; w7 /= sumWeights;\n\n// Mezclar algoritmos\ndistL = softL * w0 + sigmL * w1 + rectL * w2 + fuzz1L * w3 +\n        tanhL * w4 + recthL * w5 + atanL * w6 + hardL * w7;\n\ndistR = softR * w0 + sigmR * w1 + rectR * w2 + fuzz1R * w3 +\n        tanhR * w4 + recthR * w5 + atanR * w6 + hardR * w7;\n\n// DC Blocker\nprocessedL = dcblock(distL);\nprocessedR = dcblock(distR);\n\n// -----------------------------------------------------------------------------\n// BIT CRUSHER Y DOWNSAMPLING OPCIONAL (ANTES DEL DRY/WET)\n// -----------------------------------------------------------------------------\n// Bit Crusher\nbitL, bitR = bitCrusher(processedL, processedR, bits);\nbcL = dcblock(bitL);\nbcR = dcblock(bitR);\n\nwithBitCrusherL = mix(processedL, bcL, bitson);\nwithBitCrusherR = mix(processedR, bcR, bitson);\n\n// Downsampling simple\n// Incrementar contador\ndsCounter = dsCounter + 1;\n\n// Calcular cuántas muestras saltar (0 = ninguna, 99 = saltar 99)\nskipSamples = floor(hDownsample) + 1;\n\n// Si es momento de tomar nueva muestra o no hay downsampling\nif (dsCounter >= skipSamples || hDownsample < 0.5) {\n    dsHeldL = withBitCrusherL;\n    dsHeldR = withBitCrusherR;\n    dsCounter = 0;\n}\n\n// Aplicar downsampling\nwetFinalL = mix(withBitCrusherL, dsHeldL, downsampleOn);\nwetFinalR = mix(withBitCrusherR, dsHeldR, downsampleOn);\n\n// -----------------------------------------------------------------------------\n// MEZCLA DRY/WET\n// -----------------------------------------------------------------------------\nmixedL = mix(lTrimmed, wetFinalL, drywet);\nmixedR = mix(rTrimmed, wetFinalR, drywet);\n\n// -----------------------------------------------------------------------------\n// SALIDA FINAL CON BYPASS Y OUTPUT MAKEUP\n// -----------------------------------------------------------------------------\nfinalWithMakeupL = mixedL * outputMakeupLinear;\nfinalWithMakeupR = mixedR * outputMakeupLinear;\n\n// DC Blocker final antes de la salida\nfinalDcBlockedL = dcblock(finalWithMakeupL);\nfinalDcBlockedR = dcblock(finalWithMakeupR);\n\n// Salidas principales\nout1 = mix(lIn, finalDcBlockedL, bypass);\nout2 = mix(rIn, finalDcBlockedR, bypass);\n\n// Salida 3 vacía para mantener consistencia\nout3 = 0;\n\n// Salidas post Input Trim (para medidores)\nout4 = lTrimmed;  // L post trim\nout5 = rTrimmed;  // R post trim",
 									"fontface" : 0,
 									"fontname" : "<Monospaced>",
 									"fontsize" : 12.0,
@@ -1372,7 +976,7 @@
 									"maxclass" : "newobj",
 									"numinlets" : 1,
 									"numoutlets" : 0,
-									"patching_rect" : [ 50.0, 846.0, 35.0, 22.0 ],
+									"patching_rect" : [ 50.0, 853.0, 35.0, 22.0 ],
 									"text" : "out 1"
 								}
 
@@ -1432,7 +1036,8 @@
 ,
 					"patching_rect" : [ 237.0, 431.0, 711.5, 22.0 ],
 					"saved_object_attributes" : 					{
-						"autoexport" : 0
+						"autoexport" : 0,
+						"exportfolder" : "Sequoia:/Users/jcb/JUCEProjects/JCBDistortion/exported-code/"
 					}
 ,
 					"text" : "gen~ @title JCBDistortion @autoexport 0"
@@ -1461,7 +1066,7 @@
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
 					"parameter_enable" : 0,
-					"patching_rect" : [ 209.0, 61.0, 432.0, 22.0 ]
+					"patching_rect" : [ 181.5, 46.0, 432.0, 22.0 ]
 				}
 
 			}
@@ -1477,7 +1082,15 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 349.0, 401.0, 246.5, 401.0 ],
+					"midpoints" : [ 872.5, 369.0, 246.5, 369.0 ],
+					"source" : [ "obj-10", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-2", 0 ],
+					"midpoints" : [ 535.5, 401.0, 246.5, 401.0 ],
 					"source" : [ "obj-101", 0 ]
 				}
 
@@ -1485,7 +1098,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 530.0, 401.0, 246.5, 401.0 ],
+					"midpoints" : [ 716.5, 401.0, 246.5, 401.0 ],
 					"source" : [ "obj-11", 0 ]
 				}
 
@@ -1494,6 +1107,13 @@
 				"patchline" : 				{
 					"destination" : [ "obj-4", 0 ],
 					"source" : [ "obj-12", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-29", 0 ],
+					"source" : [ "obj-13", 0 ]
 				}
 
 			}
@@ -1659,7 +1279,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 687.0, 401.0, 246.5, 401.0 ],
+					"midpoints" : [ 852.5, 401.0, 246.5, 401.0 ],
 					"source" : [ "obj-22", 0 ]
 				}
 
@@ -1681,24 +1301,16 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 269.0, 401.5, 246.5, 401.5 ],
+					"midpoints" : [ 440.5, 401.5, 246.5, 401.5 ],
 					"source" : [ "obj-28", 0 ]
 				}
 
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-2", 1 ],
-					"midpoints" : [ 436.25, 262.0, 939.0, 262.0 ],
-					"source" : [ "obj-30", 1 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 403.5, 262.0, 246.5, 262.0 ],
-					"source" : [ "obj-30", 0 ]
+					"midpoints" : [ 1025.5, 369.0, 246.5, 369.0 ],
+					"source" : [ "obj-29", 0 ]
 				}
 
 			}
@@ -1711,65 +1323,17 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-2", 1 ],
-					"midpoints" : [ 590.25, 286.0, 939.0, 286.0 ],
-					"source" : [ "obj-32", 1 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 557.5, 262.0, 246.5, 262.0 ],
-					"source" : [ "obj-32", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 1057.5, 401.0, 246.5, 401.0 ],
+					"midpoints" : [ 1048.5, 401.0, 246.5, 401.0 ],
 					"source" : [ "obj-33", 0 ]
 				}
 
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-2", 1 ],
-					"midpoints" : [ 742.25, 286.0, 939.0, 286.0 ],
-					"source" : [ "obj-34", 1 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 709.5, 262.0, 246.5, 262.0 ],
-					"source" : [ "obj-34", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 984.5, 401.0, 246.5, 401.0 ],
+					"midpoints" : [ 975.5, 401.0, 246.5, 401.0 ],
 					"source" : [ "obj-35", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-2", 1 ],
-					"midpoints" : [ 894.25, 418.0, 939.0, 418.0 ],
-					"source" : [ "obj-36", 1 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 861.5, 418.0, 246.5, 418.0 ],
-					"source" : [ "obj-36", 0 ]
 				}
 
 			}
@@ -1798,7 +1362,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 1229.5, 399.0, 246.5, 399.0 ],
+					"midpoints" : [ 1262.5, 399.0, 246.5, 399.0 ],
 					"source" : [ "obj-40", 0 ]
 				}
 
@@ -1821,7 +1385,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 218.5, 110.0, 215.0, 110.0, 215.0, 416.0, 246.5, 416.0 ],
+					"midpoints" : [ 191.0, 110.0, 215.0, 110.0, 215.0, 416.0, 246.5, 416.0 ],
 					"source" : [ "obj-43", 0 ]
 				}
 
@@ -1829,7 +1393,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-18", 1 ],
-					"midpoints" : [ 390.5, 620.0, 600.5, 620.0 ],
+					"midpoints" : [ 390.5, 620.0, 561.5, 620.0 ],
 					"order" : 0,
 					"source" : [ "obj-44", 0 ]
 				}
@@ -1838,7 +1402,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-4", 1 ],
-					"midpoints" : [ 390.5, 620.5, 278.5, 620.5 ],
+					"midpoints" : [ 390.5, 620.5, 239.5, 620.5 ],
 					"order" : 1,
 					"source" : [ "obj-44", 0 ]
 				}
@@ -1878,7 +1442,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 1327.5, 401.0, 246.5, 401.0 ],
+					"midpoints" : [ 1387.5, 401.0, 246.5, 401.0 ],
 					"source" : [ "obj-50", 0 ]
 				}
 
@@ -1922,7 +1486,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 779.5, 401.0, 246.5, 401.0 ],
+					"midpoints" : [ 784.5, 401.0, 246.5, 401.0 ],
 					"source" : [ "obj-58", 0 ]
 				}
 
@@ -1930,7 +1494,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 229.5, 416.0, 246.5, 416.0 ],
+					"midpoints" : [ 202.0, 416.0, 246.5, 416.0 ],
 					"source" : [ "obj-6", 0 ]
 				}
 
@@ -1958,29 +1522,8 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-30", 0 ],
-					"source" : [ "obj-65", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-32", 0 ],
-					"source" : [ "obj-66", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-34", 0 ],
-					"source" : [ "obj-67", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 445.0, 401.0, 246.5, 401.0 ],
+					"midpoints" : [ 631.5, 401.0, 246.5, 401.0 ],
 					"source" : [ "obj-7", 0 ]
 				}
 
@@ -1988,7 +1531,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-2", 1 ],
-					"midpoints" : [ 82.5, 418.0, 939.0, 418.0 ],
+					"midpoints" : [ 64.5, 418.0, 939.0, 418.0 ],
 					"order" : 0,
 					"source" : [ "obj-70", 0 ]
 				}
@@ -1997,16 +1540,9 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 82.5, 342.5, 246.5, 342.5 ],
+					"midpoints" : [ 64.5, 342.5, 246.5, 342.5 ],
 					"order" : 1,
 					"source" : [ "obj-70", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-36", 0 ],
-					"source" : [ "obj-71", 0 ]
 				}
 
 			}
@@ -2026,35 +1562,6 @@
 			}
 , 			{
 				"patchline" : 				{
-					"destination" : [ "obj-75", 0 ],
-					"source" : [ "obj-74", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 1372.5, 275.34375, 1203.0, 275.34375, 1203.0, 399.0, 246.5, 399.0 ],
-					"source" : [ "obj-75", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-79", 0 ],
-					"source" : [ "obj-76", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-76", 0 ],
-					"source" : [ "obj-78", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
 					"destination" : [ "obj-73", 0 ],
 					"midpoints" : [ 1090.0, 120.0, 1171.0, 120.0 ],
 					"source" : [ "obj-8", 0 ]
@@ -2064,22 +1571,8 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 137.5, 399.7578125, 246.5, 399.7578125 ],
+					"midpoints" : [ 116.0, 399.7578125, 246.5, 399.7578125 ],
 					"source" : [ "obj-80", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-79", 0 ],
-					"source" : [ "obj-81", 0 ]
-				}
-
-			}
-, 			{
-				"patchline" : 				{
-					"destination" : [ "obj-81", 0 ],
-					"source" : [ "obj-83", 0 ]
 				}
 
 			}
@@ -2087,6 +1580,13 @@
 				"patchline" : 				{
 					"destination" : [ "obj-7", 0 ],
 					"source" : [ "obj-87", 0 ]
+				}
+
+			}
+, 			{
+				"patchline" : 				{
+					"destination" : [ "obj-10", 0 ],
+					"source" : [ "obj-9", 0 ]
 				}
 
 			}
@@ -2106,30 +1606,6 @@
 			}
  ],
 		"dependency_cache" : [ 			{
-				"name" : "cherokee.aif",
-				"bootpath" : "C74:/media/msp",
-				"type" : "AIFF",
-				"implicit" : 1
-			}
-, 			{
-				"name" : "drumLoop.aif",
-				"bootpath" : "C74:/media/msp",
-				"type" : "AIFF",
-				"implicit" : 1
-			}
-, 			{
-				"name" : "eroica.aiff",
-				"bootpath" : "C74:/media/legacy-tutorials/msp-tut",
-				"type" : "AIFF",
-				"implicit" : 1
-			}
-, 			{
-				"name" : "jongly.aif",
-				"bootpath" : "C74:/media/msp",
-				"type" : "AIFF",
-				"implicit" : 1
-			}
-, 			{
 				"name" : "vibes-a1.aif",
 				"bootpath" : "C74:/media/msp",
 				"type" : "AIFF",

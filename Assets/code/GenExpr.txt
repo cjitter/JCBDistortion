@@ -11,9 +11,14 @@
 
 // MODO 0 - Soft Clipping - Saturación suave con función cúbica
 // Fuente: Julius O. Smith III (CCRMA Stanford) - https://ccrma.stanford.edu/~jos/pasp/Soft_Clipping.html
-softclip(inl, inr, cell) {
-    lNorm = inl / cell;
-    rNorm = inr / cell;
+softclip(inl, inr, dr, dc, cell) {
+    // Añadir DC offset para generar asimetría (armónicos pares)
+    lWithDC = inl + (dc * 0.05);
+    rWithDC = inr + (dc * 0.05);
+    
+    // Aplicar drive y normalizar
+    lNorm = (lWithDC * dr) / cell;
+    rNorm = (rWithDC * dr) / cell;
     
     lCubic = lNorm - (lNorm * lNorm * lNorm) / 3;
     rCubic = rNorm - (rNorm * rNorm * rNorm) / 3;
@@ -30,9 +35,13 @@ softclip(inl, inr, cell) {
 // MODO 1 - Sigmoid - Curva en S para saturación suave
 // Fuente: Función logística estándar adaptada para audio
 sigmoid(inl, inr, dr, dc, cell) {
-    factor = (-1) * (dr + dc);
-    l = (2 * (1 / (1 + exp(factor * inl)))) - 1;
-    r = (2 * (1 / (1 + exp(factor * inr)))) - 1;
+    // Añadir DC offset para generar asimetría
+    lWithDC = inl + (dc * 0.05);
+    rWithDC = inr + (dc * 0.05);
+    
+    factor = (-1) * dr;
+    l = (2 * (1 / (1 + exp(factor * lWithDC)))) - 1;
+    r = (2 * (1 / (1 + exp(factor * rWithDC)))) - 1;
     
     // Aplicar ceiling para limitar la salida
     lOut = clip(l * cell, -cell, cell);
@@ -43,9 +52,13 @@ sigmoid(inl, inr, dr, dc, cell) {
 
 // MODO 2 - Rectificador Full Wave - Bipolar con compensación de ganancia
 // Fuente: Diseño propio basado en rectificación con preservación de polaridad
-rectF(inl, inr, dr, cell) {
-    l = sign(inl) * abs(inl * dr) * 0.707;
-    r = sign(inr) * abs(inr * dr) * 0.707;
+rectF(inl, inr, dr, dc, cell) {
+    // Añadir DC offset para cambiar el punto de rectificación
+    lWithDC = inl + (dc * 0.05);
+    rWithDC = inr + (dc * 0.05);
+    
+    l = sign(lWithDC) * abs(lWithDC * dr) * 0.707;
+    r = sign(rWithDC) * abs(rWithDC * dr) * 0.707;
     lOut = clip(l, -cell, cell);
     rOut = clip(r, -cell, cell);
     return lOut, rOut;
@@ -54,11 +67,15 @@ rectF(inl, inr, dr, cell) {
 // MODO 3 - Fuzz Exponencial 1 - Distorsión tipo fuzz con curva exponencial
 // Fuente: DAFX de Udo Zölzer (fórmula corregida) - f(x) = sgn(x) * (1 - e^(-|x|))
 fuzzExp1(inl, inr, dr, dc, cell) {
-    signl = sign(inl);
-    signr = sign(inr);
+    // Añadir DC offset ANTES del procesamiento para generar asimetría
+    lWithDC = inl + (dc * 0.05);
+    rWithDC = inr + (dc * 0.05);
     
-    lScaled = abs(inl * dr + dc * 0.01);
-    rScaled = abs(inr * dr + dc * 0.01);
+    signl = sign(lWithDC);
+    signr = sign(rWithDC);
+    
+    lScaled = abs(lWithDC * dr);
+    rScaled = abs(rWithDC * dr);
     
     l = signl * (1 - exp(-lScaled));
     r = signr * (1 - exp(-rScaled));
@@ -71,8 +88,12 @@ fuzzExp1(inl, inr, dr, dc, cell) {
 // MODO 4 - Tangente Hiperbólica - Distorsión suave tipo saturación de cinta
 // Fuente: Algoritmo clásico de saturación analógica - tanh(x)/tanh(drive)
 tangenteHiperbolica(inl, inr, dr, dc, cell) {
-    l = clip((inl * dr) + (dc * 0.01), -cell, cell);
-    r = clip((inr * dr) + (dc * 0.01), -cell, cell);
+    // Añadir DC offset para generar asimetría
+    lWithDC = inl + (dc * 0.05);
+    rWithDC = inr + (dc * 0.05);
+    
+    l = clip(lWithDC * dr, -cell, cell);
+    r = clip(rWithDC * dr, -cell, cell);
     lOut = (tanh(l)) / (tanh(dr));
     rOut = (tanh(r)) / (tanh(dr));
     return lOut, rOut;
@@ -80,9 +101,13 @@ tangenteHiperbolica(inl, inr, dr, dc, cell) {
 
 // MODO 5 - Rectificador Half Wave - Solo valores positivos
 // Fuente: Emulación de diodo rectificador clásico
-rectH(inl, inr, dr, cell) {
-    lPositive = max(inl, 0);
-    rPositive = max(inr, 0);
+rectH(inl, inr, dr, dc, cell) {
+    // Añadir DC offset para cambiar el punto de rectificación
+    lWithDC = inl + (dc * 0.05);
+    rWithDC = inr + (dc * 0.05);
+    
+    lPositive = max(lWithDC, 0);
+    rPositive = max(rWithDC, 0);
     l = clip((lPositive * dr) * 0.5, -cell, cell);
     r = clip((rPositive * dr) * 0.5, -cell, cell);
     return l, r;
@@ -91,8 +116,12 @@ rectH(inl, inr, dr, cell) {
 // MODO 6 - Arctangente puro - Distorsión suave con compresión natural
 // Fuente: Función arctangente estándar para saturación suave
 arctangent(inl, inr, dr, dc, cell) {
-    lScaled = (inl * dr + dc * 0.01) * 2;
-    rScaled = (inr * dr + dc * 0.01) * 2;
+    // Añadir DC offset para generar asimetría
+    lWithDC = inl + (dc * 0.05);
+    rWithDC = inr + (dc * 0.05);
+    
+    lScaled = lWithDC * dr * 2;
+    rScaled = rWithDC * dr * 2;
     
     l = (2 / pi) * atan(lScaled);
     r = (2 / pi) * atan(rScaled);
@@ -106,15 +135,17 @@ arctangent(inl, inr, dr, dc, cell) {
 // MODO 7 - Hard Clip - Recorte abrupto de la señal
 // Fuente: Clipping digital clásico - saturación dura
 hardClip(inl, inr, dr, dc, cell) {
-    threshold = cell / dr;
+    // Añadir DC offset para generar asimetría
+    lWithDC = inl + (dc * 0.05);
+    rWithDC = inr + (dc * 0.05);
     
-    // Aplicar DC offset reducido (solo 10% del efecto para evitar silenciar)
-    dcReduced = dc * 0.01;  // Reducido de 0.1 a 0.01
-    lOffset = inl + dcReduced;
-    rOffset = inr + dcReduced;
+    // Aplicar drive y calcular threshold
+    lDriven = lWithDC * dr;
+    rDriven = rWithDC * dr;
     
-    l = (lOffset > threshold) ? threshold : ((lOffset < -threshold) ? -threshold : lOffset);
-    r = (rOffset > threshold) ? threshold : ((rOffset < -threshold) ? -threshold : rOffset);
+    // Clipear a ±cell
+    l = (lDriven > cell) ? cell : ((lDriven < -cell) ? -cell : lDriven);
+    r = (rDriven > cell) ? cell : ((rDriven < -cell) ? -cell : rDriven);
     
     return l, r;
 }
@@ -138,10 +169,10 @@ Param c_DC(0, min=0, default=0, max=1);         // DC offset - añade armónicos
 Param d_MODE(1, min=0, default=0, max=7);       // Continuo 0-7 (8 algoritmos)
 Param e_CEILING(0, min=-20, default=0, max=6);
 Param f_BYPASS(0, min=0, default=0, max=1);
-Param g_BITS(24, min=1, default=24, max=24);
+Param g_BITS(16, min=3, default=16, max=16);
 Param h_BITSON(0, min=0, default=0, max=1);
 Param i_TILT(0, min=-6, default=0, max=6);
-Param j_DELTA(0, min=0, default=0, max=1);      // Modo Delta - escuchar solo lo que añade la distorsión
+
 Param k_INPUT(0, min=-12, default=0, max=12);   // Input trim gain
 Param l_OUTPUT(0, min=-12, default=0, max=12);  // Output makeup gain
 Param m_DOWNSAMPLE(0, min=0, default=0, max=99); // Factor de downsampling (0 = sin efecto)
@@ -159,9 +190,10 @@ History hTilt(0);
 History hInput(0);
 History hOutput(0);
 History hMode(0);     // Para suavizar cambios de modo
-History hDelta(0);    // Para suavizar modo delta
+
 History hDownsample(0); // Para suavizar factor de downsampling
 History hDownsampleOn(0); // Para suavizar activación de downsampling
+History hBypass(0);   // Para suavizar bypass y evitar clicks
 
 // Historiales para el downsampler
 History dsCounter(0);
@@ -204,18 +236,17 @@ modeSmoothFactor = 0.99;  // Más rápido que otros parámetros pero aún suave
 hMode = hMode * modeSmoothFactor + d_MODE * (1 - modeSmoothFactor);
 smoothedMode = hMode;  // Definir la variable aquí
 
-// Suavizado del modo Delta
-hDelta = hDelta * smoothFactor + j_DELTA * (1 - smoothFactor);
-deltaAmount = hDelta;
-
 // Suavizado del downsampling
 hDownsample = hDownsample * smoothFactor + m_DOWNSAMPLE * (1 - smoothFactor);
 hDownsampleOn = hDownsampleOn * smoothFactor + n_DOWNSAMPLEON * (1 - smoothFactor);
 downsampleOn = hDownsampleOn;
 
+// Suavizado del bypass
+hBypass = hBypass * smoothFactor + (1 - f_BYPASS) * (1 - smoothFactor);
+bypass = hBypass;
+
 // Conversiones
 ceiling = dbtoa(e_CEILING);
-bypass = 1 - f_BYPASS;
 inputTrimLinear = dbtoa(inputTrimDb);
 outputMakeupLinear = dbtoa(outputMakeupDb);
 
@@ -278,19 +309,16 @@ rTilt = a0Hs * rLs + a1Hs * tiltR2 + a2Hs * tiltR1 - b1Hs * tiltR4 - b2Hs * tilt
 // PROCESAMIENTO DE DISTORSIÓN CON MORPHING
 // -----------------------------------------------------------------------------
 
-// Calcular factores
-driveFactor = drive + dc * 0.9;
-dcFactor = dc * drive * 0.9;
-
-// Ejecutar TODOS los algoritmos
-softL, softR = softclip(lTilt * driveFactor, rTilt * driveFactor, ceiling);
-sigmL, sigmR = sigmoid(lTilt, rTilt, drive, dcFactor, ceiling);
-rectL, rectR = rectF(lTilt, rTilt, drive, ceiling);
-fuzz1L, fuzz1R = fuzzExp1(lTilt, rTilt, drive, dcFactor, ceiling);
-tanhL, tanhR = tangenteHiperbolica(lTilt, rTilt, drive, dcFactor, ceiling);
-recthL, recthR = rectH(lTilt, rTilt, drive, ceiling);
-atanL, atanR = arctangent(lTilt, rTilt, drive, dcFactor, ceiling);
-hardL, hardR = hardClip(lTilt, rTilt, drive, dcFactor, ceiling);
+// Ejecutar TODOS los algoritmos con implementación consistente de DC
+// Ahora todas las funciones reciben los mismos parámetros y aplican DC de forma uniforme
+softL, softR = softclip(lTilt, rTilt, drive, dc, ceiling);
+sigmL, sigmR = sigmoid(lTilt, rTilt, drive, dc, ceiling);
+rectL, rectR = rectF(lTilt, rTilt, drive, dc, ceiling);
+fuzz1L, fuzz1R = fuzzExp1(lTilt, rTilt, drive, dc, ceiling);
+tanhL, tanhR = tangenteHiperbolica(lTilt, rTilt, drive, dc, ceiling);
+recthL, recthR = rectH(lTilt, rTilt, drive, dc, ceiling);
+atanL, atanR = arctangent(lTilt, rTilt, drive, dc, ceiling);
+hardL, hardR = hardClip(lTilt, rTilt, drive, dc, ceiling);
 
 // Sistema de morphing continuo
 mode = smoothedMode;  // Usar el modo suavizado
@@ -317,26 +345,9 @@ distL = softL * w0 + sigmL * w1 + rectL * w2 + fuzz1L * w3 +
 distR = softR * w0 + sigmR * w1 + rectR * w2 + fuzz1R * w3 +
         tanhR * w4 + recthR * w5 + atanR * w6 + hardR * w7;
 
-// Guardar señal distorsionada antes del DC Blocker para el modo Delta
-distortedL = distL;
-distortedR = distR;
-
 // DC Blocker
-dcL = dcblock(distL);
-dcR = dcblock(distR);
-
-// Calcular señal Delta (diferencia entre procesado y original)
-// Nota: usamos lTilt/rTilt (post-tilt) para que el delta refleje solo la distorsión
-deltaL = distortedL - lTilt;
-deltaR = distortedR - rTilt;
-
-// Aplicar DC blocker al delta también
-deltaDcL = dcblock(deltaL);
-deltaDcR = dcblock(deltaR);
-
-// Seleccionar entre señal normal y delta según parámetro
-processedL = mix(dcL, deltaDcL, deltaAmount);
-processedR = mix(dcR, deltaDcR, deltaAmount);
+processedL = dcblock(distL);
+processedR = dcblock(distR);
 
 // -----------------------------------------------------------------------------
 // BIT CRUSHER Y DOWNSAMPLING OPCIONAL (ANTES DEL DRY/WET)
@@ -379,9 +390,13 @@ mixedR = mix(rTrimmed, wetFinalR, drywet);
 finalWithMakeupL = mixedL * outputMakeupLinear;
 finalWithMakeupR = mixedR * outputMakeupLinear;
 
+// DC Blocker final antes de la salida
+finalDcBlockedL = dcblock(finalWithMakeupL);
+finalDcBlockedR = dcblock(finalWithMakeupR);
+
 // Salidas principales
-out1 = mix(lIn, finalWithMakeupL, bypass);
-out2 = mix(rIn, finalWithMakeupR, bypass);
+out1 = mix(lIn, finalDcBlockedL, bypass);
+out2 = mix(rIn, finalDcBlockedR, bypass);
 
 // Salida 3 vacía para mantener consistencia
 out3 = 0;
