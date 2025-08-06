@@ -223,45 +223,6 @@ private:
         JCBDistortionAudioProcessorEditor* editor;
     };
     
-    // Parameter listener para manejar cambios de DELTA y sincronizar estado de UI
-    struct DeltaParameterListener : public juce::AudioProcessorValueTreeState::Listener
-    {
-        DeltaParameterListener(JCBDistortionAudioProcessorEditor* e) : editor(e) {}
-        
-        void parameterChanged(const juce::String& parameterID, float newValue) override
-        {
-            // DISTORTION: k_DELTA eliminado - parámetro inexistente
-            if (false)
-            {
-                // Usar SafePointer para thread safety
-                juce::Component::SafePointer<JCBDistortionAudioProcessorEditor> safeEditor(editor);
-                bool deltaActive = newValue >= 0.5f;
-                
-                juce::MessageManager::callAsync([safeEditor, deltaActive]() {
-                    if (safeEditor)
-                        safeEditor->applyDeltaModeToAllControls(deltaActive);
-                });
-            }
-            
-            // Sincronizar slider BITS con automatización del HOST
-            if (parameterID == "g_BITS")
-            {
-                juce::Component::SafePointer<JCBDistortionAudioProcessorEditor> safeEditor(editor);
-                int bitsValue = static_cast<int>(newValue);
-                
-                juce::MessageManager::callAsync([safeEditor, bitsValue]() {
-                    if (safeEditor)
-                    {
-                        // Convertir bits reales (3-16) a porcentaje visual (100%-0%)
-                        float percentage = ((16.0f - static_cast<float>(bitsValue)) / 13.0f) * 100.0f;
-                        safeEditor->rightTopControls.bitsSlider.setValue(percentage, juce::dontSendNotification);
-                    }
-                });
-            }
-        }
-        
-        JCBDistortionAudioProcessorEditor* editor;
-    };
     
     //==========================================================================
     // COMPONENTES DE DISPLAY PRINCIPALES
@@ -423,10 +384,8 @@ private:
     
     // Botones de parámetros en la parte inferior derecha
     struct ParameterButtons {
-        juce::TextButton deltaButton{"DELTA"};
         juce::TextButton bypassButton{"BYPASS"};
         
-        std::unique_ptr<UndoableButtonAttachment> deltaAttachment;
         std::unique_ptr<UndoableButtonAttachment> bypassAttachment;
     } parameterButtons;
     
@@ -441,7 +400,6 @@ private:
     juce::ImageComponent backgroundImage;
     juce::Image normalBackground;
     juce::Image bypassBackground;
-    juce::Image deltaBackground;
     juce::Image diagramBackground;
     
     // Iconos de filtro
@@ -683,7 +641,7 @@ private:
                     // Determinar título de ventana: usar "OUTPUT" para bloques específicos
                     juce::String windowTitle = blockName;
                     if (blockName == "LOOKAHEAD" || blockName == "MAKEUP" || 
-                        blockName == "OUTPUT" || blockName == "DELTA") {
+                        blockName == "OUTPUT") {
                         windowTitle = "OUTPUT";
                     }
                     
@@ -795,7 +753,6 @@ private:
                 //{"MAKEUP", 468.0f, 54.4f, 50.4f, 33.3f},
                 //{"PARALLEL", 461.1f, 54.4f, 76.1f, 33.3f},
                 {"OUTPUT", 540.0f, 54.4f, 82.2f, 33.3f},
-                {"DELTA", 480.4f, 110.6f, 47.8f, 40.4f}
             };
             
             clickableAreasCached = true;
@@ -805,7 +762,7 @@ private:
         juce::Colour getBlockColor(const juce::String& blockName)
         {
             // Mapeo de bloques a colores temáticos basado en función:
-            // Verde: Parámetros de detector (ATK, REL, HOLD, REACT, SMO) y modo DELTA
+            // Verde: Parámetros de detector (ATK, REL, HOLD, REACT, SMO)
             // Púrpura: Parámetros de ganancia (THD, RATIO, KNEE, RANGE) y parallel
             // Azul: Procesamiento core, salida, makeup y temporal (lookahead)
             // Blanco: Filtros sidechain (HPF, LPF)
@@ -823,8 +780,6 @@ private:
                 return DarkTheme::accentSecondary;  // Púrpura (parallel)
             else if (blockName == "TRIM IN" || blockName == "TRIM SC")
                 return DarkTheme::textSecondary;  // Gris claro (controles de nivel)
-            else if (blockName == "DELTA")
-                return DarkTheme::accent;  // Azul (mismo que GAIN CORE, OUTPUT, LOOKAHEAD)
             else
                 return juce::Colours::lightblue;  // Fallback al color original
         }
@@ -926,15 +881,6 @@ private:
     void updateFilterButtonText();
     void updateMeterStates();
     
-    //==========================================================================
-    // MÉTODOS DE MANEJO DE DELTA MODE
-    //==========================================================================
-    void applyDeltaModeToAllControls(bool deltaActive);
-    void applyDeltaModeToPresetControls(bool deltaActive);
-    void applyDeltaModeToAbControls(bool deltaActive);
-    void applyDeltaModeToUndoRedoControls(bool deltaActive);
-    void applyDeltaModeToUtilityControls(bool deltaActive);
-    void applyDeltaModeToMetersAndDisplay(bool deltaActive);
     void updateTransferDisplay();
     void updateMeters();
     void updateSliderValues();
@@ -1048,7 +994,6 @@ private:
     // Listeners especializados
     std::unique_ptr<TransferFunctionParameterListener> transferFunctionListener;
     std::unique_ptr<AutorelParameterListener> autorelParameterListener;
-    std::unique_ptr<DeltaParameterListener> deltaParameterListener;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (JCBDistortionAudioProcessorEditor)
 };

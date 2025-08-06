@@ -32,15 +32,16 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
       processor (p), 
       undoManager (um),
       // CRASH FIX: Initialize with safe dummy functions, configure real ones later
-      inputMeterL([]() { return -100.0f; }),     // Safe dummy value for input meters
-      inputMeterR([]() { return -100.0f; }),     // Safe dummy value for input meters  
+      // Orden corregido siguiendo declaraciones en .h (línea 235, 242-244)
+      distortionCurveDisplay(processor.apvts),    // Declarado primero en .h (línea 235)
+      inputMeterL([]() { return -100.0f; }),      // Safe dummy value for input meters  
+      inputMeterR([]() { return -100.0f; }),      // Safe dummy value for input meters
       // DISTORTION: grMeter eliminado - no hay gain reduction
-      outputMeterL([]() { return -100.0f; }),    // Safe dummy value for output meters
-      outputMeterR([]() { return -100.0f; }),    // Safe dummy value for output meters
+      outputMeterL([]() { return -100.0f; }),     // Safe dummy value for output meters
+      outputMeterR([]() { return -100.0f; })      // Safe dummy value for output meters
       // MAXIMIZER: Medidores sidechain comentados (no tiene sidechain externo)
       // scMeterL([&p](){ return p.getSCValue(0); }), // SC meter L
       // scMeterR([&p](){ return p.getSCValue(1); }) // SC meter R
-      distortionCurveDisplay(processor.apvts)
 {
     // Configurar todos los componentes
     setupBackground();
@@ -163,18 +164,6 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     // Configurar AUTO RELEASE button
     
     // Configurar estados iniciales
-    // DISTORTION: k_DELTA eliminado - parámetro inexistente
-    bool initialDeltaState = false;
-    parameterButtons.deltaButton.setButtonText("DELTA");
-    
-    // REFACTORIZADO: Usar método centralizado para aplicar estado DELTA inicial
-    if (initialDeltaState) {
-        applyDeltaModeToAllControls(true);
-    }
-    
-    // Registrar listener para sincronización automática de estado DELTA
-    deltaParameterListener = std::make_unique<DeltaParameterListener>(this);
-    // DISTORTION: k_DELTA eliminado - parámetro inexistente
     
     updateButtonStates();
     updateFilterButtonText();  // Establecer texto inicial de botones de filtro
@@ -238,10 +227,6 @@ JCBDistortionAudioProcessorEditor::~JCBDistortionAudioProcessorEditor()
     // Eliminar parameter listeners
     processor.apvts.removeParameterListener("g_BITS", this);
     
-    if (deltaParameterListener)
-    {
-        // DISTORTION: k_DELTA eliminado - parámetro inexistente
-    }
     
     // DISTORTION: Transfer function listener sin parameter listeners activos
     // if (transferFunctionListener) - sin listeners que remover
@@ -279,13 +264,6 @@ void JCBDistortionAudioProcessorEditor::paintOverChildren (juce::Graphics& g)
         g.drawText("BYPASS", transferBounds, juce::Justification::centred);
     }
     
-    // Texto DELTA (cuando está activo)
-    if (parameterButtons.deltaButton.getToggleState()) {
-        g.setColour(juce::Colours::transparentWhite.withAlpha(0.85f));
-        g.setFont(juce::Font(juce::FontOptions(transferBounds.getHeight() * 0.4f))
-                  .withStyle(juce::Font::bold));
-        g.drawText("DELTA", transferBounds, juce::Justification::centred);
-    }
     
     // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
     /*
@@ -384,11 +362,9 @@ void JCBDistortionAudioProcessorEditor::resized()
     distortionCurveDisplay.setBounds(getScaledBounds(x, y, w, h));
     
     // === PARAMETER BUTTONS (ENCIMA DE TRANSFER FUNCTION) ===
-    // Botones DITHER, DELTA y BYPASS en fila horizontal superior central
+    // Botones DITHER y BYPASS en fila horizontal superior central
     rightBottomKnobs.bitButton.setBounds(getScaledBounds(530, 65, 60, 15));
 
-    parameterButtons.deltaButton.setBounds(getScaledBounds(280, 17, 50, 12));
-    parameterButtons.bypassButton.setBounds(getScaledBounds(380, 17, 50, 12));
     
     // === LEFT SIDE KNOBS === (Between SC meters and transfer function)
     // Top row - THD, CEILING (MAXIMIZER-specific parameters)
@@ -476,13 +452,15 @@ void JCBDistortionAudioProcessorEditor::resized()
     utilityButtons.tooltipToggleButton.setBounds(getScaledBounds(172, 175, 30, 12));
     utilityButtons.tooltipLangButton.setBounds(getScaledBounds(204, 175, 22, 12));
     
-    // Botones DELTA, DIAGRAM y BYPASS - DIAGRAM alineado con botones de sidechain arriba
-    const int centerButtonsY = 163;
-    const int diagramCenterX = 355; // Mismo centerX que botones de sidechain
-    //const int buttonSpacing = 45;   // Espaciado entre DELTA-DIAGRAM y DIAGRAM-BYPASS
+    // Botones DIAGRAM y BYPASS - Centrados en rectángulo inferior
+    const int bottomButtonsY = 165;  // Fila superior del rectángulo inferior
+    const int centerX = 358;  // Centro horizontal del plugin
+    const int totalButtonWidth = 44 + 10 + 50;  // DIAGRAM + gap + BYPASS
+    const int buttonsStartX = centerX - (totalButtonWidth / 2);
     
-    // DIAGRAM alineado horizontalmente con DELTA y BYPASS
-    centerButtons.diagramButton.setBounds(getScaledBounds(diagramCenterX - 22, 17, 44, 12));
+    // DIAGRAM y BYPASS centrados horizontalmente
+    centerButtons.diagramButton.setBounds(getScaledBounds(buttonsStartX, bottomButtonsY, 44, 12));
+    parameterButtons.bypassButton.setBounds(getScaledBounds(buttonsStartX + 52, bottomButtonsY, 44, 12));
     
     // Botones TODO movidos abajo a la derecha, centrados en el rectángulo
     // Calcular posición central para el grupo de botones TODO
@@ -496,11 +474,12 @@ void JCBDistortionAudioProcessorEditor::resized()
     utilityButtons.midiLearnButton.setBounds(getScaledBounds(todoStartX + 90, todoY, 23, 12));
     
     // === TÍTULO Y VERSIÓN (CENTRO INFERIOR) ===
-    // Ancho similar a botones DIAGRAM + GEN DSP combinados
-    titleLink.setBounds(getScaledBounds(304, 169, 100, 20));
+    // Centrado debajo de los botones DIAGRAM y BYPASS
+    const int titleY = 180;  // Desplazado hacia abajo para dar espacio
+    titleLink.setBounds(getScaledBounds(centerX - 53, titleY, 98, 15));
     
     // Tooltip en esquina superior derecha - ajustado al rectángulo visible
-    tooltipComponent.setBounds(getScaledBounds(450, 0, 228, 42));
+    tooltipComponent.setBounds(getScaledBounds(448, 0, 230, 42));
     
     // Actualizar factor de escala del tooltip basado en el tamaño de la ventana
     float scaleFactor = (float)getWidth() / (float)DEFAULT_WIDTH;
@@ -596,9 +575,8 @@ void JCBDistortionAudioProcessorEditor::timerCallback()
     // Actualizar datos de waveform y obtener gain reduction para el medidor
     if (!isBypassed && !isProcessingInactive)
     {
-        // Obtener datos de waveform si las envolventes están visibles O si estamos en modo DELTA
-        bool deltaActive = parameterButtons.deltaButton.getToggleState();
-        if (transferDisplay.isEnvelopeVisible() || deltaActive)
+        // Obtener datos de waveform si las envolventes están visibles
+        if (transferDisplay.isEnvelopeVisible())
         {
             std::vector<float> inputSamples, processedSamples;
             processor.getWaveformData(inputSamples, processedSamples);
@@ -661,8 +639,7 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     else if (button == &parameterButtons.bypassButton)
     {
         if (parameterButtons.bypassButton.getToggleState()) {
-            // BYPASS desactiva DELTA, SOLO SC y DIAGRAM
-            parameterButtons.deltaButton.setToggleState(false, juce::sendNotification);
+            // BYPASS desactiva SOLO SC y DIAGRAM
             // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
             // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
             if (centerButtons.diagramButton.getToggleState()) {
@@ -701,9 +678,8 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     else if (button == &sidechainControls.soloScButton)
     {
         if (sidechainControls.soloScButton.getToggleState()) {
-            // SOLO SC desactiva BYPASS, DELTA y DIAGRAM
+            // SOLO SC desactiva BYPASS y DIAGRAM
             parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
-            parameterButtons.deltaButton.setToggleState(false, juce::sendNotification);
             if (centerButtons.diagramButton.getToggleState()) {
                 centerButtons.diagramButton.setToggleState(false, juce::dontSendNotification);
                 hideDiagram(); // Cerrar DIAGRAM si está abierto
@@ -733,7 +709,6 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     {
         // Desactivar botones momentáneos antes de guardar
         parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
-        parameterButtons.deltaButton.setToggleState(false, juce::sendNotification);
         // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
         // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
         savePresetFile();
@@ -742,7 +717,6 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     {
         // Desactivar botones momentáneos antes de guardar
         parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
-        parameterButtons.deltaButton.setToggleState(false, juce::sendNotification);
         // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
         // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
         saveAsPresetFile();
@@ -751,7 +725,6 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     {
         // Desactivar botones momentáneos antes de mostrar el diálogo
         parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
-        parameterButtons.deltaButton.setToggleState(false, juce::sendNotification);
         // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
         // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
         deletePresetFile();
@@ -760,7 +733,6 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     {
         // Desactivar botones momentáneos antes de cambiar preset
         parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
-        parameterButtons.deltaButton.setToggleState(false, juce::sendNotification);
         // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
         // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
         selectPreviousPreset();
@@ -769,7 +741,6 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     {
         // Desactivar botones momentáneos antes de cambiar preset
         parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
-        parameterButtons.deltaButton.setToggleState(false, juce::sendNotification);
         // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
         // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
         selectNextPreset();
@@ -817,19 +788,11 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     }
     else if (button == &utilityButtons.hqButton)
     {
-        // Desactivar DELTA antes de activar HQ
-        if (parameterButtons.deltaButton.getToggleState()) {
-            parameterButtons.deltaButton.setToggleState(false, juce::sendNotification);
-        }
         
         // TODO: Implementar oversampling HQ
     }
     else if (button == &utilityButtons.dualMonoButton)
     {
-        // Desactivar DELTA antes de activar Dual Mono
-        if (parameterButtons.deltaButton.getToggleState()) {
-            parameterButtons.deltaButton.setToggleState(false, juce::sendNotification);
-        }
         
         // Manejar exclusividad de botones de modo estéreo
         if (utilityButtons.dualMonoButton.getToggleState())
@@ -851,10 +814,6 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     */
     else if (button == &utilityButtons.msButton)
     {
-        // Desactivar DELTA antes de activar M/S
-        if (parameterButtons.deltaButton.getToggleState()) {
-            parameterButtons.deltaButton.setToggleState(false, juce::sendNotification);
-        }
         
         // Manejar exclusividad de botones de modo estéreo
         if (utilityButtons.msButton.getToggleState())
@@ -865,10 +824,6 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     }
     else if (button == &topButtons.abStateButton)
     {
-        // Desactivar DELTA antes de alternar estado A/B
-        if (parameterButtons.deltaButton.getToggleState()) {
-            parameterButtons.deltaButton.setToggleState(false, juce::sendNotification);
-        }
         
         // Alternar estado A/B
         processor.toggleAB();
@@ -891,10 +846,6 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     }
     else if (button == &topButtons.abCopyButton)
     {
-        // Desactivar DELTA antes de copiar estado A/B
-        if (parameterButtons.deltaButton.getToggleState()) {
-            parameterButtons.deltaButton.setToggleState(false, juce::sendNotification);
-        }
         
         // Copiar estado actual al otro
         if (processor.getIsStateA()) {
@@ -927,10 +878,6 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     }
     else if (button == &utilityButtons.midiLearnButton)
     {
-        // Desactivar DELTA antes de activar MIDI Learn
-        if (parameterButtons.deltaButton.getToggleState()) {
-            parameterButtons.deltaButton.setToggleState(false, juce::sendNotification);
-        }
         
         // TODO: Implementar modo MIDI learn
     }
@@ -984,10 +931,9 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
         
         // Comportamiento exclusivo: solo desactivar otros cuando DIAGRAM se va a activar
         if (diagramWillBeActivated) {
-            // DIAGRAM desactiva BYPASS, DELTA y SOLO SC cuando se activa
+            // DIAGRAM desactiva BYPASS y SOLO SC cuando se activa
             parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
-            parameterButtons.deltaButton.setToggleState(false, juce::sendNotification);
-            // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
+                // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
             // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
         }
         
@@ -1002,26 +948,6 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
         }
     }
     // Manejador del botón CODE removido - funcionalidad manejada por botón DIAGRAM
-    else if (button == &parameterButtons.deltaButton)
-    {
-        bool deltaActive = parameterButtons.deltaButton.getToggleState();
-        
-        if (deltaActive) {
-            // DELTA desactiva BYPASS, SOLO SC y DIAGRAM
-            parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
-            // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
-            // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
-            if (centerButtons.diagramButton.getToggleState()) {
-                centerButtons.diagramButton.setToggleState(false, juce::dontSendNotification);
-                hideDiagram(); // Cerrar DIAGRAM si está abierto
-            }
-        }
-        
-        // REFACTORIZADO: Usar método centralizado para aplicar/restaurar estado DELTA
-        applyDeltaModeToAllControls(deltaActive);
-        
-        updateButtonStates();
-    }
 }
 
 //==============================================================================
@@ -1340,18 +1266,6 @@ rightTopControls.tiltSlider.setComponentID("tilt");
 
     // AR - botón con texto dinámico AR OFF/AR ON (removido - ya no existe)
     
-    // DELTA - botón con texto "DELTA" (estilo SC)
-    parameterButtons.deltaButton.setButtonText("DELTA");
-    parameterButtons.deltaButton.setClickingTogglesState(true);
-    parameterButtons.deltaButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
-    parameterButtons.deltaButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0, 180, 140).withAlpha(0.3f)); // Verde teal como los medidores delta
-    parameterButtons.deltaButton.setColour(juce::TextButton::textColourOffId, DarkTheme::textSecondary.withAlpha(0.7f));
-    parameterButtons.deltaButton.setColour(juce::TextButton::textColourOnId, DarkTheme::textPrimary);
-    parameterButtons.deltaButton.addListener(this);
-    addAndMakeVisible(parameterButtons.deltaButton);
-    // deltaAttachment movido a parameterButtons - manejado en setupParameterButtons()
-    
-    // Callback de DELTA movido al método buttonClicked()
     
     
     // MAXIMIZER: h_RANGE no existe - eliminado según CONTEXTO.txt
@@ -1660,7 +1574,6 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 sidechainControls.keyButton.setToggleState(toggleState, juce::sendNotificationSync);
             }
             */
-            // DISTORTION: k_DELTA eliminado - parámetro inexistente
             if (auto* param = processor.apvts.getParameter("h_BITSON")) {
                 float defaultValue = param->getDefaultValue();
                 bool toggleState = defaultValue >= 0.5f;
@@ -1756,8 +1669,7 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                             
                             // Queue las actualizaciones de parámetros para botones momentáneos (MAXIMIZER)
                             queueParameterUpdate("h_BYPASS", 0.0f);
-                            // DISTORTION: k_DELTA eliminado - parámetro inexistente
-                            // MAXIMIZER: No tiene m_SOLOSC
+                                            // MAXIMIZER: No tiene m_SOLOSC
                         }
                     }
                     break;
@@ -1777,8 +1689,7 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                     
                     // Queue actualizaciones de parámetros para botones momentáneos (MAXIMIZER)
                     queueParameterUpdate("h_BYPASS", 0.0f);
-                    // DISTORTION: k_DELTA eliminado - parámetro inexistente
-                    // MAXIMIZER: No tiene m_SOLOSC
+                            // MAXIMIZER: No tiene m_SOLOSC
                 }
             }
         }
@@ -1994,18 +1905,6 @@ void JCBDistortionAudioProcessorEditor::setupUtilityButtons()
 
 void JCBDistortionAudioProcessorEditor::setupParameterButtons()
 {
-    // Botón DELTA - movido desde rightBottomKnobs
-    parameterButtons.deltaButton.setClickingTogglesState(true);
-    parameterButtons.deltaButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
-    parameterButtons.deltaButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::teal.withAlpha(0.3f));
-    parameterButtons.deltaButton.setColour(juce::TextButton::textColourOffId, DarkTheme::textSecondary.withAlpha(0.7f));
-    parameterButtons.deltaButton.setColour(juce::TextButton::textColourOnId, DarkTheme::textPrimary);
-    parameterButtons.deltaButton.addListener(this);
-    addAndMakeVisible(parameterButtons.deltaButton);
-    // Attachment de DELTA - conectado a j_DELTA
-    parameterButtons.deltaAttachment = std::make_unique<UndoableButtonAttachment>(
-        *processor.apvts.getParameter("j_DELTA"), parameterButtons.deltaButton, &undoManager);
-    // Tooltip actualizado via getTooltipText("delta") en updateAllTooltips()
     
     // Botón BYPASS - movido desde utilityButtons
     parameterButtons.bypassButton.setClickingTogglesState(true);
@@ -2026,7 +1925,6 @@ void JCBDistortionAudioProcessorEditor::setupBackground()
     // Cargar imágenes de fondo
     normalBackground = juce::ImageCache::getFromMemory(BinaryData::fondo_png, BinaryData::fondo_pngSize);
     bypassBackground = juce::ImageCache::getFromMemory(BinaryData::bypass_png, BinaryData::bypass_pngSize);
-    deltaBackground = juce::ImageCache::getFromMemory(BinaryData::delta_png, BinaryData::delta_pngSize);
     diagramBackground = juce::ImageCache::getFromMemory(BinaryData::diagramaFondo_png, BinaryData::diagramaFondo_pngSize);
     
     // MAXIMIZER: No filter icons - removed hpfOff.png and lpfOff.png assets
@@ -2055,11 +1953,7 @@ void JCBDistortionAudioProcessorEditor::updateButtonStates()
     updateBackgroundState();
     updateMeterStates();
     
-    // MEJORADO: Asegurar que el estado DELTA se aplica correctamente
-    // Esto es crítico para resolver el bug de sincronización al reabrir la ventana
-    // DISTORTION: k_DELTA eliminado - parámetro inexistente
-    bool currentDeltaState = false;
-    applyDeltaModeToAllControls(currentDeltaState);
+    // MEJORADO: Estado inicial aplicado
 }
 
 void JCBDistortionAudioProcessorEditor::updateBasicButtonStates()
@@ -2109,14 +2003,10 @@ void JCBDistortionAudioProcessorEditor::updateBackgroundState()
 {
     // Obtener estados actuales
     const bool bypassActive = parameterButtons.bypassButton.getToggleState();
-    const bool deltaActive = parameterButtons.deltaButton.getToggleState();
     
-    // Actualizar fondo según prioridad: bypass > delta > normal
+    // Actualizar fondo según prioridad: bypass > normal
     if (bypassActive) {
         backgroundImage.setImage(bypassBackground, juce::RectanglePlacement::stretchToFit);
-    }
-    else if (deltaActive) {
-        backgroundImage.setImage(deltaBackground, juce::RectanglePlacement::stretchToFit);
     }
     else {
         backgroundImage.setImage(normalBackground, juce::RectanglePlacement::stretchToFit);
@@ -2166,25 +2056,17 @@ void JCBDistortionAudioProcessorEditor::updateMeterStates()
 {
     // Obtener estados actuales
     const bool bypassActive = parameterButtons.bypassButton.getToggleState();
-    const bool deltaActive = parameterButtons.deltaButton.getToggleState();
     // MAXIMIZER: No sidechain controls - commenting out
     // const bool soloScActive = sidechainControls.soloScButton.getToggleState();
     const bool soloScActive = false;  // Maximizer has no sidechain
     
     // Actualizar colores de medidores
     // Si bypass está activo, no cambiar colores (mantener normales)
-    // Si delta está activo, usar colores delta
     // Si solo SC está activo, usar colores rojos
-    bool deltaMode = deltaActive && !bypassActive;
-    bool soloMode = soloScActive && !bypassActive && !deltaActive;
-    
-    inputMeterL.setDeltaMode(deltaMode);
-    inputMeterR.setDeltaMode(deltaMode);
-    outputMeterL.setDeltaMode(deltaMode);
-    outputMeterR.setDeltaMode(deltaMode);
+    bool soloMode = soloScActive && !bypassActive;
     // MAXIMIZER: No sidechain meters - commenting out
-    // scMeterL.setDeltaMode(deltaMode);
-    // scMeterR.setDeltaMode(deltaMode);
+    // scMeterL.setSoloScMode(soloMode);
+    // scMeterR.setSoloScMode(soloMode);
     // DISTORTION: grMeter eliminado - no hay gain reduction
     
     inputMeterL.setSoloScMode(soloMode);
@@ -2196,9 +2078,7 @@ void JCBDistortionAudioProcessorEditor::updateMeterStates()
     // scMeterR.setSoloScMode(soloMode);
     
     // Ocultar gain reduction meter cuando SOLO SC está activo (no hay compresión activa)
-    // También considerar si graphics está activo para mantener consistencia
     // NUEVO: También ocultar cuando BYPASS está activo
-    bool graphicsActive = utilityButtons.runGraphicsButton.getToggleState();
     // DISTORTION: grMeter eliminado - no hay gain reduction
     
     // Actualizar gradiente de salida para modo bypass
@@ -2211,103 +2091,6 @@ void JCBDistortionAudioProcessorEditor::updateMeterStates()
     distortionCurveDisplay.setBypassMode(bypassActive);
 }
 
-//==============================================================================
-// MÉTODOS DE MANEJO DE DELTA MODE
-//==============================================================================
-
-void JCBDistortionAudioProcessorEditor::applyDeltaModeToAllControls(bool deltaActive)
-{
-    // Aplicar modo DELTA a todos los controles de forma centralizada y simétrica
-    applyDeltaModeToPresetControls(deltaActive);
-    applyDeltaModeToAbControls(deltaActive);
-    applyDeltaModeToUndoRedoControls(deltaActive);
-    applyDeltaModeToUtilityControls(deltaActive);
-    applyDeltaModeToMetersAndDisplay(deltaActive);
-}
-
-void JCBDistortionAudioProcessorEditor::applyDeltaModeToPresetControls(bool deltaActive)
-{
-    // Controles de preset - mantener completamente normales en modo DELTA
-    // Solo aplicar modo visual delta si es necesario, sin cambios de alpha/enabled
-    
-    // Todos los controles de preset permanecen enabled y con alpha 1.0
-    presetArea.saveButton.setEnabled(true);
-    presetArea.saveButton.setAlpha(1.0f);
-    presetArea.saveAsButton.setEnabled(true);
-    presetArea.saveAsButton.setAlpha(1.0f);
-    presetArea.deleteButton.setEnabled(true);
-    presetArea.deleteButton.setAlpha(1.0f);
-    presetArea.backButton.setEnabled(true);
-    presetArea.backButton.setAlpha(1.0f);
-    presetArea.nextButton.setEnabled(true);
-    presetArea.nextButton.setAlpha(1.0f);
-    presetArea.presetMenu.setEnabled(true);
-    presetArea.presetMenu.setAlpha(1.0f);
-}
-
-void JCBDistortionAudioProcessorEditor::applyDeltaModeToAbControls(bool deltaActive)
-{
-    // Controles A/B - mantener completamente normales en modo DELTA
-    // Solo aplicar modo visual delta si es necesario, sin cambios de alpha/enabled
-    
-    // Todos los controles A/B permanecen enabled y con alpha 1.0
-    topButtons.abStateButton.setEnabled(true);
-    topButtons.abStateButton.setAlpha(1.0f);
-    topButtons.abCopyButton.setEnabled(true);
-    topButtons.abCopyButton.setAlpha(1.0f);
-}
-
-void JCBDistortionAudioProcessorEditor::applyDeltaModeToUndoRedoControls(bool deltaActive)
-{
-    // Controles undo/redo - mantener estado normal basado en disponibilidad real
-    // En modo DELTA no se atenúan, pero mantienen su funcionalidad normal
-    
-    bool canUndo = undoManager.canUndo();
-    bool canRedo = undoManager.canRedo();
-    
-    utilityButtons.undoButton.setEnabled(canUndo);
-    utilityButtons.undoButton.setAlpha(canUndo ? 1.0f : 0.3f);
-    utilityButtons.redoButton.setEnabled(canRedo);
-    utilityButtons.redoButton.setAlpha(canRedo ? 1.0f : 0.3f);
-}
-
-void JCBDistortionAudioProcessorEditor::applyDeltaModeToUtilityControls(bool deltaActive)
-{
-    // Controles de utilidad - mantener completamente normales en modo DELTA
-    // Solo aplicar modo visual delta si es necesario, sin cambios de alpha/enabled
-    
-    // Botones TODO - mantener alpha normal para permitir salir de DELTA
-    utilityButtons.hqButton.setAlpha(1.0f);
-    utilityButtons.dualMonoButton.setAlpha(1.0f);
-    utilityButtons.stereoLinkedButton.setAlpha(1.0f);
-    utilityButtons.msButton.setAlpha(1.0f);
-    utilityButtons.midiLearnButton.setAlpha(1.0f);
-    
-    // Botones exclusivos BYPASS y DIAGRAM - mantener enabled para permitir salir de DELTA
-    parameterButtons.bypassButton.setEnabled(true);
-    parameterButtons.bypassButton.setAlpha(1.0f);
-    
-    centerButtons.diagramButton.setEnabled(true);
-    centerButtons.diagramButton.setAlpha(1.0f);
-}
-
-void JCBDistortionAudioProcessorEditor::applyDeltaModeToMetersAndDisplay(bool deltaActive)
-{
-    // Aplicar modo DELTA a medidores y display (solo gradientes, sin alpha)
-    inputMeterL.setDeltaMode(deltaActive);
-    inputMeterR.setDeltaMode(deltaActive);
-    outputMeterL.setDeltaMode(deltaActive);
-    outputMeterR.setDeltaMode(deltaActive);
-    // DISTORTION: grMeter eliminado - no hay gain reduction
-    
-    // Configurar TransferDisplay
-    transferDisplay.setDeltaMode(deltaActive);
-    transferDisplay.setEnvelopeVisible(!deltaActive);
-    
-    // ELIMINADO: Gestión de fondo movida a updateBackgroundState() para evitar conflictos
-    // El fondo se gestiona centralizadamente en updateBackgroundState() con la lógica de prioridad correcta:
-    // bypass > delta > normal
-}
 
 void JCBDistortionAudioProcessorEditor::updateTransferDisplay()
 {
@@ -2930,7 +2713,6 @@ void JCBDistortionAudioProcessorEditor::showCredits()
 {
     // Desactivar estados operacionales antes de mostrar créditos (consistencia con DIAGRAM)
     parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
-    parameterButtons.deltaButton.setToggleState(false, juce::sendNotification);
     // MAXIMIZER: No sidechain controls - commenting out solo button reset
     // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
     
@@ -3012,7 +2794,6 @@ void JCBDistortionAudioProcessorEditor::updateAllTooltips()
     // MAXIMIZER: f_HOLD no existe - comentado según CONTEXTO.txt
     // rightBottomKnobs.holdSlider.setTooltip(getTooltipText("hold"));
     // speedButton removed
-    parameterButtons.deltaButton.setTooltip(getTooltipText("delta"));
     
     // Sliders de trim y makeup
     trimSlider.setTooltip(getTooltipText("trim"));
@@ -3086,7 +2867,6 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "release") return JUCE_UTF8("RELEASE: tiempo de liberación del limitador\nControla la velocidad de regreso después de limitar\nRango: 1 a 1000 ms | Por defecto: 200 ms");
         //if (key == "hold") return JUCE_UTF8("HOLD: tiempo de retención antes del release\nMantiene la expansión por un período fijo\nRango: 0 a 500 ms | Por defecto: 0 ms");
         //if (key == "range") return JUCE_UTF8("RANGE: límite inferior de expansión\nNivel máximo de reducción de ganancia\nRango: -100 a 0 dB | Por defecto: -20 dB");
-        if (key == "delta") return JUCE_UTF8("DELTA: escucha solo la diferencia\nReproducir la señal procesada menos la original\nEl volumen está normalizado para evitar cambios drásticos");
         if (key == "trim") return JUCE_UTF8("TRIM: ganancia de entrada al limitador\nAjusta el nivel antes del procesamiento\nRango: -12 a +12 dB | Por defecto: 0 dB");
         if (key == "makeup") return JUCE_UTF8("MAKEUP: ganancia de salida POST procesador\nAjusta el nivel final después del limitador\nRango: -12 a +12 dB | Por defecto: 0 dB");
         //if (key == "hold") return JUCE_UTF8("HOLD: tiempo de retención antes del release\nMantiene la expansión por un período fijo\nRango: 0 a 500 ms | Por defecto: 0 ms");
@@ -3141,7 +2921,6 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "release") return "RELEASE: limiter release time\nControls return speed after limiting\nRange: 1 to 1000 ms | Default: 200 ms";
         //if (key == "hold") return "HOLD: retention time before release\nMaintains expansion for a fixed period\nRange: 0 to 500 ms | Default: 0 ms";
         //if (key == "range") return "RANGE: lower limit of expansion\nMaximum level of gain reduction\nRange: -100 to 0 dB | Default: -20 dB";
-        if (key == "delta") return "DELTA: listen to the difference only\nPlays processed signal minus original\nVolume is normalized to avoid drastic changes";
         if (key == "trim") return "TRIM: limiter input gain\nAdjusts level before processing\nRange: -12 to +12 dB | Default: 0 dB";
         if (key == "makeup") return "MAKEUP: output gain POST processor\nAdjusts final level after limiter\nRange: -12 to +12 dB | Default: 0 dB";
         //if (key == "hold") return "HOLD: retention time before release\nMaintains expansion for a fixed period\nRange: 0 to 500 ms | Default: 0 ms";
@@ -3208,8 +2987,7 @@ void JCBDistortionAudioProcessorEditor::applyAlphaToMainControls(float alpha)
     // Transfer display
     transferDisplay.setAlpha(alpha);
     
-    // Parameter buttons (not including BYPASS/DELTA which have special handling)
-    parameterButtons.deltaButton.setAlpha(alpha);
+    // Parameter buttons (not including BYPASS which have special handling)
     
     // Trim and makeup sliders
     trimSlider.setAlpha(alpha);
@@ -3382,7 +3160,6 @@ void JCBDistortionAudioProcessorEditor::initializeCodeContentCache()
         {"GAIN CORE", BinaryData::GainCore_txt, BinaryData::GainCore_txtSize},  // Corregido: era GainCalc
         //{"MAKEUP", BinaryData::Output_txt, BinaryData::Output_txtSize},
         {"OUTPUT", BinaryData::Output_txt, BinaryData::Output_txtSize},
-        {"DELTA", BinaryData::Output_txt, BinaryData::Output_txtSize}
     };
     
     // Cargar todo en cache
@@ -3497,7 +3274,6 @@ int JCBDistortionAudioProcessorEditor::getControlParameterIndex(juce::Component&
     // else if (&control == &sidechainControls.soloScButton) return -1;  // m_SOLOSC (no automatizable)
     else if (&control == &rightBottomKnobs.bitButton) return -1;      // g_DITHER (no automatizable)
     else if (&control == &rightBottomKnobs.dcSlider) parameterID = "c_DC";  // c_DC (continuo 0-1)
-    else if (&control == &parameterButtons.deltaButton) return -1;      // DISTORTION: k_DELTA eliminado
     else if (&control == &parameterButtons.bypassButton) return -1;     // h_BYPASS (no automatizable)
     
     // Obtener índice dinámico de parámetro

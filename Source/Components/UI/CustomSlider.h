@@ -278,7 +278,6 @@ public:
             if (name == "clipper" || id == "clipper") return "CLIP";
             if (name == "a-rel" || id == "autorel") return "A-REL";
             if (name == "speed" || id == "speed") return "AR";
-            if (name == "delta" || id == "delta") return "DELTA";
             if (name == "parall" || id == "parall") return "PARAL";
             if (name == "again" || id == "again") return "AGAIN";
             if (name == "smo" || id == "smo") return "SMO";

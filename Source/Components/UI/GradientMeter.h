@@ -29,7 +29,7 @@
  * - Ballística RMS con attack rápido y release lento
  * - Indicador de peak con hold temporal
  * - Detección de clipping con hold visual
- * - Soporte para modos DELTA y SOLO SC con gradientes específicos
+ * - Soporte para modo SOLO SC con gradientes específicos
  * - Thread-safe con std::atomic para variables de nivel
  */
 class GradientMeter : public juce::Component
@@ -46,7 +46,6 @@ public:
           smoothedLevel{-80.0f},
           peakLevel{-80.0f},
           peakHoldTimer(0),
-          isDeltaMode(false),
           isSoloScMode(false)
     {
         // Sin Timer inheritance - control centralizado desde PluginEditor
@@ -64,15 +63,6 @@ public:
         }
     }
     
-    void setDeltaMode(bool delta) noexcept
-    {
-        if (isDeltaMode != delta) {
-            isDeltaMode = delta;
-            resized(); // Actualizar gradiente
-            repaint();
-        }
-    }
-
     void setSoloScMode(bool soloSc) noexcept
     {
         if (isSoloScMode != soloSc) {
@@ -198,8 +188,6 @@ public:
         const auto bounds = getLocalBounds().toFloat();
         if (isSoloScMode)
             gradient = DarkTheme::createSoloScMeterGradient(bounds);
-        else if (isDeltaMode)
-            gradient = DarkTheme::createDeltaMeterGradient(bounds);
         else
             gradient = DarkTheme::createMeterGradient(bounds);
     }
@@ -218,7 +206,6 @@ private:
     std::atomic<float> smoothedLevel;
     std::atomic<float> peakLevel;
     int peakHoldTimer;
-    bool isDeltaMode;
     bool isSoloScMode;
 };
 
@@ -244,8 +231,7 @@ public:
           smoothedLevel{-80.0f},
           peakLevel{-80.0f},
           peakHoldTimer(0),
-          isSoloScMode(false),
-          isDeltaMode(false)
+          isSoloScMode(false)
     {
         // Control centralizado desde PluginEditor a 60Hz
     }
@@ -266,15 +252,6 @@ public:
     {
         if (isSoloScMode != soloSc) {
             isSoloScMode = soloSc;
-            resized(); // Actualizar gradiente
-            repaint();
-        }
-    }
-    
-    void setDeltaMode(bool delta) noexcept
-    {
-        if (isDeltaMode != delta) {
-            isDeltaMode = delta;
             resized(); // Actualizar gradiente
             repaint();
         }
@@ -386,8 +363,6 @@ public:
         // Usar gradiente apropiado basado en el modo
         if (isSoloScMode)
             gradient = DarkTheme::createSoloScMeterGradient(bounds);
-        else if (isDeltaMode)
-            gradient = DarkTheme::createDeltaMeterGradient(bounds);
         else
             gradient = DarkTheme::createSidechainMeterGradient(bounds);
     }
@@ -407,7 +382,6 @@ private:
     std::atomic<float> peakLevel;
     int peakHoldTimer;
     bool isSoloScMode;
-    bool isDeltaMode;
 };
 
 //==============================================================================
@@ -430,8 +404,7 @@ public:
           smoothedValue{0.0f},
           targetValue{0.0f},
           isZoomed(false),
-          peakValue{0.0f},
-          isDeltaMode(false)
+          peakValue{0.0f}
     {
         // Control centralizado desde PluginEditor a 60Hz
     }
@@ -449,15 +422,6 @@ public:
         }
     }
     
-    // Método para cambiar a modo DELTA
-    void setDeltaMode(bool delta) noexcept
-    {
-        if (isDeltaMode != delta) {
-            isDeltaMode = delta;
-            resized(); // Actualizar gradiente
-            repaint();
-        }
-    }
     
     // CRASH FIX: Permitir configuración diferida de valueSupplier
     void setValueFunction(std::function<float()>&& newValueFunction) noexcept
@@ -553,10 +517,7 @@ public:
     void resized() override
     {
         const auto bounds = getLocalBounds().toFloat();
-        if (isDeltaMode)
-            gradient = DarkTheme::createDeltaGainReductionGradient(bounds);
-        else
-            gradient = DarkTheme::createGainReductionGradient(bounds);
+        gradient = DarkTheme::createGainReductionGradient(bounds);
     }
     
 private:
@@ -570,7 +531,6 @@ private:
     std::atomic<float> targetValue;
     bool isZoomed;
     std::atomic<float> peakValue;
-    bool isDeltaMode;
 };
 
 //==============================================================================
@@ -594,7 +554,6 @@ public:
           smoothedLevel{-80.0f},
           peakLevel{-80.0f},
           peakHoldTimer(0),
-          isDeltaMode(false),
           isSoloScMode(false),
           isBypassMode(false)
     {
@@ -610,15 +569,6 @@ public:
         if (detected && !isClipActive) {
             isClipActive = true;
             clipHoldTimer = 120; // 2 segundos a 60Hz = 120 frames
-        }
-    }
-    
-    void setDeltaMode(bool delta) noexcept
-    {
-        if (isDeltaMode != delta) {
-            isDeltaMode = delta;
-            resized(); // Actualizar gradiente
-            repaint();
         }
     }
     
@@ -753,8 +703,6 @@ public:
             gradient = DarkTheme::createMeterGradient(bounds);  // Usar gradiente de entrada cuando bypass activo
         else if (isSoloScMode)
             gradient = DarkTheme::createSoloScOutputMeterGradient(bounds);
-        else if (isDeltaMode)
-            gradient = DarkTheme::createDeltaOutputMeterGradient(bounds);
         else
             gradient = DarkTheme::createOutputMeterGradient(bounds);
     }
@@ -773,7 +721,6 @@ private:
     std::atomic<float> smoothedLevel;
     std::atomic<float> peakLevel;
     int peakHoldTimer;
-    bool isDeltaMode;
     bool isSoloScMode;
     bool isBypassMode;
 };

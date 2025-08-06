@@ -85,9 +85,6 @@ JCBDistortionAudioProcessor::JCBDistortionAudioProcessor()
             else if (paramName == "i_TILT") {
                 value = juce::jlimit(-6.0f, 6.0f, value);
             }
-            else if (paramName == "j_DELTA") {
-                value = juce::jlimit(0.0f, 1.0f, value);
-            }
             else if (paramName == "k_INPUT") {
                 value = juce::jlimit(-12.0f, 12.0f, value);
             }
@@ -694,10 +691,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
                                                             juce::NormalisableRange<float>(-6.f, 6.f, 0.1f, 1.0f),
                                                             0.f);
 
-   // j_DELTA @min 0 @max 1 @default 0 (Modo Delta - escuchar solo lo que añade la distorsión)
-   auto delta = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("j_DELTA", versionHint),
-                                                          juce::CharPointer_UTF8("Delta Mode"),
-                                                          0, 1, 0);
 
    // k_INPUT @min -12 @max 12 @default 0 (Input trim gain)
    auto inputTrim = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("k_INPUT", versionHint),
@@ -754,7 +747,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
    params.push_back(std::move(bits));           // g_BITS
    params.push_back(std::move(bitson));         // h_BITSON
    params.push_back(std::move(tilt));           // i_TILT
-   params.push_back(std::move(delta));          // j_DELTA
    params.push_back(std::move(inputTrim));      // k_INPUT
    params.push_back(std::move(outputGain));     // l_OUTPUT
    params.push_back(std::move(downsample));     // m_DOWNSAMPLE
@@ -800,9 +792,6 @@ void JCBDistortionAudioProcessor::parameterChanged(const juce::String& parameter
     }
     else if (parameterID == "i_TILT") {
         newValue = juce::jlimit(-6.0f, 6.0f, newValue);
-    }
-    else if (parameterID == "j_DELTA") {
-        newValue = juce::jlimit(0.0f, 1.0f, newValue);
     }
     else if (parameterID == "k_INPUT") {
         newValue = juce::jlimit(-12.0f, 12.0f, newValue);
@@ -1049,8 +1038,7 @@ void JCBDistortionAudioProcessor::getStateInformation(juce::MemoryBlock& destDat
         if (param.isValid())
             param.setProperty("value", 0.0f, nullptr);
         
-        // MAXIMIZER: Solo resetear BYPASS y DELTA (no tiene SOLOSC)    
-        // DISTORTION: k_DELTA eliminado - parámetro inexistente
+        // DISTORTION: Plugin completamente limpio de parámetros legacy
     }
     
     auto preset = stateCopy.getOrCreateChildWithName("Presets", nullptr);
@@ -1095,7 +1083,7 @@ void JCBDistortionAudioProcessor::setStateInformation(const void* data, int size
         
         // Forzar parámetros momentáneos a OFF después de cargar (MAXIMIZER)
         apvts.getParameter("f_BYPASS")->setValueNotifyingHost(0.0f);
-        // DISTORTION: k_DELTA eliminado - parámetro inexistente
+        // DISTORTION: Parámetros momentáneos validados y actualizados
         // MAXIMIZER: No tiene m_SOLOSC
         
         // Clear undo history AFTER all values have been set
