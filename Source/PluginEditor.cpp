@@ -36,10 +36,11 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
       inputMeterR([]() { return -100.0f; }),     // Safe dummy value for input meters  
       // DISTORTION: grMeter eliminado - no hay gain reduction
       outputMeterL([]() { return -100.0f; }),    // Safe dummy value for output meters
-      outputMeterR([]() { return -100.0f; })
+      outputMeterR([]() { return -100.0f; }),    // Safe dummy value for output meters
       // MAXIMIZER: Medidores sidechain comentados (no tiene sidechain externo)
       // scMeterL([&p](){ return p.getSCValue(0); }), // SC meter L
       // scMeterR([&p](){ return p.getSCValue(1); }) // SC meter R
+      distortionCurveDisplay(processor.apvts)
 {
     // Configurar todos los componentes
     setupBackground();
@@ -53,6 +54,9 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     
     // Agregar display principal
     addAndMakeVisible(transferDisplay);
+    
+    // Agregar visualizador de curvas de distorsión
+    addAndMakeVisible(distortionCurveDisplay);
     
     // Agregar título y versión - mismo estilo que ExpansorGate
     auto titleFont = juce::Font(juce::FontOptions(22.0f));
@@ -373,6 +377,9 @@ void JCBDistortionAudioProcessorEditor::resized()
     float w = 335.0f * 700.0f / 1247.0f;
     float h = 205.0f * 200.0f / 353.0f - 5.0f;
     transferDisplay.setBounds(getScaledBounds(x, y, w, h));
+    
+    // Posicionar el visualizador de curvas de distorsión en el mismo lugar
+    distortionCurveDisplay.setBounds(getScaledBounds(x, y, w, h));
     
     // === PARAMETER BUTTONS (ENCIMA DE TRANSFER FUNCTION) ===
     // Botones DITHER, DELTA y BYPASS en fila horizontal superior central

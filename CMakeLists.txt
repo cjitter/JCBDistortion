@@ -108,6 +108,7 @@ target_sources(JCBDistortion PRIVATE
         Source/Components/UI/CustomComboBox.cpp
         Source/Components/Windows/CreditsWindow.cpp
         Source/Components/Windows/CodeWindow.cpp
+        Source/DistortionCurveComponent.cpp
         
         # Gen~ DSP engine
         exported-code/JCBDistortion.cpp
