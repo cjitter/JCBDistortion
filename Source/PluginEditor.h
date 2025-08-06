@@ -21,7 +21,7 @@
 #include "BinaryData.h"
 #include "Components/UI/TransferFunctionDisplay.h"
 #include "Components/UI/GradientMeter.h"
-#include "DistortionCurveComponent.h"
+#include "Components/UI/DistortionCurveComponent.h"
 #include "Components/UI/CustomTooltip.h"
 #include "Components/UI/TrimSlider.h"
 #include "Components/UI/CustomSlider.h"
