@@ -140,7 +140,7 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     // Solo se mantiene para visualización básica si es necesario en el futuro
     transferFunctionListener = std::make_unique<TransferFunctionParameterListener>(this);
     
-    // Crear y registrar parameter listener para alpha del REL slider
+    // Crear y registrar parameter listener para alpha del REL slider CORREGIR ESTÁ MAL NO HAY PARAM AHORA
     autorelParameterListener = std::make_unique<AutorelParameterListener>(this);
     processor.apvts.addParameterListener("m_AUTOREL", autorelParameterListener.get());
     
@@ -236,6 +236,8 @@ JCBDistortionAudioProcessorEditor::~JCBDistortionAudioProcessorEditor()
     stopTimer();
     
     // Eliminar parameter listeners
+    processor.apvts.removeParameterListener("g_BITS", this);
+    
     if (deltaParameterListener)
     {
         // DISTORTION: k_DELTA eliminado - parámetro inexistente
@@ -383,15 +385,15 @@ void JCBDistortionAudioProcessorEditor::resized()
     
     // === PARAMETER BUTTONS (ENCIMA DE TRANSFER FUNCTION) ===
     // Botones DITHER, DELTA y BYPASS en fila horizontal superior central
-    rightBottomKnobs.bitButton.setBounds(getScaledBounds(525, 70, 65, 15));
+    rightBottomKnobs.bitButton.setBounds(getScaledBounds(530, 65, 60, 15));
 
     parameterButtons.deltaButton.setBounds(getScaledBounds(280, 17, 50, 12));
     parameterButtons.bypassButton.setBounds(getScaledBounds(380, 17, 50, 12));
     
     // === LEFT SIDE KNOBS === (Between SC meters and transfer function)
     // Top row - THD, CEILING (MAXIMIZER-specific parameters)
-    leftBottomKnobs.drywetSlider.setBounds(getScaledBounds(35, 100, 53, 53));
-    leftTopKnobs.ceilingSlider.setBounds(getScaledBounds(135, 50, 53, 53));  // NUEVO - e_CEILING slider
+    leftBottomKnobs.drywetSlider.setBounds(getScaledBounds(24, 100, 53, 53));
+    leftTopKnobs.ceilingSlider.setBounds(getScaledBounds(200, 50, 50, 50));  // NUEVO - e_CEILING slider
     // MAXIMIZER: c_RATIO no existe - eliminado según CONTEXTO.txt
     // MAXIMIZER: h_RANGE no existe - eliminado según CONTEXTO.txt
     // MAXIMIZER: q_KNEE no existe - eliminado según CONTEXTO.txt
@@ -407,24 +409,24 @@ void JCBDistortionAudioProcessorEditor::resized()
     // MAXIMIZER: g_REACT y z_SMOOTH no existen - eliminados según CONTEXTO.txt
     
     // NUEVO: DET knob - área derecha superior
-    rightTopControls.tiltSlider.setBounds(getScaledBounds(200, 50, 53, 53));
-    
+    rightTopControls.tiltSlider.setBounds(getScaledBounds(170, 100, 48, 48));
+
     // NUEVO: BITS knob - centro de la parte derecha superior 
-    rightTopControls.bitsSlider.setBounds(getScaledBounds(475, 50, 53, 53));
+    rightTopControls.bitsSlider.setBounds(getScaledBounds(478, 50, 53, 53));
     
     // NUEVO: DOWNSAMPLE knob - área derecha superior, junto a BITS
-    rightTopControls.downsampleSlider.setBounds(getScaledBounds(550, 100, 53, 53));
+    rightTopControls.downsampleSlider.setBounds(getScaledBounds(555, 91, 53, 53));
     
     // NUEVO: DOWNSAMPLE button - debajo del slider correspondiente
-    rightTopControls.downsampleButton.setBounds(getScaledBounds(600, 115, 65, 15));
+    rightTopControls.downsampleButton.setBounds(getScaledBounds(605, 108, 65, 15));
 
     // Bottom row - Attack, Release, Hold
-    rightBottomKnobs.driveSlider.setBounds(getScaledBounds(167, 100, 53, 53));
+    rightBottomKnobs.driveSlider.setBounds(getScaledBounds(135, 47, 53, 53));
     // MAXIMIZER: f_HOLD no existe - eliminado según CONTEXTO.txt
     rightBottomKnobs.modeSlider.setBounds(getScaledBounds(65, 50, 53, 53));
     
     // NUEVO: DC slider - área derecha inferior, junto al REL
-    rightBottomKnobs.dcSlider.setBounds(getScaledBounds(100, 100, 53, 53));
+    rightBottomKnobs.dcSlider.setBounds(getScaledBounds(100, 100, 43, 43));
 
     // === SIDECHAIN CONTROLS (TOP CENTER) ===
     // HPF and LPF knobs swapped with their order buttons
@@ -673,6 +675,9 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
         // Actualizar transfer display para ocultar/mostrar envolventes basado en estado de bypass
         bool bypassActive = parameterButtons.bypassButton.getToggleState();
         transferDisplay.setBypassMode(bypassActive);
+        
+        // Actualizar distortion curve display para ocultar curvas cuando bypass está activo
+        distortionCurveDisplay.setBypassMode(bypassActive);
         
         // Actualizar output meters para usar gradient de entrada cuando bypass está activo
         outputMeterL.setBypassMode(bypassActive);
@@ -1020,6 +1025,15 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
 }
 
 //==============================================================================
+// PARAMETER LISTENER - Sincronización con automatización del HOST
+//==============================================================================
+
+void JCBDistortionAudioProcessorEditor::parameterChanged(const juce::String& parameterID, float newValue)
+{
+    // BITS ahora usa CustomSliderAttachment, no necesita listener manual
+}
+
+//==============================================================================
 // MANEJO DE PARÁMETROS Y EVENTOS
 //==============================================================================
 //==============================================================================
@@ -1141,24 +1155,24 @@ void JCBDistortionAudioProcessorEditor::setupKnobs()
     
     // === RIGHT TOP CONTROLS ===
     // BITS - bit crusher resolution control
-    rightTopControls.bitsSlider.setComponentID("BIT");
+    rightTopControls.bitsSlider.setComponentID("bit");
     rightTopControls.bitsSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     rightTopControls.bitsSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 70, 16);
     rightTopControls.bitsSlider.setLookAndFeel(&sliderLAFBig);
     rightTopControls.bitsSlider.setTextBoxIsEditable(true);
     rightTopControls.bitsSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-    rightTopControls.bitsSlider.setRange(3.0, 16.0, 1.0);  // Valores enteros de 3 a 16 bits
-    rightTopControls.bitsSlider.setValue(16.0);  // Sin reducción por defecto
+    rightTopControls.bitsSlider.setRange(3.0, 16.0, 1.0);  // Rango igual al parámetro: 3-16 bits
     rightTopControls.bitsSlider.setDoubleClickReturnValue(true, 16.0);  // Valor por defecto 16 bits
     rightTopControls.bitsSlider.setPopupDisplayEnabled(false, false, this);
     rightTopControls.bitsSlider.setNumDecimalPlacesToDisplay(0);  // Solo enteros
-    // Custom text formatting para mostrar "X bits"
+    // IMPORTANTE: Configurar formatter ANTES de setValue para evitar bug de inicialización
     rightTopControls.bitsSlider.textFromValueFunction = [](double value) {
-        return juce::String(static_cast<int>(value)) + " bits";
+        return juce::String(static_cast<int>(value)) + " bit";
     };
+    rightTopControls.bitsSlider.setValue(16.0);  // Default 16 bits
     addAndMakeVisible(rightTopControls.bitsSlider);
     
-    // Vincular bitsSlider al parámetro g_BITS - usando attachment thread-safe
+    // Crear CustomSliderAttachment para integrar en sistema UNDO/REDO
     if (auto* param = processor.apvts.getParameter("g_BITS"))
     {
         rightTopControls.bitsAttachment = std::make_unique<CustomSliderAttachment>(
@@ -1173,7 +1187,7 @@ void JCBDistortionAudioProcessorEditor::setupKnobs()
     rightBottomKnobs.driveSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 70, 16);
     rightBottomKnobs.driveSlider.setLookAndFeel(&sliderLAFBig);
     rightBottomKnobs.driveSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-    rightBottomKnobs.driveSlider.setDoubleClickReturnValue(true, 100.0);  // Valor por defecto 100ms
+    rightBottomKnobs.driveSlider.setDoubleClickReturnValue(true, 1.0);  // Valor por defecto 1.0 (sin drive)
     rightBottomKnobs.driveSlider.setPopupDisplayEnabled(false, false, this);
     rightBottomKnobs.driveSlider.setTextBoxIsEditable(true);
     // DISTORTION: Formato numérico simple para b_DRIVE (amplificación 1-50)
@@ -1201,7 +1215,10 @@ void JCBDistortionAudioProcessorEditor::setupKnobs()
     rightBottomKnobs.modeSlider.setDoubleClickReturnValue(true, 0.0);  // Valor por defecto modo 0
     rightBottomKnobs.modeSlider.setPopupDisplayEnabled(false, false, this);
     rightBottomKnobs.modeSlider.setTextBoxIsEditable(true);
-    // DISTORTION: Formato entero para d_MODE (modos discretos 0-9)
+    // DISTORTION: Formato entero para d_MODE (modos discretos 1-8 en display, 0-7 internamente)
+    rightBottomKnobs.modeSlider.textFromValueFunction = [](double value) {
+        return juce::String(static_cast<int>(value) + 1);  // Mostrar 1-8 en lugar de 0-7
+    };
     rightBottomKnobs.modeSlider.setNumDecimalPlacesToDisplay(0);
     addAndMakeVisible(rightBottomKnobs.modeSlider);
     if (auto* param = processor.apvts.getParameter("d_MODE"))
@@ -1262,12 +1279,13 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     rightTopControls.downsampleSlider.setTextBoxIsEditable(true);
     rightTopControls.downsampleSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
     rightTopControls.downsampleSlider.setRange(0.0, 99.0, 1.0);  // m_DOWNSAMPLE: factor 0-99 (interno)
-    rightTopControls.downsampleSlider.setValue(0.0);  // Default 0 (sin downsampling)
     rightTopControls.downsampleSlider.setDoubleClickReturnValue(true, 0.0);  // Default value
     rightTopControls.downsampleSlider.setPopupDisplayEnabled(false, false, this);
+    // IMPORTANTE: Configurar formatter ANTES de setValue para evitar bug de inicialización
     rightTopControls.downsampleSlider.textFromValueFunction = [](double value) {
-        return juce::String(static_cast<int>(value + 1)) + " %";
+        return juce::String(static_cast<int>(value)) + " %";
     };
+    rightTopControls.downsampleSlider.setValue(0.0);  // Default 0 (sin downsampling) - ahora con formatter activo
     addAndMakeVisible(rightTopControls.downsampleSlider);
     if (auto* param = processor.apvts.getParameter("m_DOWNSAMPLE"))
     {
@@ -1523,7 +1541,7 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
                 trimSlider.setValue(realValue, juce::sendNotificationSync);
             }
-            if (auto* param = processor.apvts.getParameter("l_OUTPUT")) {
+            if (auto* param = processor.apvts.getParameter("o_DRYWET")) {
                 float defaultValue = param->getDefaultValue();
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
                 leftBottomKnobs.drywetSlider.setValue(realValue, juce::sendNotificationSync);
@@ -1662,6 +1680,16 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 float defaultValue = param->getDefaultValue();
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
                 rightTopControls.bitsSlider.setValue(realValue, juce::sendNotificationSync);
+            }
+            if (auto* param = processor.apvts.getParameter("n_DOWNSAMPLEON")) {
+                float defaultValue = param->getDefaultValue(); // defaultValue = 0 (OFF)
+                bool toggleState = defaultValue >= 0.5f; // false = OFF
+                rightTopControls.downsampleButton.setToggleState(toggleState, juce::sendNotificationSync);
+            }
+            if (auto* param = processor.apvts.getParameter("m_DOWNSAMPLE")) {
+                float defaultValue = param->getDefaultValue(); // defaultValue = 0 (0%)
+                float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
+                rightTopControls.downsampleSlider.setValue(realValue, juce::sendNotificationSync);
             }
             // MAXIMIZER: No sidechain trim - commenting out
             /*
@@ -2180,6 +2208,7 @@ void JCBDistortionAudioProcessorEditor::updateMeterStates()
     // CORRECCIÓN: Asegurar sincronización estado BYPASS al reabrir plugin
     // Esto resuelve el problema de la función de transferencia que reaparece incorrectamente
     transferDisplay.setBypassMode(bypassActive);
+    distortionCurveDisplay.setBypassMode(bypassActive);
 }
 
 //==============================================================================
@@ -2378,7 +2407,7 @@ void JCBDistortionAudioProcessorEditor::updateSliderValues()
     // FIXED: Los comentarios anteriores eran incorrectos - todos los sliders usan CustomSliderAttachment
     
     // Left top knobs - Todos usan CustomSliderAttachment
-    if (auto* param = processor.apvts.getRawParameterValue("l_OUTPUT"))
+    if (auto* param = processor.apvts.getRawParameterValue("a_DRYWET"))
         leftBottomKnobs.drywetSlider.setValue(param->load(), juce::dontSendNotification);
     
     if (auto* param = processor.apvts.getRawParameterValue("e_CEILING"))
@@ -2413,8 +2442,6 @@ void JCBDistortionAudioProcessorEditor::updateSliderValues()
     if (auto* param = processor.apvts.getRawParameterValue("i_TILT"))
         rightTopControls.tiltSlider.setValue(param->load(), juce::dontSendNotification);
         
-    if (auto* param = processor.apvts.getRawParameterValue("g_BITS"))
-        rightTopControls.bitsSlider.setValue(param->load(), juce::dontSendNotification);
         
     if (auto* param = processor.apvts.getRawParameterValue("c_DC"))
         rightBottomKnobs.dcSlider.setValue(param->load(), juce::dontSendNotification);
@@ -3423,7 +3450,7 @@ int JCBDistortionAudioProcessorEditor::getControlParameterIndex(juce::Component&
     juce::String parameterID;
     
     // Perillas Superiores Izquierdas (threshold, ratio, knee)
-    if (&control == &leftBottomKnobs.drywetSlider) parameterID = "o_DRYWET";
+    if (&control == &leftBottomKnobs.drywetSlider) parameterID = "a_DRYWET";
     else if (&control == &leftTopKnobs.ceilingSlider) parameterID = "e_CEILING";  // NUEVO - ceiling slider
     // MAXIMIZER: c_RATIO no existe - comentado según CONTEXTO.txt
     // else if (&control == &leftTopKnobs.ratioSlider) parameterID = "c_RATIO";

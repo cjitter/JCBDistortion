@@ -672,9 +672,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
                                                             0, 1, 0);
 
    // g_BITS @min 3 @max 16 @default 16 (Bit depth)
-   auto bits = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("g_BITS", versionHint),
-                                                          juce::CharPointer_UTF8("Bits"),
-                                                          3, 16, 16);
+   auto bits = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("g_BITS", versionHint),
+                                                           juce::CharPointer_UTF8("Bits"),
+                                                           juce::NormalisableRange<float>(3.0f, 16.0f, 0.1f, 1.0f),
+                                                           16.0f,
+                                                           juce::String(),
+                                                           juce::AudioParameterFloat::genericParameter,
+                                                           [](float value, int) {
+                                                               return juce::String(static_cast<int>(std::round(value))) + " bit";
+                                                           },
+                                                           nullptr);
 
    // h_BITSON @min 0 @max 1 @default 0 (Bit crusher on/off)
    auto bitson = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("h_BITSON", versionHint),

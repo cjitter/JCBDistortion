@@ -1,4 +1,5 @@
 #include "DistortionCurveComponent.h"
+#include "Helpers/UTF8Helper.h"
 
 DistortionCurveComponent::DistortionCurveComponent(juce::AudioProcessorValueTreeState& apvts)
     : valueTreeState(apvts)
@@ -9,6 +10,7 @@ DistortionCurveComponent::DistortionCurveComponent(juce::AudioProcessorValueTree
     valueTreeState.addParameterListener("c_DC", this);
     valueTreeState.addParameterListener("e_CEILING", this);
     valueTreeState.addParameterListener("i_TILT", this);
+    valueTreeState.addParameterListener("f_BYPASS", this);
     
     // Obtener valores iniciales
     updateFromParameters();
@@ -21,6 +23,7 @@ DistortionCurveComponent::~DistortionCurveComponent()
     valueTreeState.removeParameterListener("c_DC", this);
     valueTreeState.removeParameterListener("e_CEILING", this);
     valueTreeState.removeParameterListener("i_TILT", this);
+    valueTreeState.removeParameterListener("f_BYPASS", this);
 }
 
 void DistortionCurveComponent::parameterChanged(const juce::String& parameterID, float newValue)
@@ -35,6 +38,8 @@ void DistortionCurveComponent::parameterChanged(const juce::String& parameterID,
         currentCeiling = juce::Decibels::decibelsToGain(newValue);
     else if (parameterID == "i_TILT")
         currentTilt = newValue;
+    else if (parameterID == "f_BYPASS")
+        bypassMode = newValue >= 0.5f;
     
     repaint();
 }
@@ -51,28 +56,38 @@ void DistortionCurveComponent::updateFromParameters()
         currentCeiling = juce::Decibels::decibelsToGain(param->load());
     if (auto* param = valueTreeState.getRawParameterValue("i_TILT"))
         currentTilt = param->load();
+    if (auto* param = valueTreeState.getRawParameterValue("f_BYPASS"))
+        bypassMode = param->load() >= 0.5f;
 }
 
 void DistortionCurveComponent::paint(juce::Graphics& g)
 {
     auto bounds = getLocalBounds().toFloat();
     
-    // Calcular color de fondo basado en TILT
-    juce::Colour backgroundColour = juce::Colour(0xff1a1a1a); // Negro base
+    // Fondo base
+    juce::Colour backgroundColour = juce::Colour(0x001a1a1a); // Negro transparente como base
     
-    if (std::abs(currentTilt) > 0.1f) // Solo aplicar efecto si TILT es significativo
+    // Si está en modo bypass, ocultar curvas y contenido
+    if (bypassMode)
+    {
+        g.fillAll(backgroundColour);
+        return;
+    }
+    
+    // Modo normal: calcular color de fondo basado en TILT
+    if (std::abs(currentTilt) > 0.01f) // Solo aplicar efecto si TILT es significativo
     {
         if (currentTilt < 0.0f) // Graves - rojizo
         {
             float intensity = juce::jlimit(0.0f, 1.0f, std::abs(currentTilt) / 6.0f); // Normalizar -6dB a 1.0
-            juce::Colour redTint = juce::Colour(0xff4a1a1a); // Rojo oscuro
-            backgroundColour = backgroundColour.interpolatedWith(redTint, intensity * 0.3f);
+            juce::Colour redTint = juce::Colour(0xff5a2020); // Rojo intermedio
+            backgroundColour = backgroundColour.interpolatedWith(redTint, intensity * 0.25f);
         }
         else // Agudos - violeta
         {
             float intensity = juce::jlimit(0.0f, 1.0f, currentTilt / 6.0f); // Normalizar +6dB a 1.0
-            juce::Colour purpleTint = juce::Colour(0xff2a1a4a); // Violeta oscuro
-            backgroundColour = backgroundColour.interpolatedWith(purpleTint, intensity * 0.3f);
+            juce::Colour purpleTint = juce::Colour(0xff3a2050); // Violeta intermedio
+            backgroundColour = backgroundColour.interpolatedWith(purpleTint, intensity * 0.25f);
         }
     }
     
@@ -92,13 +107,24 @@ void DistortionCurveComponent::paint(juce::Graphics& g)
     // Dibujar curva
     drawDistortionCurve(g, bounds);
     
-    // Dibujar nombre del modo en esquina superior izquierda
+    // Dibujar nombre del modo en cuadrante superior izquierdo (centrado)
     g.setColour(juce::Colours::white.withAlpha(0.9f));
     g.setFont(16.0f);
     auto textBounds = getLocalBounds().toFloat();
-    auto textArea = textBounds.removeFromTop(25).removeFromLeft(200);
-    g.drawText(getModeName(), textArea, juce::Justification::centredLeft);
+    auto upperLeft = textBounds.removeFromTop(textBounds.getHeight() / 2.0f).removeFromLeft(textBounds.getWidth() / 2.0f);
+    upperLeft.reduce(10, 10);
+    g.drawText(getModeName(), upperLeft, juce::Justification::centred);
+    
+    // Dibujar fórmula matemática en cuadrante inferior derecho
+    g.setColour(juce::Colours::white.withAlpha(0.7f));
+    g.setFont(juce::Font(juce::FontOptions(14.0f)));  // Reducir tamaño a 14.0f
+    auto lowerRight = getLocalBounds().toFloat();
+    lowerRight.removeFromTop(lowerRight.getHeight() / 2.0f);
+    lowerRight.removeFromLeft(lowerRight.getWidth() / 2.0f);
+    lowerRight.reduce(10, 10);
+    g.drawFittedText(getModeFormula(), lowerRight.toNearestInt(), juce::Justification::centred, 3);
 }
+
 
 void DistortionCurveComponent::drawGrid(juce::Graphics& g, juce::Rectangle<float> bounds)
 {
@@ -294,5 +320,23 @@ juce::String DistortionCurveComponent::getModeName()
         case 6: return "Arctangent";
         case 7: return "Hard Clip";
         default: return "Unknown";
+    }
+}
+
+juce::String DistortionCurveComponent::getModeFormula()
+{
+    int mode = (int)std::floor(currentMode);
+    
+    switch (mode)
+    {
+        case 0: return JUCE_UTF8("x - x³/3 (|x| ≤ 1)\nsgn(x)·⅔ (|x| > 1)");
+        case 1: return JUCE_UTF8("2/(1 + e^(-k·x)) - 1\nk = -(D + C)");
+        case 2: return JUCE_UTF8("sgn(x)·|x·D|·0.707");
+        case 3: return JUCE_UTF8("sgn(x)·(1-e^(-|x·D + C|))");
+        case 4: return JUCE_UTF8("tanh(x·D + C) / tanh(D)");
+        case 5: return JUCE_UTF8("max(x,0)·D·0.5");
+        case 6: return JUCE_UTF8("(2/π) atan(2(x·D + C))");
+        case 7: return JUCE_UTF8("clip(x + C, -L/D, L/D)");
+        default: return "";
     }
 }

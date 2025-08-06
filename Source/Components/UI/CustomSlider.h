@@ -285,7 +285,7 @@ public:
             if (name == "ceiling" || id == "ceiling") return "CEIL";
             if (name == "detect" || id == "detect") return "DET";  // NUEVO - label para detection slider
             if (name == "tilt" || id == "tilt") return "TILT";
-            if (name == "bit" || id == "bit") return "BIT";
+            if (name == "bit" || id == "bit") return "BITS";
             if (name == "deci" || id == "deci") return "DECI";
             if (name == "drive" || id == "drive") return "DRIVE";
             if (name == "mode" || id == "mode") return "MODE";

@@ -13,6 +13,9 @@ public:
     
     void paint(juce::Graphics& g) override;
     
+    // Control de modo BYPASS
+    void setBypassMode(bool enabled) noexcept { bypassMode = enabled; repaint(); }
+    
 private:
     juce::AudioProcessorValueTreeState& valueTreeState;
     
@@ -21,6 +24,7 @@ private:
     float currentDC = 0.0f;
     float currentCeiling = 1.0f;
     float currentTilt = 0.0f;
+    bool bypassMode = false;
     
     void parameterChanged(const juce::String& parameterID, float newValue) override;
     void updateFromParameters();
@@ -41,6 +45,7 @@ private:
     void drawDistortionCurve(juce::Graphics& g, juce::Rectangle<float> bounds);
     juce::Colour getColorForMode();
     juce::String getModeName();
+    juce::String getModeFormula();
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(DistortionCurveComponent)
 };

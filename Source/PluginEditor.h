@@ -39,7 +39,8 @@ class CreditsOverlay;
 //==============================================================================
 class JCBDistortionAudioProcessorEditor : public juce::AudioProcessorEditor,
                                           public juce::Timer,
-                                          public juce::Button::Listener
+                                          public juce::Button::Listener,
+                                          public juce::AudioProcessorValueTreeState::Listener
 {
 public:
     //==========================================================================
@@ -56,6 +57,7 @@ public:
     void resized() override;
     void timerCallback() override;
     void buttonClicked(juce::Button* button) override;
+    void parameterChanged(const juce::String& parameterID, float newValue) override;
     
     //==========================================================================
     // SOPORTE DE AUTOMATIZACIÓN PRO TOOLS
@@ -141,6 +143,36 @@ private:
             g.setColour(backgroundColour);
             g.fillRoundedRectangle(button.getLocalBounds().toFloat(), 3.0f);
         }
+        
+        void drawButtonText(juce::Graphics& g, juce::TextButton& button, 
+                           bool shouldDrawButtonAsHighlighted, 
+                           bool shouldDrawButtonAsDown) override
+        {
+            juce::Font font(getTextButtonFont(button, button.getHeight()));
+            g.setFont(font);
+            g.setColour(button.findColour(button.getToggleState() ? juce::TextButton::textColourOnId
+                                                                  : juce::TextButton::textColourOffId)
+                         .withMultipliedAlpha(button.isEnabled() ? 1.0f : 0.5f));
+
+            const int yIndent = juce::jmin(4, button.proportionOfHeight(0.3f));
+            const int cornerSize = juce::jmin(button.getHeight(), button.getWidth()) / 2;
+
+            const int fontHeight = juce::roundToInt(font.getHeight() * 0.6f);
+            const int leftIndent = juce::jmin(fontHeight, 2 + cornerSize / (button.isConnectedOnLeft() ? 4 : 2));
+            const int rightIndent = juce::jmin(fontHeight, 2 + cornerSize / (button.isConnectedOnRight() ? 4 : 2));
+            const int textWidth = button.getWidth() - leftIndent - rightIndent;
+
+            // Reducir padding cuando el botón está activo (toggle state ON)
+            int reducedPadding = button.getToggleState() ? 1 : 2; // Padding más pequeño cuando está activo
+            
+            juce::Rectangle<int> textBounds(leftIndent + reducedPadding, 
+                                           yIndent, 
+                                           textWidth - (reducedPadding * 2), 
+                                           button.getHeight() - yIndent * 2);
+
+            if (textWidth > 0)
+                g.drawFittedText(button.getButtonText(), textBounds, juce::Justification::centred, 2);
+        }
     };
     
     //==========================================================================
@@ -208,6 +240,22 @@ private:
                 juce::MessageManager::callAsync([safeEditor, deltaActive]() {
                     if (safeEditor)
                         safeEditor->applyDeltaModeToAllControls(deltaActive);
+                });
+            }
+            
+            // Sincronizar slider BITS con automatización del HOST
+            if (parameterID == "g_BITS")
+            {
+                juce::Component::SafePointer<JCBDistortionAudioProcessorEditor> safeEditor(editor);
+                int bitsValue = static_cast<int>(newValue);
+                
+                juce::MessageManager::callAsync([safeEditor, bitsValue]() {
+                    if (safeEditor)
+                    {
+                        // Convertir bits reales (3-16) a porcentaje visual (100%-0%)
+                        float percentage = ((16.0f - static_cast<float>(bitsValue)) / 13.0f) * 100.0f;
+                        safeEditor->rightTopControls.bitsSlider.setValue(percentage, juce::dontSendNotification);
+                    }
                 });
             }
         }
