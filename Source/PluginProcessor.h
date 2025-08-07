@@ -18,6 +18,9 @@
 #include <mutex>
 #include <vector>
 #include <unordered_map>
+#include <array>
+#include <atomic>
+#include <functional>
 
 // Archivos del proyecto
 #include "JCBDistortion.h"
@@ -72,6 +75,14 @@ public:
     // Serialización del estado
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
+    
+    //==============================================================================
+    // FFT Spectrum Analyzer Support
+    std::function<void(float)> spectrumAnalyzerCallback;
+    std::function<void(double)> sampleRateChangedCallback;
+    void setSpectrumAnalyzerCallback(std::function<void(float)> callback) { spectrumAnalyzerCallback = callback; }
+    void setSampleRateChangedCallback(std::function<void(double)> callback) { sampleRateChangedCallback = callback; }
+    double getCurrentSampleRate() const noexcept { return m_PluginState ? m_PluginState->sr : 44100.0; }
     
     //==============================================================================
     // DISTORTION: No requiere reportes de gain reduction - eliminados
@@ -169,6 +180,7 @@ public:
     // Verificar si el processor está completamente inicializado
     bool isInitialized() const noexcept { return m_PluginState != nullptr; }
     
+    
 private:
     //==============================================================================
     // UndoManager separado para GUI
@@ -246,6 +258,7 @@ private:
     
     // Flag para indicar destrucción del plugin
     std::atomic<bool> isBeingDestroyed{false};
+    
     
     //==============================================================================
     // Timer callback para actualizaciones fuera del audio thread

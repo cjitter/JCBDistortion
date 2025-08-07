@@ -34,6 +34,7 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
       // CRASH FIX: Initialize with safe dummy functions, configure real ones later
       // Orden corregido siguiendo declaraciones en .h (línea 235, 242-244)
       distortionCurveDisplay(processor.apvts),    // Declarado primero en .h (línea 235)
+      spectrumAnalyzer(processor.apvts),          // Declarado segundo en .h
       inputMeterL([]() { return -100.0f; }),      // Safe dummy value for input meters  
       inputMeterR([]() { return -100.0f; }),      // Safe dummy value for input meters
       // DISTORTION: grMeter eliminado - no hay gain reduction
@@ -58,6 +59,10 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     
     // Agregar visualizador de curvas de distorsión
     addAndMakeVisible(distortionCurveDisplay);
+    
+    // Agregar analizador de espectro (inicialmente invisible)
+    addAndMakeVisible(spectrumAnalyzer);
+    spectrumAnalyzer.setVisible(false);
     
     // Agregar título y versión - mismo estilo que ExpansorGate
     auto titleFont = juce::Font(juce::FontOptions(22.0f));
@@ -172,14 +177,43 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
     // transferDisplay.setSoloSidechain(sidechainControls.soloScButton.getToggleState());
     
-    // Configurar estado inicial del botón run graphics basado en el processor
+    // Restaurar estado del display mode desde parámetro guardado
+    auto displayModeParam = processor.apvts.getRawParameterValue("p_DISPLAYMODE");
+    if (displayModeParam != nullptr && *displayModeParam > 0.5f)
+    {
+        // Estado guardado es FFT (1)
+        currentDisplayMode = DisplayMode::FFT;
+        
+        transferDisplay.setVisible(false);
+        distortionCurveDisplay.setVisible(false);
+        spectrumAnalyzer.setVisible(true);
+        
+        utilityButtons.runGraphicsButton.setButtonText("FFT");
+        utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId, 
+                                                  juce::Colour(0xFF9C27B0).withAlpha(0.3f));  // FFT: púrpura
+        utilityButtons.zoomButton.setAlpha(1.0f);
+        utilityButtons.zoomButton.setEnabled(true);
+    }
+    else
+    {
+        // Estado por defecto es CURVES (0)
+        currentDisplayMode = DisplayMode::Curves;
+        
+        transferDisplay.setVisible(true);
+        distortionCurveDisplay.setVisible(true);
+        spectrumAnalyzer.setVisible(false);
+        
+        utilityButtons.runGraphicsButton.setButtonText("curves");
+        utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId, 
+                                                  DarkTheme::accent.withAlpha(0.3f));  // CURVES: azul
+        utilityButtons.zoomButton.setAlpha(0.4f);
+        utilityButtons.zoomButton.setEnabled(false);
+    }
+    
+    // Configurar estado inicial basado en el processor (solo para envolventes)
     bool initialEnvelopeState = processor.getEnvelopeVisualEnabled();
-    // El estado del processor indica si las envolventes están visibles
-    // Si las envolventes están visibles, graphics debe estar OFF (false)
-    bool graphicsButtonState = !initialEnvelopeState;
     transferDisplay.setEnvelopeVisible(initialEnvelopeState);
-    utilityButtons.runGraphicsButton.setToggleState(graphicsButtonState, juce::dontSendNotification);
-    utilityButtons.runGraphicsButton.setButtonText("graphics");
+    utilityButtons.runGraphicsButton.setToggleState(false, juce::dontSendNotification);
     // DISTORTION: grMeter eliminado - no hay gain reduction
     
     // Actualizar valores de sliders desde APVTS para evitar problemas al cargar sesión
@@ -213,6 +247,19 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     // DISTORTION: grMeter eliminado - no hay gain reduction
     outputMeterL.setValueFunction([this](){ return processor.isInitialized() ? processor.getRmsOutputValue(0) : -100.0f; });
     outputMeterR.setValueFunction([this](){ return processor.isInitialized() ? processor.getRmsOutputValue(1) : -100.0f; });
+    
+    // Connect spectrum analyzer callback to processor
+    processor.setSpectrumAnalyzerCallback([this](float sample) {
+        spectrumAnalyzer.pushNextSampleIntoFifo(sample);
+    });
+    
+    // Connect sample rate change callback
+    processor.setSampleRateChangedCallback([this](double newSampleRate) {
+        spectrumAnalyzer.setSampleRate(newSampleRate);
+    });
+    
+    // Initialize spectrum analyzer with current sample rate
+    spectrumAnalyzer.setSampleRate(processor.getCurrentSampleRate());
     
     // CRASH FIX: Iniciar timer AL FINAL para evitar acceso prematuro a valores atómicos
     // El timer debe iniciarse después de que todo esté completamente inicializado
@@ -360,6 +407,9 @@ void JCBDistortionAudioProcessorEditor::resized()
     
     // Posicionar el visualizador de curvas de distorsión en el mismo lugar
     distortionCurveDisplay.setBounds(getScaledBounds(x, y, w, h));
+    
+    // Posicionar el analizador de espectro en el mismo lugar
+    spectrumAnalyzer.setBounds(getScaledBounds(x, y, w, h));
     
     // === PARAMETER BUTTONS (ENCIMA DE TRANSFER FUNCTION) ===
     // Botones DITHER y BYPASS en fila horizontal superior central
@@ -617,6 +667,8 @@ void JCBDistortionAudioProcessorEditor::timerCallback()
             transferDisplay.repaint();
         }
     }
+    
+    // FFT processing removed - disabled for stability
 }
 
 void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
@@ -695,14 +747,8 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     */
     else if (button == &utilityButtons.runGraphicsButton)
     {
-        bool newState = utilityButtons.runGraphicsButton.getToggleState();
-        // Invertir la lógica: cuando graphics está ON, ocultar visualizaciones
-        transferDisplay.setEnvelopeVisible(!newState);
-        processor.setEnvelopeVisualEnabled(!newState);
-        // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
-        // bool soloScActive = sidechainControls.soloScButton.getToggleState();
-        // DISTORTION: grMeter eliminado - no hay gain reduction
-        // Mantener el texto siempre como "graphics"
+        // Toggle entre CURVES y FFT
+        toggleDisplayMode();
     }
     // Botones de gestión de presets
     else if (button == &presetArea.saveButton)
@@ -883,38 +929,57 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     }
     else if (button == &utilityButtons.zoomButton)
     {
-        // Ciclar entre dos niveles de zoom
-        auto currentZoom = transferDisplay.getZoomLevel();
-        TransferFunctionDisplay::ZoomLevel newZoom;
-        
-        switch (currentZoom)
+        if (currentDisplayMode == DisplayMode::FFT)
         {
-            case TransferFunctionDisplay::ZoomLevel::Normal:
-                // Normal -> Ampliado
-                newZoom = TransferFunctionDisplay::ZoomLevel::Zoomed;
+            // FFT zoom functionality - toggle zoom range
+            bool currentZoom = spectrumAnalyzer.getZoomEnabled();
+            bool newZoom = !currentZoom;
+            
+            spectrumAnalyzer.setZoomEnabled(newZoom);
+            
+            if (newZoom)
+            {
                 utilityButtons.zoomButton.setButtonText("zoom x2");
                 utilityButtons.zoomButton.setToggleState(true, juce::dontSendNotification);
-                // DISTORTION: grMeter eliminado - no hay gain reduction
-                break;
-                
-            case TransferFunctionDisplay::ZoomLevel::Zoomed:
-                // Ampliado -> Normal
-                newZoom = TransferFunctionDisplay::ZoomLevel::Normal;
+            }
+            else
+            {
                 utilityButtons.zoomButton.setButtonText("zoom");
                 utilityButtons.zoomButton.setToggleState(false, juce::dontSendNotification);
-                // DISTORTION: grMeter eliminado - no hay gain reduction
-                break;
-                
-            default:
-                // Por defecto a Normal si algo sale mal
-                newZoom = TransferFunctionDisplay::ZoomLevel::Normal;
-                utilityButtons.zoomButton.setButtonText("zoom");
-                utilityButtons.zoomButton.setToggleState(false, juce::dontSendNotification);
-                // DISTORTION: grMeter eliminado - no hay gain reduction
-                break;
+            }
         }
-        
-        transferDisplay.setZoomLevel(newZoom);
+        else
+        {
+            // Original zoom functionality for transfer function display (CURVES mode)
+            auto currentZoom = transferDisplay.getZoomLevel();
+            TransferFunctionDisplay::ZoomLevel newZoom;
+            
+            switch (currentZoom)
+            {
+                case TransferFunctionDisplay::ZoomLevel::Normal:
+                    // Normal -> Ampliado
+                    newZoom = TransferFunctionDisplay::ZoomLevel::Zoomed;
+                    utilityButtons.zoomButton.setButtonText("zoom x2");
+                    utilityButtons.zoomButton.setToggleState(true, juce::dontSendNotification);
+                    break;
+                    
+                case TransferFunctionDisplay::ZoomLevel::Zoomed:
+                    // Ampliado -> Normal
+                    newZoom = TransferFunctionDisplay::ZoomLevel::Normal;
+                    utilityButtons.zoomButton.setButtonText("zoom");
+                    utilityButtons.zoomButton.setToggleState(false, juce::dontSendNotification);
+                    break;
+                    
+                default:
+                    // Por defecto a Normal si algo sale mal
+                    newZoom = TransferFunctionDisplay::ZoomLevel::Normal;
+                    utilityButtons.zoomButton.setButtonText("zoom");
+                    utilityButtons.zoomButton.setToggleState(false, juce::dontSendNotification);
+                    break;
+            }
+            
+            transferDisplay.setZoomLevel(newZoom);
+        }
     }
     else if (button == &centerButtons.diagramButton)
     {
@@ -1777,7 +1842,7 @@ void JCBDistortionAudioProcessorEditor::setupUtilityButtons()
 
     // Ejecutar gráficos - caso especial: invertido (OFF con fondo, ON transparente)
     utilityButtons.runGraphicsButton.setClickingTogglesState(true);
-    utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId, DarkTheme::accent.withAlpha(0.3f));  // OFF: con fondo
+    utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId, DarkTheme::accent.withAlpha(0.3f));  // Inicial: azul original consistente (modo curves por defecto)
     utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);  // ON: transparente
     utilityButtons.runGraphicsButton.setColour(juce::TextButton::textColourOffId, DarkTheme::textPrimary);
     utilityButtons.runGraphicsButton.setColour(juce::TextButton::textColourOnId, DarkTheme::textPrimary);
@@ -1882,7 +1947,7 @@ void JCBDistortionAudioProcessorEditor::setupUtilityButtons()
     // Botón Zoom
     utilityButtons.zoomButton.setClickingTogglesState(true);
     utilityButtons.zoomButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
-    utilityButtons.zoomButton.setColour(juce::TextButton::buttonOnColourId, DarkTheme::accent.withAlpha(0.3f));
+    utilityButtons.zoomButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);
     utilityButtons.zoomButton.setColour(juce::TextButton::textColourOffId, DarkTheme::textPrimary);  // Cambiado para igualar otros botones
     utilityButtons.zoomButton.setColour(juce::TextButton::textColourOnId, DarkTheme::textPrimary);
     utilityButtons.zoomButton.addListener(this);
@@ -2767,7 +2832,7 @@ void JCBDistortionAudioProcessorEditor::updateAllTooltips()
     titleLink.setTooltip(getTooltipText("title"));
     
     // Perillas - superiores izquierdas
-    leftBottomKnobs.drywetSlider.setTooltip(getTooltipText("thd"));
+    leftBottomKnobs.drywetSlider.setTooltip(getTooltipText("drywet"));
     leftTopKnobs.ceilingSlider.setTooltip(getTooltipText("ceiling"));  // NUEVO - tooltip para e_CEILING
     // MAXIMIZER: c_RATIO no existe - comentado según CONTEXTO.txt
     // leftTopKnobs.ratioSlider.setTooltip(getTooltipText("ratio"));
@@ -2776,6 +2841,8 @@ void JCBDistortionAudioProcessorEditor::updateAllTooltips()
     
     // Perillas - lookahead movido a rightTopControls
     rightTopControls.bitsSlider.setTooltip(getTooltipText("bits"));
+    rightTopControls.downsampleSlider.setTooltip(getTooltipText("downsample"));  // NUEVO - tooltip para DECI slider
+    rightTopControls.downsampleButton.setTooltip(getTooltipText("downsampleon"));  // NUEVO - tooltip para DOWNSAMPLE button
     
     // Perillas - superiores derechas
     // MAXIMIZER: h_RANGE no existe - comentado según CONTEXTO.txt
@@ -2784,13 +2851,13 @@ void JCBDistortionAudioProcessorEditor::updateAllTooltips()
     // rightTopControls.reactSlider.setTooltip(getTooltipText("react"));
     // MAXIMIZER: z_SMOOTH no existe - comentado según CONTEXTO.txt
     // rightTopControls.smoothSlider.setTooltip(getTooltipText("smooth"));
-    rightTopControls.tiltSlider.setTooltip(getTooltipText("detect"));  // NUEVO - tooltip para DET slider
+    rightTopControls.tiltSlider.setTooltip(getTooltipText("tilt"));  // NUEVO - tooltip para TILT slider
     
     // Perillas - inferiores derechas
-    rightBottomKnobs.driveSlider.setTooltip(getTooltipText("attack"));
-    rightBottomKnobs.modeSlider.setTooltip(getTooltipText("release"));
-    rightBottomKnobs.bitButton.setTooltip(getTooltipText("dither"));    // NUEVO - tooltip para DITHER button
-    rightBottomKnobs.dcSlider.setTooltip(getTooltipText("dc"));  // NUEVO - tooltip para DC slider
+    rightBottomKnobs.driveSlider.setTooltip(getTooltipText("drive"));
+    rightBottomKnobs.modeSlider.setTooltip(getTooltipText("mode"));
+    rightBottomKnobs.bitButton.setTooltip(getTooltipText("bitcrusher"));    // NUEVO - tooltip para BIT CRUSHER button
+    rightBottomKnobs.dcSlider.setTooltip(getTooltipText("even"));  // NUEVO - tooltip para EVEN slider
     // MAXIMIZER: f_HOLD no existe - comentado según CONTEXTO.txt
     // rightBottomKnobs.holdSlider.setTooltip(getTooltipText("hold"));
     // speedButton removed
@@ -2851,27 +2918,21 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
     if (currentLanguage == TooltipLanguage::Spanish)
     {
         // Spanish tooltips
-        if (key == "title") return JUCE_UTF8("JCBDistortion: limitador/maximizador de audio v0.9.0\nPlugin de audio open source\nClick para créditos");
-        if (key == "thd") return JUCE_UTF8("GANANCIA: ganancia de entrada al limitador\nControla el nivel de drive antes del procesamiento\nRango: 0 a 24 dB | Por defecto: 0 dB");
-        //if (key == "ratio") return JUCE_UTF8("RATIO: cantidad de expansión aplicada\nRelación entrada/salida bajo el threshold\nRango: 1:1 a 40:1 | Por defecto: 4:1");
-        //if (key == "knee") return JUCE_UTF8("KNEE: suavidad de la transición en el threshold\nCrea una curva gradual en vez de ángulo duro\nRango: 1 a 20 dB | Por defecto: 1 dB");
-        //if (key == "drywet") return JUCE_UTF8("DRY/WET: mezcla final entre señal original y procesada\nControl de balance entrada/salida\nRango: 0 a 100% | Por defecto: 100%");
+        if (key == "title") return JUCE_UTF8("JCBDistortion: distorsionador multimodal v0.9.0\nPlugin de audio open source\nClick para créditos");
+        if (key == "drywet") return JUCE_UTF8("DRY/WET: mezcla entre señal original y procesada\nControla el balance final de salida\nRango: 0 a 100% | Por defecto: 100%");
         if (key == "lookahead") return JUCE_UTF8("LOOKAHEAD: anticipación para evitar distorsión\nEvita overshooting en transitorios rápidos\nRango: 0 a 5 ms | Por defecto: 0 ms");
-        //if (key == "clip") return JUCE_UTF8("SOFT CLIP: limitador suave de salida\nPreviene saturación con distorsión armónica\nRango: 0/OFF a 1 | Por defecto: 0/OFF");
-        //if (key == "react") return JUCE_UTF8("REACT: respuesta del detector a transientes.\nValores bajos: agresivo | Valores altos: suave.\nRango: 0 a 1 | Por defecto: 0");
-        if (key == "attack") return JUCE_UTF8("ATTACK: tiempo de ataque del limitador\nControla la respuesta ante aumentos de nivel\nRango: 0.01 a 750 ms | Por defecto: 100 ms");
-        if (key == "detect") return JUCE_UTF8("DET: modo de detección del limitador\n0.0 = Peak (rápido) | 1.0 = Sliding RMS (suave)\nValores intermedios mezclan ambos modos\nPor defecto: 1.0 (Sliding RMS)");
-        if (key == "ceiling") return JUCE_UTF8("CEILING: nivel máximo de salida\nControla el techo de limitación del maximizer\nRango: -60 a 0 dB | Por defecto: -0.3 dB");
-        if (key == "dither") return JUCE_UTF8("DITHER: añade dither TPDF de 16 bits para reducir artefactos\nReduce distorsión de cuantización en niveles bajos\nRango: 0 a 1 | Por defecto: 0 (OFF)");
-        if (key == "autorel") return JUCE_UTF8("AUTOREL: liberación automática adaptativa\nActiva release inteligente basado en el material\nRango: OFF/ON | Por defecto: OFF");
-        if (key == "release") return JUCE_UTF8("RELEASE: tiempo de liberación del limitador\nControla la velocidad de regreso después de limitar\nRango: 1 a 1000 ms | Por defecto: 200 ms");
-        //if (key == "hold") return JUCE_UTF8("HOLD: tiempo de retención antes del release\nMantiene la expansión por un período fijo\nRango: 0 a 500 ms | Por defecto: 0 ms");
-        //if (key == "range") return JUCE_UTF8("RANGE: límite inferior de expansión\nNivel máximo de reducción de ganancia\nRango: -100 a 0 dB | Por defecto: -20 dB");
-        if (key == "trim") return JUCE_UTF8("TRIM: ganancia de entrada al limitador\nAjusta el nivel antes del procesamiento\nRango: -12 a +12 dB | Por defecto: 0 dB");
-        if (key == "makeup") return JUCE_UTF8("MAKEUP: ganancia de salida POST procesador\nAjusta el nivel final después del limitador\nRango: -12 a +12 dB | Por defecto: 0 dB");
-        //if (key == "hold") return JUCE_UTF8("HOLD: tiempo de retención antes del release\nMantiene la expansión por un período fijo\nRango: 0 a 500 ms | Por defecto: 0 ms");
+        if (key == "drive") return JUCE_UTF8("DRIVE: intensidad de distorsión\nControla la ganancia antes de la saturación\nRango: 1 a 50 | Por defecto: 1");
+        if (key == "tilt") return JUCE_UTF8("TILT: filtro de balance tonal\nControla el equilibrio entre graves y agudos\nRango: -6 a +6 dB | Por defecto: 0 dB");
+        if (key == "ceiling") return JUCE_UTF8("CEILING: techo de salida con limitador suave\nProtege contra saturación excesiva\nRango: -20 a +6 dB | Por defecto: 0 dB");
+        if (key == "bitcrusher") return JUCE_UTF8("BIT CRUSHER: activa la cuantización digital\nReduce la resolución de bits para distorsión digital\nRango: OFF/ON | Por defecto: OFF");
+        if (key == "bits") return JUCE_UTF8("BITS: resolución del bit crusher\nControla la cuantización digital de bits\nRango: 3 a 16 bits | Por defecto: 16 bits");
+        if (key == "even") return JUCE_UTF8("EVEN: asimetría DC para armónicos pares\nAñade componente continua para generar armónicos pares\nRango: 0 a 1 | Por defecto: 0");
+        if (key == "downsample") return JUCE_UTF8("DECI: factor de decimación\nReduce el sample rate para distorsión aliasing\nRango: 0 a 99% | Por defecto: 0%");
+        if (key == "downsampleon") return JUCE_UTF8("DOWNSAMPLE: activa la decimación\nActiva el efecto de reducción de sample rate\nRango: OFF/ON | Por defecto: OFF");
+        if (key == "mode") return JUCE_UTF8("MODE: algoritmo de distorsión\n8 tipos diferentes: Soft Clip, Sigmoid, Rectifier, etc.\nRango: 1 a 8 (mostrado) | Por defecto: 1");
+        if (key == "trim") return JUCE_UTF8("TRIM: ganancia de entrada al distorsionador\nAjusta el nivel antes del procesamiento\nRango: -12 a +12 dB | Por defecto: 0 dB");
+        if (key == "makeup") return JUCE_UTF8("MAKEUP: ganancia de salida POST procesador\nAjusta el nivel final después de la distorsión\nRango: -12 a +12 dB | Por defecto: 0 dB");
         //if (key == "sc") return JUCE_UTF8("FILTERS: activa los filtros del sidechain.\nPermite filtrar la señal, tanto interna como externa, que controla el expansor.\nValor por defecto: OFF");
-        //if (key == "extkey") return JUCE_UTF8("SIDECHAIN: selecciona cadena lateral interna o externa.\nINT usa la propia señal, EXT usa entradas auxiliares.\nValor por defecto: INT");
         //if (key == "solosc") return JUCE_UTF8("SOLO SC: escucha filtros sidechain int/ext\nParámetro global, no automatizable\nRango: OFF/ON | Por defecto: OFF");
         //if (key == "hpf") return JUCE_UTF8("HPF: filtro pasa altos del sidechain\nFiltra frecuencias del detector de expansión\nRango: 20 a 20k Hz | Por defecto: 20 Hz");
         //if (key == "lpf") return JUCE_UTF8("LPF: filtro pasa bajos del sidechain\nElimina frecuencias agudas del detector\nRango: 20 Hz a 20 kHz | Por defecto: 20 kHz");
@@ -2884,14 +2945,12 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "redo") return JUCE_UTF8("REHACER: aplica el cambio deshecho\nRehace modificación manual previamente revertida\nHistorial: hasta 20 pasos");
         if (key == "resetgui") return JUCE_UTF8("SIZE: cicla entre tamaños de ventana\nActual → Máximo → Mínimo → Actual\nAjuste rápido del tamaño del plugin");
         if (key == "bypass") return JUCE_UTF8("BYPASS: desactiva el procesamiento del plugin\nParámetro global, no automatizable. Transición suave\nRango: OFF/ON | Por defecto: OFF");
-        if (key == "graphics") return JUCE_UTF8("GRAPHICS: muestra envolventes en tiempo real\nVisualiza env entrada/salida e histograma expansión\nDesactivar mejora rendimiento en CPUs lentas");
-        if (key == "zoom") return JUCE_UTF8("ZOOM: cicla entre vista normal y ampliada\nNormal: -40 a 0dB | x2: -20 a 0dB");
+        if (key == "graphics") return JUCE_UTF8("GRAPHICS: alterna entre FFT y curvas de distorsión\nFFT: analizador de espectro | curves: visualizador de curvas\nClick para cambiar entre modos");
+        if (key == "zoom") return JUCE_UTF8("ZOOM: cicla entre vista normal y ampliada del FFT\nNormal: -80 a 0dB | x2: -48 a 0dB\nSolo activo en modo FFT");
         if (key == "diagram") return JUCE_UTF8("DIAGRAM: muestra diagrama de bloques del procesador\nDespliega menú con código GenExpr por bloque para copiar");
         if (key == "transfer") return JUCE_UTF8("GRÁFICA: función de transferencia del limitador\nMuestra la curva de limitación y reducción de ganancia\nClick derecho para opciones adicionales");
         if (key == "tooltiptoggle") return JUCE_UTF8("TOOLTIP: muestra/oculta los tooltips de ayuda\nActiva o desactiva las ventanas de ayuda emergentes");
         if (key == "tooltiplang") return JUCE_UTF8("IDIOMA: cambia entre español e inglés.\nAlterna el idioma de los tooltips.");
-        // MAXIMIZER: No sidechain trim - commenting out tooltip
-        // if (key == "sctrim") return JUCE_UTF8("SC TRIM: ganancia entrada sidechain -12 a +12 dB\nAjusta nivel del sidechain externo\nPor defecto: 0 dB, se activa con EXT KEY");
         if (key == "link") return JUCE_UTF8("STEREO LINKED: siempre activo.\nEl plugin solo funciona en modo stereo linked.\nAmbos canales siempre están vinculados");
         if (key == "hq") return JUCE_UTF8("POR HACER: Habilita oversampling para mayor calidad.");
         if (key == "dualmono") return JUCE_UTF8("POR HACER: Procesa canales L/R independientemente.");
@@ -2900,32 +2959,25 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "midilearn") return JUCE_UTF8("POR HACER: Asigna control MIDI.");
         if (key == "abcopyatob") return JUCE_UTF8("Copiar A a B");
         if (key == "abcopybtoa") return JUCE_UTF8("Copiar B a A");
-        //if (key == "smooth") return JUCE_UTF8("SMOOTH: suavizado extra del detector de envolvente\nControla cantidad de suavizado en la detección\nRango: 0 (RAW) a 1 (SMOOTH) | Por defecto: 0");
     }
     else
     {
         // English tooltips
-        if (key == "title") return "JCBDistortion: audio limiter/maximizer v0.9.0\nOpen source audio plugin\nClick for credits";
-        if (key == "thd") return "GAIN: limiter input gain\nControls the drive level before processing\nRange: 0 to 24 dB | Default: 0 dB";
-        //if (key == "ratio") return "RATIO: amount of expansion applied\nInput/output relationship below threshold\nRange: 1:1 to 40:1 | Default: 4:1";
-        //if (key == "knee") return "KNEE: smoothness of the threshold transition\nCreates a gradual curve instead of hard angle\nRange: 1 to 10 dB | Default: 1 dB";
-        //if (key == "drywet") return "DRY/WET: final mix between original and processed signal\nInput/output balance control\nRange: 0 to 100% | Default: 100%";
+        if (key == "title") return "JCBDistortion: multimodal distortion v0.9.0\nOpen source audio plugin\nClick for credits";
+        if (key == "drywet") return "DRY/WET: mix between original and processed signal\nControls final output balance\nRange: 0 to 100% | Default: 100%";
         if (key == "lookahead") return "LOOKAHEAD: anticipation to prevent distortion\nPrevents overshooting on fast transients\nRange: 0 to 5 ms | Default: 0 ms";
-        //if (key == "clip") return "SOFT CLIP: soft output limiter\nPrevents clipping with harmonic distortion\nRange: 0/OFF to 1 | Default: 0/OFF";
-        //if (key == "react") return "REACT: detector response to transients.\nLow values: aggressive | High values: smooth.\nRange: 0 to 1 | Default: 0";
-        if (key == "attack") return "ATTACK: limiter attack time\nControls response to level increases\nRange: 0.01 to 750 ms | Default: 100 ms";
-        if (key == "detect") return "DET: limiter detection mode\n0.0 = Peak (fast) | 1.0 = Sliding RMS (smooth)\nIntermediate values blend both modes\nDefault: 1.0 (Sliding RMS)";
+        if (key == "drive") return "DRIVE: distortion intensity\nControls gain before saturation\nRange: 1 to 50 | Default: 1";
+        if (key == "tilt") return "TILT: tonal balance filter\nControls bass/treble balance\nRange: -6 to +6 dB | Default: 0 dB";
         if (key == "ceiling") return "CEILING: maximum output level\nControls the maximizer's limiting ceiling\nRange: -60 to 0 dB | Default: -0.3 dB";
-        if (key == "dither") return "DITHER: adds 16-bit TPDF dither to reduce artifacts\nReduces quantization distortion at low levels\nRange: 0 to 1 | Default: 0 (OFF)";
-        if (key == "autorel") return "AUTOREL: adaptive automatic release\nActivates intelligent release based on material\nRange: OFF/ON | Default: OFF";
-        if (key == "release") return "RELEASE: limiter release time\nControls return speed after limiting\nRange: 1 to 1000 ms | Default: 200 ms";
-        //if (key == "hold") return "HOLD: retention time before release\nMaintains expansion for a fixed period\nRange: 0 to 500 ms | Default: 0 ms";
-        //if (key == "range") return "RANGE: lower limit of expansion\nMaximum level of gain reduction\nRange: -100 to 0 dB | Default: -20 dB";
-        if (key == "trim") return "TRIM: limiter input gain\nAdjusts level before processing\nRange: -12 to +12 dB | Default: 0 dB";
-        if (key == "makeup") return "MAKEUP: output gain POST processor\nAdjusts final level after limiter\nRange: -12 to +12 dB | Default: 0 dB";
-        //if (key == "hold") return "HOLD: retention time before release\nMaintains expansion for a fixed period\nRange: 0 to 500 ms | Default: 0 ms";
+        if (key == "bitcrusher") return "BIT CRUSHER: enables digital quantization\nReduces bit resolution for digital distortion\nRange: OFF/ON | Default: OFF";
+        if (key == "bits") return "BITS: bit crusher resolution\nControls digital bit quantization\nRange: 3 to 16 bits | Default: 16 bits";
+        if (key == "even") return "EVEN: DC asymmetry for even harmonics\nAdds DC component to generate even harmonics\nRange: 0 to 1 | Default: 0";
+        if (key == "downsample") return "DECI: decimation factor\nReduces sample rate for aliasing distortion\nRange: 0 to 99% | Default: 0%";
+        if (key == "downsampleon") return "DOWNSAMPLE: enables decimation\nActivates sample rate reduction effect\nRange: OFF/ON | Default: OFF";
+        if (key == "mode") return "MODE: distortion algorithm\n8 different types: Soft Clip, Sigmoid, Rectifier, etc.\nRange: 1 to 8 (displayed) | Default: 1";
+        if (key == "trim") return "TRIM: distortion input gain\nAdjusts level before processing\nRange: -12 to +12 dB | Default: 0 dB";
+        if (key == "makeup") return "MAKEUP: output gain POST processor\nAdjusts final level after distortion\nRange: -12 to +12 dB | Default: 0 dB";
         //if (key == "sc") return "FILTERS: activates sidechain filters.\nAllows filtering the signal, both internal and external, that controls the expander.\nDefault: OFF";
-        //if (key == "extkey") return "SIDECHAIN: selects internal or external sidechain.\nINT uses input signal, EXT uses auxiliary inputs.\nDefault: INT";
         //if (key == "solosc") return "SOLO SC: listen to int/ext sidechain filters\nGlobal parameter, non-automatable\nRange: OFF/ON | Default: OFF";
         //if (key == "hpf") return "HPF: sidechain high-pass filter\nFilters frequencies from expansion detector\nRange: 20 to 20k Hz | Default: 20 Hz";
         //if (key == "lpf") return "LPF: sidechain low-pass filter.\nRemoves treble frequencies from detector.\nRange: 20 Hz to 20 kHz | Default: 20 kHz";
@@ -2938,14 +2990,12 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "redo") return "REDO: reapply undone change\nRedo manually made modification previously reverted\nHistory: up to 20 steps";
         if (key == "resetgui") return JUCE_UTF8("SIZE: cycles through window sizes\nCurrent → Maximum → Minimum → Current\nQuick plugin size adjustment");
         if (key == "bypass") return "BYPASS: disables plugin processing\nGlobal parameter, non-automatable. Smooth transition\nRange: OFF/ON | Default: OFF";
-        if (key == "graphics") return "GRAPHICS: shows real-time envelopes\nDisplays input/output env and expansion histogram\nDisable to improve performance on slow CPUs";
-        if (key == "zoom") return "ZOOM: cycles between normal and zoomed view\nNormal: -40 to 0dB | x2: -20 to 0dB";
+        if (key == "graphics") return "GRAPHICS: toggles between FFT and distortion curves\nFFT: spectrum analyzer | curves: curve visualizer\nClick to switch between modes";
+        if (key == "zoom") return "ZOOM: cycles between normal and zoomed FFT view\nNormal: -80 to 0dB | x2: -48 to 0dB\nOnly active in FFT mode";
         if (key == "diagram") return "DIAGRAM: shows processor block diagram\nDisplays menu with GenExpr code per block for copying";
         if (key == "transfer") return "GRAPH: limiter transfer function\nShows limiting curve and gain reduction\nRight click for additional options";
         if (key == "tooltiptoggle") return "TOOLTIP: show/hide help tooltips.\nEnables or disables popup help windows.";
         if (key == "tooltiplang") return "LANGUAGE: switch between Spanish and English.\nToggles tooltip language.";
-        // MAXIMIZER: No sidechain trim - commenting out tooltip
-        // if (key == "sctrim") return "SC TRIM: sidechain input gain -12 to +12 dB\nAdjusts external sidechain level\nDefault: 0 dB, activated with EXT KEY";
         if (key == "link") return "STEREO LINKED: always active.\nPlugin only works in stereo linked mode.\nBoth channels are always linked";
         if (key == "hq") return "TODO: Enables oversampling for higher quality.";
         if (key == "dualmono") return "TODO: Processes L/R channels independently.";
@@ -2954,7 +3004,6 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "midilearn") return "TODO: Assigns MIDI control.";
         if (key == "abcopyatob") return "Copy A to B";
         if (key == "abcopybtoa") return "Copy B to A";
-        //if (key == "smooth") return "SMOOTH: extra envelope detector smoothing\nControls smoothing amount applied to detection\nRange: 0 (RAW) to 1 (SMOOTH) | Default: 0";
     }
 
     return "";
@@ -3150,16 +3199,14 @@ void JCBDistortionAudioProcessorEditor::initializeCodeContentCache()
         int dataSize;
     };
     
-    // Lista de todos los mappings - MAXIMIZER (sin filtros sidechain)
+    // Lista de todos los mappings - DISTORTION (archivos Gen~ disponibles)
     std::vector<CodeMapping> mappings = {
-        {"TRIM IN", BinaryData::InputTrim_txt, BinaryData::InputTrim_txtSize},
-        //{"TRIM SC", BinaryData::InputTrim_txt, BinaryData::InputTrim_txtSize},  // Mantener por compatibilidad UI
-        {"LOOKAHEAD", BinaryData::InputTrim_txt, BinaryData::InputTrim_txtSize},
-        // MAXIMIZER: No tiene FILTERS (sin sidechain externo)
-        {"DETECTOR", BinaryData::Detector_txt, BinaryData::Detector_txtSize},
-        {"GAIN CORE", BinaryData::GainCore_txt, BinaryData::GainCore_txtSize},  // Corregido: era GainCalc
-        //{"MAKEUP", BinaryData::Output_txt, BinaryData::Output_txtSize},
-        {"OUTPUT", BinaryData::Output_txt, BinaryData::Output_txtSize},
+        {"INPUT STAGE", BinaryData::InputStage_txt, BinaryData::InputStage_txtSize},
+        {"EFFECTS CHAIN", BinaryData::EffectsChain_txt, BinaryData::EffectsChain_txtSize},
+        {"DISTORTION CORE", BinaryData::DistortionCore_txt, BinaryData::DistortionCore_txtSize},
+        {"GEN EXPR", BinaryData::GenExpr_txt, BinaryData::GenExpr_txtSize},
+        {"GEN EXPR (FILTERS)", BinaryData::GenExpr_with_filters_txt, BinaryData::GenExpr_with_filters_txtSize},
+        {"OUTPUT STAGE", BinaryData::OutputStage_txt, BinaryData::OutputStage_txtSize},
     };
     
     // Cargar todo en cache
@@ -3321,3 +3368,82 @@ void JCBDistortionAudioProcessorEditor::updateRelSliderAlpha()
         }
     }
 }
+
+//==============================================================================
+// SPECTRUM ANALYZER SUPPORT
+//==============================================================================
+
+void JCBDistortionAudioProcessorEditor::toggleDisplayMode()
+{
+    // Cambiar entre CURVES y FFT
+    if (currentDisplayMode == DisplayMode::Curves)
+    {
+        currentDisplayMode = DisplayMode::FFT;
+        
+        // Guardar estado en parámetro para persistencia
+        auto displayModeParam = processor.apvts.getParameter("p_DISPLAYMODE");
+        if (displayModeParam != nullptr)
+        {
+            displayModeParam->setValueNotifyingHost(1.0f);  // 1 = FFT
+        }
+        
+        // Activar modo FFT Spectrum Analyzer
+        transferDisplay.setVisible(false);
+        distortionCurveDisplay.setVisible(false);
+        spectrumAnalyzer.setVisible(true);
+        
+        // Actualizar texto y color del botón FFT
+        utilityButtons.runGraphicsButton.setButtonText("FFT");
+        
+        // Color púrpura/rosa distintivo para modo FFT (mismo que botón A activo)
+        utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId, 
+                                                  juce::Colour(0xFF9E35B0));  // FFT: púrpura/rosa exacto como botón A
+        
+        // Habilitar botón zoom para modo FFT
+        utilityButtons.zoomButton.setAlpha(1.0f);
+        utilityButtons.zoomButton.setEnabled(true);
+    }
+    else
+    {
+        currentDisplayMode = DisplayMode::Curves;
+        
+        // Guardar estado en parámetro para persistencia
+        auto displayModeParam = processor.apvts.getParameter("p_DISPLAYMODE");
+        if (displayModeParam != nullptr)
+        {
+            displayModeParam->setValueNotifyingHost(0.0f);  // 0 = CURVES
+        }
+        
+        // Visibilidad de componentes
+        transferDisplay.setVisible(true);
+        distortionCurveDisplay.setVisible(true);
+        spectrumAnalyzer.setVisible(false);
+        
+        // Actualizar texto y color del botón CURVES
+        utilityButtons.runGraphicsButton.setButtonText("curves");
+        
+        // Color azul distintivo para modo CURVES (mismo que botón B activo)
+        utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId, 
+                                                  DarkTheme::accent.withAlpha(0.3f));  // curves: azul original consistente
+        
+        // Restaurar botón zoom para transfer function (deshabilitado visualmente)
+        auto currentZoom = transferDisplay.getZoomLevel();
+        if (currentZoom == TransferFunctionDisplay::ZoomLevel::Zoomed)
+        {
+            utilityButtons.zoomButton.setButtonText("zoom x2");
+            utilityButtons.zoomButton.setToggleState(true, juce::dontSendNotification);
+        }
+        else
+        {
+            utilityButtons.zoomButton.setButtonText("zoom");
+            utilityButtons.zoomButton.setToggleState(false, juce::dontSendNotification);
+        }
+        
+        // Deshabilitar botón zoom en modo CURVES - no clickeable
+        utilityButtons.zoomButton.setAlpha(0.4f);
+        utilityButtons.zoomButton.setEnabled(false);
+    }
+    
+    repaint();
+}
+

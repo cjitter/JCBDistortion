@@ -1,0 +1,228 @@
+// =============================================================================
+// DISTORTION CORE BLOCK - Multi-Algorithm Distortion with Morphing
+// =============================================================================
+// Procesamiento de distorsión con 8 algoritmos y morphing continuo
+//
+// ENTRADAS:
+// - in1: Audio L (post tilt filter)
+// - in2: Audio R (post tilt filter)
+//
+// SALIDAS:
+// - out1: L distorsionado con DC blocker
+// - out2: R distorsionado con DC blocker
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// FUNCIONES DE DISTORSIÓN
+// -----------------------------------------------------------------------------
+
+// MODO 0 - Soft Clipping
+softclip(inl, inr, dr, dc, cell) {
+    lWithDC = inl + (dc * 0.05);
+    rWithDC = inr + (dc * 0.05);
+    
+    lNorm = (lWithDC * dr) / cell;
+    rNorm = (rWithDC * dr) / cell;
+    
+    lCubic = lNorm - (lNorm * lNorm * lNorm) / 3;
+    rCubic = rNorm - (rNorm * rNorm * rNorm) / 3;
+    
+    lLimited = sign(lNorm) * (2.0 / 3.0);
+    rLimited = sign(rNorm) * (2.0 / 3.0);
+    
+    lOut = (abs(lNorm) <= 1) ? lCubic : lLimited;
+    rOut = (abs(rNorm) <= 1) ? rCubic : rLimited;
+    
+    return lOut * cell, rOut * cell;
+}
+
+// MODO 1 - Sigmoid
+sigmoid(inl, inr, dr, dc, cell) {
+    lWithDC = inl + (dc * 0.05);
+    rWithDC = inr + (dc * 0.05);
+    
+    factor = (-1) * dr;
+    l = (2 * (1 / (1 + exp(factor * lWithDC)))) - 1;
+    r = (2 * (1 / (1 + exp(factor * rWithDC)))) - 1;
+    
+    lOut = clip(l * cell, -cell, cell);
+    rOut = clip(r * cell, -cell, cell);
+    
+    return lOut, rOut;
+}
+
+// MODO 2 - Rectificador Full Wave
+rectF(inl, inr, dr, dc, cell) {
+    lWithDC = inl + (dc * 0.05);
+    rWithDC = inr + (dc * 0.05);
+    
+    l = sign(lWithDC) * abs(lWithDC * dr) * 0.707;
+    r = sign(rWithDC) * abs(rWithDC * dr) * 0.707;
+    lOut = clip(l, -cell, cell);
+    rOut = clip(r, -cell, cell);
+    return lOut, rOut;
+}
+
+// MODO 3 - Fuzz Exponencial
+fuzzExp1(inl, inr, dr, dc, cell) {
+    lWithDC = inl + (dc * 0.05);
+    rWithDC = inr + (dc * 0.05);
+    
+    signl = sign(lWithDC);
+    signr = sign(rWithDC);
+    
+    lScaled = abs(lWithDC * dr);
+    rScaled = abs(rWithDC * dr);
+    
+    l = signl * (1 - exp(-lScaled));
+    r = signr * (1 - exp(-rScaled));
+    
+    lOut = clip(l, -cell, cell);
+    rOut = clip(r, -cell, cell);
+    return lOut, rOut;
+}
+
+// MODO 4 - Tangente Hiperbólica
+tangenteHiperbolica(inl, inr, dr, dc, cell) {
+    lWithDC = inl + (dc * 0.05);
+    rWithDC = inr + (dc * 0.05);
+    
+    l = clip(lWithDC * dr, -cell, cell);
+    r = clip(rWithDC * dr, -cell, cell);
+    lOut = (tanh(l)) / (tanh(dr));
+    rOut = (tanh(r)) / (tanh(dr));
+    return lOut, rOut;
+}
+
+// MODO 5 - Rectificador Half Wave
+rectH(inl, inr, dr, dc, cell) {
+    lWithDC = inl + (dc * 0.05);
+    rWithDC = inr + (dc * 0.05);
+    
+    lPositive = max(lWithDC, 0);
+    rPositive = max(rWithDC, 0);
+    l = clip((lPositive * dr) * 0.5, -cell, cell);
+    r = clip((rPositive * dr) * 0.5, -cell, cell);
+    return l, r;
+}
+
+// MODO 6 - Arctangente
+arctangent(inl, inr, dr, dc, cell) {
+    lWithDC = inl + (dc * 0.05);
+    rWithDC = inr + (dc * 0.05);
+    
+    lScaled = lWithDC * dr * 2;
+    rScaled = rWithDC * dr * 2;
+    
+    l = (2 / pi) * atan(lScaled);
+    r = (2 / pi) * atan(rScaled);
+    
+    lOut = l * cell;
+    rOut = r * cell;
+    
+    return lOut, rOut;
+}
+
+// MODO 7 - Hard Clip
+hardClip(inl, inr, dr, dc, cell) {
+    lWithDC = inl + (dc * 0.05);
+    rWithDC = inr + (dc * 0.05);
+    
+    lDriven = lWithDC * dr;
+    rDriven = rWithDC * dr;
+    
+    l = (lDriven > cell) ? cell : ((lDriven < -cell) ? -cell : lDriven);
+    r = (rDriven > cell) ? cell : ((rDriven < -cell) ? -cell : rDriven);
+    
+    return l, r;
+}
+
+// -----------------------------------------------------------------------------
+// PARÁMETROS
+// -----------------------------------------------------------------------------
+Param b_DRIVE(1, min=1, default=1, max=50);
+Param c_DC(0, min=0, default=0, max=1);         // DC offset - añade armónicos pares
+Param d_MODE(1, min=0, default=0, max=7);       // Continuo 0-7 (8 algoritmos)
+Param e_CEILING(0, min=-20, default=0, max=6);
+
+// HISTORIALES
+History hDrive(0);
+History hDc(0);
+History hMode(0);     // Para suavizar cambios de modo
+
+// CONSTANTES
+smoothFactor = 0.999;
+modeSmoothFactor = 0.99;  // Más rápido para cambios de modo
+
+// =============================================================================
+// PROCESAMIENTO
+// =============================================================================
+
+// Entradas
+lTilt = in1;
+rTilt = in2;
+
+// Smoothing de parámetros
+hDrive = hDrive * smoothFactor + b_DRIVE * (1 - smoothFactor);
+drive = hDrive;
+
+hDc = hDc * smoothFactor + c_DC * (1 - smoothFactor);
+dc = hDc;
+
+// Suavizado especial para MODE
+hMode = hMode * modeSmoothFactor + d_MODE * (1 - modeSmoothFactor);
+smoothedMode = hMode;
+
+// Conversión ceiling
+ceiling = dbtoa(e_CEILING);
+
+// -----------------------------------------------------------------------------
+// EJECUTAR TODOS LOS ALGORITMOS
+// -----------------------------------------------------------------------------
+softL, softR = softclip(lTilt, rTilt, drive, dc, ceiling);
+sigmL, sigmR = sigmoid(lTilt, rTilt, drive, dc, ceiling);
+rectL, rectR = rectF(lTilt, rTilt, drive, dc, ceiling);
+fuzz1L, fuzz1R = fuzzExp1(lTilt, rTilt, drive, dc, ceiling);
+tanhL, tanhR = tangenteHiperbolica(lTilt, rTilt, drive, dc, ceiling);
+recthL, recthR = rectH(lTilt, rTilt, drive, dc, ceiling);
+atanL, atanR = arctangent(lTilt, rTilt, drive, dc, ceiling);
+hardL, hardR = hardClip(lTilt, rTilt, drive, dc, ceiling);
+
+// -----------------------------------------------------------------------------
+// SISTEMA DE MORPHING CONTINUO
+// -----------------------------------------------------------------------------
+mode = smoothedMode;
+
+// Calcular pesos para cada algoritmo
+w0 = max(0, 1 - abs(mode - 0));      // Softclip
+w1 = max(0, 1 - abs(mode - 1));      // Sigmoid
+w2 = max(0, 1 - abs(mode - 2));      // RectF
+w3 = max(0, 1 - abs(mode - 3));      // Fuzz1
+w4 = max(0, 1 - abs(mode - 4));      // TanH
+w5 = max(0, 1 - abs(mode - 5));      // RectH
+w6 = max(0, 1 - abs(mode - 6));      // Arctangent
+w7 = max(0, 1 - abs(mode - 7));      // HardClip
+
+// Normalizar pesos
+sumWeights = w0 + w1 + w2 + w3 + w4 + w5 + w6 + w7 + 0.0001;
+w0 /= sumWeights; w1 /= sumWeights; w2 /= sumWeights; w3 /= sumWeights;
+w4 /= sumWeights; w5 /= sumWeights; w6 /= sumWeights; w7 /= sumWeights;
+
+// Mezclar algoritmos según pesos
+distL = softL * w0 + sigmL * w1 + rectL * w2 + fuzz1L * w3 +
+        tanhL * w4 + recthL * w5 + atanL * w6 + hardL * w7;
+
+distR = softR * w0 + sigmR * w1 + rectR * w2 + fuzz1R * w3 +
+        tanhR * w4 + recthR * w5 + atanR * w6 + hardR * w7;
+
+// -----------------------------------------------------------------------------
+// DC BLOCKER
+// -----------------------------------------------------------------------------
+processedL = dcblock(distL);
+processedR = dcblock(distR);
+
+// -----------------------------------------------------------------------------
+// SALIDAS
+// -----------------------------------------------------------------------------
+out1 = processedL;  // L distorsionado con DC blocker
+out2 = processedR;  // R distorsionado con DC blocker

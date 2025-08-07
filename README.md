@@ -1,6 +1,6 @@
 ![JCBDistortion Interface](Assets/screenshot.png)
 
-Plugin maximizador desarrollado en gen~, exportado con [gen~ Plugin Export](https://github.com/Cycling74/gen-plugin-export) y finalizado con el framework C++ [JUCE](https://github.com/juce-framework/JUCE). Este plugin forma parte de un conjunto de herramientas didácticas que utilizo en la asignatura de Técnicas de Grabación y Masterización para Música Electroacústica del [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/). Originalmente creado con JUCE 6 hace unos años, el proyecto ha evolucionado significativamente en su interfaz gráfica y funcionalidad gracias al desarrollo con Claude Code durante junio de 2025. Para más detalles técnicos, consulta [NOTAS.md](NOTAS.md).
+Plugin distorsionador desarrollado en gen~, exportado con [gen~ Plugin Export](https://github.com/Cycling74/gen-plugin-export) y finalizado con el framework C++ [JUCE](https://github.com/juce-framework/JUCE). Este plugin forma parte de un conjunto de herramientas didácticas que utilizo en la asignatura de Técnicas de Grabación y Masterización para Música Electroacústica del [MCE](https://katarinagurska.com/curso-of/master-de-composicion-electroacustica-mce/). Originalmente creado con JUCE 6 hace unos años, el proyecto ha evolucionado significativamente en su interfaz gráfica y funcionalidad gracias al desarrollo con Claude Code durante junio de 2025. Para más detalles técnicos, consulta [NOTAS.md](NOTAS.md).
 
 ## Instalación macOS
 1. Descarga el archivo DMG desde la página de [Releases](https://github.com/cjitter/JCBDistortion/releases)
@@ -61,22 +61,18 @@ cmake --build build-release   # Para Release
 
 ## Características principales
 
-- **Maximizador con limitador brickwall** y techo ajustable de -60 a 0 dB.
-- **Control de ganancia moderno** de 0 a +24 dB (sin threshold negativo).
-- **Detección conmutable Peak/RMS** con ventana deslizante de 3ms.
-- **Auto-release adaptativo** que ajusta dinámicamente entre 5-150ms según el contenido.
-- **Modo Delta inteligente** normalizado para escuchar exactamente qué está limitando, independiente del ceiling.
-- **Control de envolvente** con tiempos de ataque (0.01-750ms) y release (1-1000ms).
-- **Lookahead ajustable** de 0 a 5 ms para anticipar picos.
-- **Control de entrada y salida** (trim y makeup) ±12 dB.
-- **TPDF dither de 16 bits** aplicado como última etapa antes de la salida.
-- **Función soft knee limiter** interna (actualmente configurada como hard knee).
-- **Procesamiento exclusivamente estéreo**, con canales siempre vinculados.
-- **Visualización gráfica** en tiempo real: medidor de reducción de ganancia.
-- **Gestión completa de presets** con funciones de guardar, guardar como, eliminar, y navegación.
-- **Bypass verdadero**, no afectado por trim de entrada.
-- **Cambio de idioma** dinámico para tooltips (Español/Inglés).
-- **Visualización del diagrama de bloques** con acceso directo al código GenExpr por sección.
+- **Distorsionador multietapa con 8 modos seleccionables**, que abarcan desde saturaciones suaves hasta distorsión extrema digital.
+- **Control de ganancia de entrada (DRIVE)** de 1 a 50, para modular el grado de distorsión.
+- **Distorsión asimétrica (EVEN)** con control de offset DC para simetría armónica variable.
+- **Bit Crusher y Downsampler** con controles independientes de profundidad de bits (BIT) y decimación (DECI), y activadores dedicados.
+- **Filtro Tilt** para balance espectral previo a la distorsión.
+- **Control de techo (CEIL)** y trimeo de salida (TRIM) para ajustar el rango dinámico resultante.
+- **Control Dry/Wet** post-procesamiento para mezclar señal limpia y distorsionada.
+- **Bypass verdadero** mediante botón dedicado.
+- **Visualización gráfica** y controles agrupados por bloques funcionales.
+- **Procesamiento estéreo fijo** con parámetros compartidos entre canales.
+- **Tooltips bilingües** conmutables (Español/Inglés).
+- **Visualización del diagrama de bloques** y acceso al código GenExpr para estudio técnico.
 
 ![Diagrama de Bloques](Assets/screenshotDiagram.png)
 
@@ -85,7 +81,7 @@ cmake --build build-release   # Para Release
 ### Bibliografía técnica
 - [Graham Wakefield & Gregory Taylor - *Generating Sound and Organizing Time*](https://cycling74.com/books/go)
 - [Will C. Pirkle - *Designing Audio Effect Plugins in C++*](https://www.willpirkle.com)
-- [Giannoulis, Massberg, Reiss - *Dynamic Range Compressor Design*](https://eecs.qmul.ac.uk/~josh/documents/2012/GiannoulisMassbergReiss-dynamicrangecompression-JAES2012.pdf)
+- [Vadim Zavalishin - *The Art of VA Filter Design*](https://www.native-instruments.com/fileadmin/ni_media/downloads/pdf/VAFilterDesign_1.1.1.pdf)
 - [Matthijs Hollemans - *The Complete Beginner's Guide to Audio Plug-in Development*](https://www.theaudioprogrammer.com/books/beginners-plugin-book)
 
 ## Testing con pluginval
@@ -118,11 +114,11 @@ Los tests validan los formatos VST3 y AU del plugin.
 
 ## Por hacer
 
-- Migrar de Plugin Export a la exportación C++ de RNBO.
-- Implementar oversampling con el módulo DSP de JUCE.
-- Implementar mapeo MIDI.
-- Portar a SuperCollider los bloques de GenExpr, y/o crear UGen.
-- Hacer el Max For Live device.
+- Añadir oversampling opcional para evitar aliasing en modos extremos.
+- Crear versión simplificada para Max for Live.
+- Portar el modelo a SuperCollider como UGen personalizado.
+- Explorar morphing entre modos de distorsión.
+- Optimizar el código GenExpr para CPU en tiempo real.
 
 ---
 

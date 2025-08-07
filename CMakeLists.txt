@@ -109,6 +109,7 @@ target_sources(JCBDistortion PRIVATE
         Source/Components/Windows/CreditsWindow.cpp
         Source/Components/Windows/CodeWindow.cpp
         Source/Components/UI/DistortionCurveComponent.cpp
+        Source/Components/UI/SpectrumAnalyzerComponent.cpp
         
         # Gen~ DSP engine
         exported-code/JCBDistortion.cpp
@@ -125,11 +126,13 @@ juce_add_binary_data(JCBDistortion_BinaryData
         Assets/delta.png
         Assets/diagramaFondo.png
         Assets/diagram.png
-        # Code files
-        Assets/code/InputTrim.txt
-        Assets/code/GainCore.txt
-        Assets/code/Detector.txt
-        Assets/code/Output.txt
+        # Code files (existing files only)
+        Assets/code/DistortionCore.txt
+        Assets/code/EffectsChain.txt
+        Assets/code/GenExpr.txt
+        Assets/code/GenExpr_with_filters.txt
+        Assets/code/InputStage.txt
+        Assets/code/OutputStage.txt
         # Presets de fábrica
         Assets/FactoryPresets/plus6.preset
 )
@@ -154,6 +157,7 @@ target_link_libraries(JCBDistortion PRIVATE
         juce::juce_audio_processors
         juce::juce_core
         juce::juce_data_structures
+        juce::juce_dsp
         juce::juce_events
         juce::juce_graphics
         juce::juce_gui_basics

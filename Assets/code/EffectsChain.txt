@@ -1,0 +1,107 @@
+// =============================================================================
+// EFFECTS CHAIN BLOCK - Bit Crusher & Downsampling
+// =============================================================================
+// Procesamiento de efectos adicionales post-distorsión
+//
+// ENTRADAS:
+// - in1: Audio L distorsionado
+// - in2: Audio R distorsionado
+//
+// SALIDAS:
+// - out1: L procesado con bit crusher y downsampling
+// - out2: R procesado con bit crusher y downsampling
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// FUNCIONES
+// -----------------------------------------------------------------------------
+
+// Bit Crusher - Reduce la resolución de bits
+bitCrusher(inl, inr, bits) {
+    steps = pow(2, bits) - 1;
+    invSteps = 1 / steps;
+    l = ceil(inl * steps) * invSteps;
+    r = ceil(inr * steps) * invSteps;
+    return l, r;
+}
+
+// -----------------------------------------------------------------------------
+// PARÁMETROS
+// -----------------------------------------------------------------------------
+Param g_BITS(16, min=3, default=16, max=16);
+Param h_BITSON(0, min=0, default=0, max=1);
+Param m_DOWNSAMPLE(0, min=0, default=0, max=99);  // Factor de downsampling
+Param n_DOWNSAMPLEON(0, min=0, default=0, max=1); // Activar downsampling
+
+// HISTORIALES
+History hBits(0);
+History hBitson(0);
+History hDownsample(0);
+History hDownsampleOn(0);
+
+// Historiales para el downsampler
+History dsCounter(0);
+History dsHeldL(0);
+History dsHeldR(0);
+
+// CONSTANTES
+smoothFactor = 0.999;
+
+// =============================================================================
+// PROCESAMIENTO
+// =============================================================================
+
+// Entradas
+processedL = in1;
+processedR = in2;
+
+// Smoothing de parámetros
+hBits = hBits * smoothFactor + g_BITS * (1 - smoothFactor);
+bits = hBits;
+
+hBitson = hBitson * smoothFactor + h_BITSON * (1 - smoothFactor);
+bitson = hBitson;
+
+hDownsample = hDownsample * smoothFactor + m_DOWNSAMPLE * (1 - smoothFactor);
+
+hDownsampleOn = hDownsampleOn * smoothFactor + n_DOWNSAMPLEON * (1 - smoothFactor);
+downsampleOn = hDownsampleOn;
+
+// -----------------------------------------------------------------------------
+// BIT CRUSHER
+// -----------------------------------------------------------------------------
+bitL, bitR = bitCrusher(processedL, processedR, bits);
+
+// DC Blocker después del bit crusher
+bcL = dcblock(bitL);
+bcR = dcblock(bitR);
+
+// Mezclar señal original con bit crushed
+withBitCrusherL = mix(processedL, bcL, bitson);
+withBitCrusherR = mix(processedR, bcR, bitson);
+
+// -----------------------------------------------------------------------------
+// DOWNSAMPLING
+// -----------------------------------------------------------------------------
+// Incrementar contador
+dsCounter = dsCounter + 1;
+
+// Calcular cuántas muestras saltar (0 = ninguna, 99 = saltar 99)
+skipSamples = floor(hDownsample) + 1;
+
+// Si es momento de tomar nueva muestra o no hay downsampling
+if (dsCounter >= skipSamples || hDownsample < 0.5) {
+    dsHeldL = withBitCrusherL;
+    dsHeldR = withBitCrusherR;
+    dsCounter = 0;
+}
+
+// Aplicar downsampling
+wetFinalL = mix(withBitCrusherL, dsHeldL, downsampleOn);
+wetFinalR = mix(withBitCrusherR, dsHeldR, downsampleOn);
+
+// -----------------------------------------------------------------------------
+// SALIDAS
+// -----------------------------------------------------------------------------
+out1 = wetFinalL;  // L con efectos
+out2 = wetFinalR;  // R con efectos

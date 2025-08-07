@@ -22,6 +22,7 @@
 #include "Components/UI/TransferFunctionDisplay.h"
 #include "Components/UI/GradientMeter.h"
 #include "Components/UI/DistortionCurveComponent.h"
+#include "Components/UI/SpectrumAnalyzerComponent.h"
 #include "Components/UI/CustomTooltip.h"
 #include "Components/UI/TrimSlider.h"
 #include "Components/UI/CustomSlider.h"
@@ -71,6 +72,9 @@ public:
     void updateTransferFunctionFromProcessor() { updateTransferDisplay(); }
     bool getIsLoadingPreset() const noexcept { return isLoadingPreset; }
     JCBDistortionAudioProcessor& getProcessor() const noexcept { return processor; }
+    
+    // Toggle para cambiar modo de visualización
+    void toggleDisplayMode();
     
 private:
     //==========================================================================
@@ -233,6 +237,16 @@ private:
     
     // Componente de visualización de curvas de distorsión
     DistortionCurveComponent distortionCurveDisplay;
+    
+    // Componente de analizador de espectro FFT
+    SpectrumAnalyzerComponent spectrumAnalyzer;
+    
+    // Estados de visualización mutuamente exclusivos
+    enum class DisplayMode {
+        Curves,      // DistortionCurveComponent visible
+        FFT          // SpectrumAnalyzerComponent visible
+    };
+    DisplayMode currentDisplayMode = DisplayMode::Curves;
     
     //==========================================================================
     // COMPONENTES DE METERS

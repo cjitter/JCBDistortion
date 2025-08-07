@@ -27,6 +27,7 @@ JCBDistortionAudioProcessor::JCBDistortionAudioProcessor()
     // Configurar límites del guiUndoManager para optimizar rendimiento
     guiUndoManager.setMaxNumberOfStoredUnits(0, 20); // Solo 20 transacciones exactas (ahorro de memoria)
     
+    
     // Inicializar Gen~ state
     m_PluginState = (CommonState *)JCBDistortion::create(44100, 64);
     JCBDistortion::reset(m_PluginState);
@@ -169,6 +170,11 @@ void JCBDistortionAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
     m_PluginState->sr = sampleRate;
     m_PluginState->vs = samplesPerBlock;
     
+    // Notify spectrum analyzer of sample rate change
+    if (sampleRateChangedCallback) {
+        sampleRateChangedCallback(sampleRate);
+    }
+    
     // Pre-asignar buffers con tamaño máximo esperado para evitar allocations en audio thread
     // Usar un tamaño seguro que cubra la mayoría de casos (4096 samples es común máximo)
     const long maxExpectedBufferSize = juce::jmax(static_cast<long>(samplesPerBlock), 4096L);
@@ -253,6 +259,16 @@ void JCBDistortionAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     processGenAudio(numSamples);
     fillOutputBuffers(buffer);
     
+    // Feed spectrum analyzer with output samples (if callback is set)
+    if (spectrumAnalyzerCallback && buffer.getNumChannels() > 0)
+    {
+        auto* outputSamples = buffer.getReadPointer(0); // Use left channel
+        for (int sample = 0; sample < numSamples; ++sample)
+        {
+            spectrumAnalyzerCallback(outputSamples[sample]);
+        }
+    }
+    
     // Capturar DESPUÉS del procesamiento para usar salidas de Gen~
     // Capturar entrada post-TRIM desde salidas 3 y 4 de Gen~
     captureInputWaveformData(buffer, numSamples);
@@ -267,6 +283,7 @@ void JCBDistortionAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     updateOutputMeters(buffer);
     // DISTORTION: No requiere gain reduction meter - eliminado
     // MAXIMIZER: No sidechain - removed updateSidechainMeters call
+    
 }
 
 //==============================================================================
@@ -753,6 +770,12 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
    params.push_back(std::move(downsampleOn));  // n_DOWNSAMPLEON
    params.push_back(std::move(outputDrywet));  // o_DRYWET
 
+   // p_DISPLAYMODE @min 0 @max 1 @default 0 (Display Mode: 0=Curves, 1=FFT)
+   auto displayMode = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("p_DISPLAYMODE", versionHint),
+                                                                juce::CharPointer_UTF8("Display Mode"),
+                                                                0, 1, 0);
+   params.push_back(std::move(displayMode));  // p_DISPLAYMODE
+
    // DISTORTION: No requiere parámetros especiales AAX de gain reduction
 
    return { params.begin(), params.end() };
@@ -807,6 +830,11 @@ void JCBDistortionAudioProcessor::parameterChanged(const juce::String& parameter
     }
     else if (parameterID == "o_DRYWET") {
         newValue = juce::jlimit(0.0f, 1.0f, newValue);
+    }
+    else if (parameterID == "p_DISPLAYMODE") {
+        newValue = juce::jlimit(0.0f, 1.0f, newValue);
+        // Este parámetro no se envía a Gen~, solo se usa en la GUI
+        return;
     }
     
     // Buscar el índice correcto en Gen~ basado en el nombre del parámetro
@@ -1468,6 +1496,7 @@ void JCBDistortionAudioProcessor::timerCallback()
 //==============================================================================
 // FACTORY FUNCTION DEL PLUGIN
 //==============================================================================
+
 /**
  * Función factory requerida por JUCE
  * CRÍTICO: Punto de entrada que utilizan los hosts (DAWs) para crear instancias del plugin

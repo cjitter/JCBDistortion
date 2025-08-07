@@ -1,0 +1,88 @@
+// =============================================================================
+// OUTPUT STAGE BLOCK - Dry/Wet Mix, Output Gain & Bypass
+// =============================================================================
+// Procesamiento de salida con mezcla dry/wet, makeup gain y bypass
+//
+// ENTRADAS:
+// - in1: Wet L (señal procesada con efectos)
+// - in2: Wet R (señal procesada con efectos)
+// - in3: Dry L (señal filtrada pero sin distorsión)
+// - in4: Dry R (señal filtrada pero sin distorsión)
+// - in5: Original L (señal completamente sin procesar)
+// - in6: Original R (señal completamente sin procesar)
+//
+// SALIDAS:
+// - out1: L final
+// - out2: R final
+// - out3: 0 (placeholder para consistencia)
+// - out4: L post-trim (para medidores)
+// - out5: R post-trim (para medidores)
+// =============================================================================
+
+// PARÁMETROS
+Param a_DRYWET(1, min=0, default=1, max=1);
+Param f_BYPASS(0, min=0, default=0, max=1);
+Param l_OUTPUT(0, min=-12, default=0, max=12);  // Output makeup gain
+
+// HISTORIALES
+History hDrywet(0);
+History hBypass(0);
+History hOutput(0);
+
+// CONSTANTES
+smoothFactor = 0.999;
+
+// =============================================================================
+// PROCESAMIENTO
+// =============================================================================
+
+// Entradas
+wetL = in1;
+wetR = in2;
+dryL = in3;
+dryR = in4;
+origL = in5;
+origR = in6;
+
+// Smoothing de parámetros
+hDrywet = hDrywet * smoothFactor + a_DRYWET * (1 - smoothFactor);
+drywet = hDrywet;
+
+hBypass = hBypass * smoothFactor + (1 - f_BYPASS) * (1 - smoothFactor);
+bypass = hBypass;
+
+hOutput = hOutput * smoothFactor + l_OUTPUT * (1 - smoothFactor);
+outputMakeupDb = hOutput;
+outputMakeupLinear = dbtoa(outputMakeupDb);
+
+// -----------------------------------------------------------------------------
+// MEZCLA DRY/WET
+// -----------------------------------------------------------------------------
+mixedL = mix(dryL, wetL, drywet);
+mixedR = mix(dryR, wetR, drywet);
+
+// -----------------------------------------------------------------------------
+// OUTPUT MAKEUP GAIN
+// -----------------------------------------------------------------------------
+finalWithMakeupL = mixedL * outputMakeupLinear;
+finalWithMakeupR = mixedR * outputMakeupLinear;
+
+// -----------------------------------------------------------------------------
+// DC BLOCKER FINAL
+// -----------------------------------------------------------------------------
+finalDcBlockedL = dcblock(finalWithMakeupL);
+finalDcBlockedR = dcblock(finalWithMakeupR);
+
+// -----------------------------------------------------------------------------
+// BYPASS
+// -----------------------------------------------------------------------------
+// El bypass mezcla entre la señal original sin procesar y la señal procesada
+out1 = mix(origL, finalDcBlockedL, bypass);
+out2 = mix(origR, finalDcBlockedR, bypass);
+
+// -----------------------------------------------------------------------------
+// SALIDAS ADICIONALES
+// -----------------------------------------------------------------------------
+out3 = 0;     // Placeholder para mantener consistencia
+out4 = dryL;  // L post-trim para medidores (sin distorsión)
+out5 = dryR;  // R post-trim para medidores (sin distorsión)
