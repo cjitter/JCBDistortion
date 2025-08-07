@@ -6,10 +6,10 @@
 // ENTRADAS:
 // - in1: Wet L (señal procesada con efectos)
 // - in2: Wet R (señal procesada con efectos)
-// - in3: Dry L (señal filtrada pero sin distorsión)
-// - in4: Dry R (señal filtrada pero sin distorsión)
-// - in5: Original L (señal completamente sin procesar)
-// - in6: Original R (señal completamente sin procesar)
+// - in3: Dry L (señal original sin procesar - pre-trim, pre-filtros)
+// - in4: Dry R (señal original sin procesar - pre-trim, pre-filtros)
+// - in5: L post-trim (para medidores)
+// - in6: R post-trim (para medidores)
 //
 // SALIDAS:
 // - out1: L final
@@ -39,10 +39,10 @@ smoothFactor = 0.999;
 // Entradas
 wetL = in1;
 wetR = in2;
-dryL = in3;
-dryR = in4;
-origL = in5;
-origR = in6;
+dryL = in3;  // Señal original sin procesar
+dryR = in4;  // Señal original sin procesar
+trimmedL = in5;  // Para medidores
+trimmedR = in6;  // Para medidores
 
 // Smoothing de parámetros
 hDrywet = hDrywet * smoothFactor + a_DRYWET * (1 - smoothFactor);
@@ -58,6 +58,7 @@ outputMakeupLinear = dbtoa(outputMakeupDb);
 // -----------------------------------------------------------------------------
 // MEZCLA DRY/WET
 // -----------------------------------------------------------------------------
+// Parámetro drywet: 0 = solo dry (original), 1 = solo wet (procesada)
 mixedL = mix(dryL, wetL, drywet);
 mixedR = mix(dryR, wetR, drywet);
 
@@ -77,12 +78,12 @@ finalDcBlockedR = dcblock(finalWithMakeupR);
 // BYPASS
 // -----------------------------------------------------------------------------
 // El bypass mezcla entre la señal original sin procesar y la señal procesada
-out1 = mix(origL, finalDcBlockedL, bypass);
-out2 = mix(origR, finalDcBlockedR, bypass);
+out1 = mix(dryL, finalDcBlockedL, bypass);
+out2 = mix(dryR, finalDcBlockedR, bypass);
 
 // -----------------------------------------------------------------------------
 // SALIDAS ADICIONALES
 // -----------------------------------------------------------------------------
-out3 = 0;     // Placeholder para mantener consistencia
-out4 = dryL;  // L post-trim para medidores (sin distorsión)
-out5 = dryR;  // R post-trim para medidores (sin distorsión)
+out3 = 0;        // Placeholder para mantener consistencia
+out4 = trimmedL;  // L post-trim para medidores
+out5 = trimmedR;  // R post-trim para medidores

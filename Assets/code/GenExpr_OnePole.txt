@@ -1,8 +1,9 @@
 // =============================================================================
-// MULTI-ALGORITHM DISTORTION WITH CONTINUOUS MORPHING + INPUT FILTERS
+// MULTI-ALGORITHM DISTORTION WITH SIMPLE WORKING FILTERS
 // =============================================================================
 // Plugin de distorsión con múltiples algoritmos y morphing continuo
-// Incluye filtros HPF/LPF de entrada, tilt pre/post, bit crusher y controles completos
+// Filtros HPF/LPF simples que funcionan correctamente
+// Dry/Wet mezcla señal original (pre-trim) con señal completamente procesada
 // =============================================================================
 
 // -----------------------------------------------------------------------------
@@ -10,11 +11,10 @@
 // -----------------------------------------------------------------------------
 
 // MODO 0 - Soft Clipping - Saturación suave con función cúbica
-// Fuente: Julius O. Smith III (CCRMA Stanford) - https://ccrma.stanford.edu/~jos/pasp/Soft_Clipping.html
 softclip(inl, inr, dr, dc, cell) {
     // Añadir DC offset para generar asimetría (armónicos pares)
-    lWithDC = inl + (dc * 0.05);
-    rWithDC = inr + (dc * 0.05);
+    lWithDC = inl + (dc * 0.01);
+    rWithDC = inr + (dc * 0.01);
     
     // Aplicar drive y normalizar
     lNorm = (lWithDC * dr) / cell;
@@ -33,11 +33,10 @@ softclip(inl, inr, dr, dc, cell) {
 }
 
 // MODO 1 - Sigmoid - Curva en S para saturación suave
-// Fuente: Función logística estándar adaptada para audio
 sigmoid(inl, inr, dr, dc, cell) {
     // Añadir DC offset para generar asimetría
-    lWithDC = inl + (dc * 0.05);
-    rWithDC = inr + (dc * 0.05);
+    lWithDC = inl + (dc * 0.01);
+    rWithDC = inr + (dc * 0.01);
     
     factor = (-1) * dr;
     l = (2 * (1 / (1 + exp(factor * lWithDC)))) - 1;
@@ -51,11 +50,10 @@ sigmoid(inl, inr, dr, dc, cell) {
 }
 
 // MODO 2 - Rectificador Full Wave - Bipolar con compensación de ganancia
-// Fuente: Diseño propio basado en rectificación con preservación de polaridad
 rectF(inl, inr, dr, dc, cell) {
     // Añadir DC offset para cambiar el punto de rectificación
-    lWithDC = inl + (dc * 0.05);
-    rWithDC = inr + (dc * 0.05);
+    lWithDC = inl + (dc * 0.01);
+    rWithDC = inr + (dc * 0.01);
     
     l = sign(lWithDC) * abs(lWithDC * dr) * 0.707;
     r = sign(rWithDC) * abs(rWithDC * dr) * 0.707;
@@ -65,11 +63,10 @@ rectF(inl, inr, dr, dc, cell) {
 }
 
 // MODO 3 - Fuzz Exponencial 1 - Distorsión tipo fuzz con curva exponencial
-// Fuente: DAFX de Udo Zölzer (fórmula corregida) - f(x) = sgn(x) * (1 - e^(-|x|))
 fuzzExp1(inl, inr, dr, dc, cell) {
     // Añadir DC offset ANTES del procesamiento para generar asimetría
-    lWithDC = inl + (dc * 0.05);
-    rWithDC = inr + (dc * 0.05);
+    lWithDC = inl + (dc * 0.01);
+    rWithDC = inr + (dc * 0.01);
     
     signl = sign(lWithDC);
     signr = sign(rWithDC);
@@ -86,11 +83,10 @@ fuzzExp1(inl, inr, dr, dc, cell) {
 }
 
 // MODO 4 - Tangente Hiperbólica - Distorsión suave tipo saturación de cinta
-// Fuente: Algoritmo clásico de saturación analógica - tanh(x)/tanh(drive)
 tangenteHiperbolica(inl, inr, dr, dc, cell) {
     // Añadir DC offset para generar asimetría
-    lWithDC = inl + (dc * 0.05);
-    rWithDC = inr + (dc * 0.05);
+    lWithDC = inl + (dc * 0.01);
+    rWithDC = inr + (dc * 0.01);
     
     l = clip(lWithDC * dr, -cell, cell);
     r = clip(rWithDC * dr, -cell, cell);
@@ -100,11 +96,10 @@ tangenteHiperbolica(inl, inr, dr, dc, cell) {
 }
 
 // MODO 5 - Rectificador Half Wave - Solo valores positivos
-// Fuente: Emulación de diodo rectificador clásico
 rectH(inl, inr, dr, dc, cell) {
     // Añadir DC offset para cambiar el punto de rectificación
-    lWithDC = inl + (dc * 0.05);
-    rWithDC = inr + (dc * 0.05);
+    lWithDC = inl + (dc * 0.01);
+    rWithDC = inr + (dc * 0.01);
     
     lPositive = max(lWithDC, 0);
     rPositive = max(rWithDC, 0);
@@ -114,11 +109,10 @@ rectH(inl, inr, dr, dc, cell) {
 }
 
 // MODO 6 - Arctangente puro - Distorsión suave con compresión natural
-// Fuente: Función arctangente estándar para saturación suave
 arctangent(inl, inr, dr, dc, cell) {
     // Añadir DC offset para generar asimetría
-    lWithDC = inl + (dc * 0.05);
-    rWithDC = inr + (dc * 0.05);
+    lWithDC = inl + (dc * 0.01);
+    rWithDC = inr + (dc * 0.01);
     
     lScaled = lWithDC * dr * 2;
     rScaled = rWithDC * dr * 2;
@@ -133,11 +127,10 @@ arctangent(inl, inr, dr, dc, cell) {
 }
 
 // MODO 7 - Hard Clip - Recorte abrupto de la señal
-// Fuente: Clipping digital clásico - saturación dura
 hardClip(inl, inr, dr, dc, cell) {
     // Añadir DC offset para generar asimetría
-    lWithDC = inl + (dc * 0.05);
-    rWithDC = inr + (dc * 0.05);
+    lWithDC = inl + (dc * 0.01);
+    rWithDC = inr + (dc * 0.01);
     
     // Aplicar drive y calcular threshold
     lDriven = lWithDC * dr;
@@ -151,7 +144,6 @@ hardClip(inl, inr, dr, dc, cell) {
 }
 
 // Bit Crusher - Reduce la resolución de bits
-// Fuente: Algoritmo estándar de reducción de bits/cuantización
 bitCrusher(inl, inr, bits) {
     steps = pow(2, bits) - 1;
     invSteps = 1 / steps;
@@ -173,14 +165,12 @@ Param g_BITS(16, min=3, default=16, max=16);
 Param h_BITSON(0, min=0, default=0, max=1);
 Param i_TILT(0, min=-6, default=0, max=6);
 
-// Nuevos parámetros de filtros HPF/LPF (manteniendo nombres originales)
+// Parámetros de filtros HPF/LPF
 Param j_HPF(20, min=20, default=20, max=20000);       // Input HPF frequency (Hz)
-Param j_HPFORDER(0, min=0, default=0, max=1);         // HPF order (0=12dB/oct, 1=24dB/oct)
 Param k_LPF(20000, min=20, default=20000, max=20000); // Input LPF frequency (Hz)
-Param k_LPFORDER(0, min=0, default=0, max=1);         // LPF order (0=12dB/oct, 1=24dB/oct)
 Param l_SC(0, min=0, default=0, max=1);               // Input filter enable
 
-// Parámetros existentes renumerados
+// Parámetros existentes
 Param k_INPUT(0, min=-12, default=0, max=12);   // Input trim gain
 Param l_OUTPUT(0, min=-12, default=0, max=12);  // Output makeup gain
 Param m_DOWNSAMPLE(0, min=0, default=0, max=99); // Factor de downsampling (0 = sin efecto)
@@ -203,24 +193,16 @@ History hDownsample(0); // Para suavizar factor de downsampling
 History hDownsampleOn(0); // Para suavizar activación de downsampling
 History hBypass(0);   // Para suavizar bypass y evitar clicks
 
-// Historiales para filtros HPF/LPF - Canal L
-History lpfL1(0), lpfL2(0), lpfL3(0), lpfL4(0);
-History lpfL5(0), lpfL6(0), lpfL7(0), lpfL8(0);
-History hpfL1(0), hpfL2(0), hpfL3(0), hpfL4(0);
-History hpfL5(0), hpfL6(0), hpfL7(0), hpfL8(0);
-
-// Historiales para filtros HPF/LPF - Canal R
-History lpfR1(0), lpfR2(0), lpfR3(0), lpfR4(0);
-History lpfR5(0), lpfR6(0), lpfR7(0), lpfR8(0);
-History hpfR1(0), hpfR2(0), hpfR3(0), hpfR4(0);
-History hpfR5(0), hpfR6(0), hpfR7(0), hpfR8(0);
+// Historiales para filtros de 1 polo (más simples)
+History hpfL_z1(0);
+History hpfR_z1(0);
+History lpfL_z1(0);
+History lpfR_z1(0);
 
 // Historiales para smoothing de filtros
 History hpfFreqHistory(0);
 History lpfFreqHistory(0);
 History scEnableHistory(0);
-History hpfOrderHistory(0);
-History lpfOrderHistory(0);
 
 // Historiales para el downsampler
 History dsCounter(0);
@@ -261,7 +243,7 @@ outputMakeupDb = hOutput;
 // Suavizado especial para MODE con factor más agresivo para evitar clicks
 modeSmoothFactor = 0.99;  // Más rápido que otros parámetros pero aún suave
 hMode = hMode * modeSmoothFactor + d_MODE * (1 - modeSmoothFactor);
-smoothedMode = hMode;  // Definir la variable aquí
+smoothedMode = hMode;
 
 // Suavizado del downsampling
 hDownsample = hDownsample * smoothFactor + m_DOWNSAMPLE * (1 - smoothFactor);
@@ -282,194 +264,49 @@ lpfFreqHistory = fixdenorm(smoothLpfFreq);
 smoothScEnable = (scEnableHistory * smoothFactor) + (l_SC * (1 - smoothFactor));
 scEnableHistory = fixdenorm(smoothScEnable);
 
-smoothHpfOrder = (hpfOrderHistory * smoothFactor) + (j_HPFORDER * (1 - smoothFactor));
-hpfOrderHistory = fixdenorm(smoothHpfOrder);
-
-smoothLpfOrder = (lpfOrderHistory * smoothFactor) + (k_LPFORDER * (1 - smoothFactor));
-lpfOrderHistory = fixdenorm(smoothLpfOrder);
-
-// Selección discreta de orden
-hpfOrderDiscrete = smoothHpfOrder < 0.5 ? 0 : 1;
-lpfOrderDiscrete = smoothLpfOrder < 0.5 ? 0 : 1;
-
 // Conversiones
 ceiling = dbtoa(e_CEILING);
 inputTrimLinear = dbtoa(inputTrimDb);
 outputMakeupLinear = dbtoa(outputMakeupDb);
 
 // -----------------------------------------------------------------------------
-// FILTROS HPF/LPF DE ENTRADA (ESTÉREO)
-// -----------------------------------------------------------------------------
-BUTTERWORTH_Q = 1.0;  // Q = 1 para respuesta plana sin resonancia
-
-// Coeficientes LPF Butterworth de 2º orden
-omega = ((smoothLpfFreq * twopi)) / samplerate;
-sn = sin(omega);
-cs = cos(omega);
-one_over_Q = 1 / BUTTERWORTH_Q;
-alpha = ((sn * 0.5)) * one_over_Q;
-b0 = 1 / ((1 + alpha));
-a2 = ((((1 - cs)) * 0.5)) * b0;
-a1 = ((1 - cs)) * b0;
-b1 = ((-2 * cs)) * b0;
-b2 = ((1 - alpha)) * b0;
-
-lpfCoeffA2 = a2;
-lpfCoeffA1 = a1;
-lpfCoeffA0 = a2;
-lpfCoeffB1 = b1;
-lpfCoeffB2 = b2;
-
-// Coeficientes HPF Butterworth de 2º orden
-omega_hpf = ((smoothHpfFreq * twopi)) / samplerate;
-sn_hpf = sin(omega_hpf);
-cs_hpf = cos(omega_hpf);
-alpha_hpf = ((sn_hpf * 0.5)) / BUTTERWORTH_Q;
-b0_hpf = 1 / ((1 + alpha_hpf));
-a_hpf = ((((1 + cs_hpf)) * 0.5)) * b0_hpf;
-a_neg_hpf = (-(1 + cs_hpf)) * b0_hpf;
-b1_hpf = ((-2 * cs_hpf)) * b0_hpf;
-b2_hpf = ((1 - alpha_hpf)) * b0_hpf;
-
-hpfCoeffA2 = a_hpf;
-hpfCoeffA1 = a_neg_hpf;
-hpfCoeffA0 = a_hpf;
-hpfCoeffB1 = b1_hpf;
-hpfCoeffB2 = b2_hpf;
-
-// === LPF CANAL IZQUIERDO ===
-// Primera etapa LPF L (12 dB/oct)
-lpfInputL = lIn * lpfCoeffA2;
-lpfFromHistoryL1 = lpfL3 * lpfCoeffA1;
-lpfFromHistoryL2 = lpfL1 * lpfCoeffA0;
-lpfFeedbackL1 = lpfL2 * lpfCoeffB2;
-lpfFeedbackL2 = lpfL4 * lpfCoeffB1;
-lpfFilteredL = ((((lpfFromHistoryL2 + lpfFromHistoryL1)) + lpfInputL)) - ((lpfFeedbackL2 + lpfFeedbackL1));
-
-lpfL1 = fixdenorm(lpfL3);
-lpfL2 = fixdenorm(lpfL4);
-lpfL3 = fixdenorm(lIn);
-lpfL4 = fixdenorm(lpfFilteredL);
-
-// Segunda etapa LPF L (para 24 dB/oct)
-lpfStage2InputL = lpfFilteredL * lpfCoeffA2;
-lpfStage2FromHistoryL1 = lpfL7 * lpfCoeffA1;
-lpfStage2FromHistoryL2 = lpfL5 * lpfCoeffA0;
-lpfStage2FeedbackL1 = lpfL6 * lpfCoeffB2;
-lpfStage2FeedbackL2 = lpfL8 * lpfCoeffB1;
-lpfStage2FilteredL = ((((lpfStage2FromHistoryL2 + lpfStage2FromHistoryL1)) + lpfStage2InputL)) - ((lpfStage2FeedbackL2 + lpfStage2FeedbackL1));
-
-lpfL5 = fixdenorm(lpfL7);
-lpfL6 = fixdenorm(lpfL8);
-lpfL7 = fixdenorm(lpfFilteredL);
-lpfL8 = fixdenorm(lpfStage2FilteredL);
-
-// Seleccionar salida según orden
-lpfFinalL = lpfOrderDiscrete == 0 ? lpfFilteredL : lpfStage2FilteredL;
-
-// === LPF CANAL DERECHO ===
-// Primera etapa LPF R (12 dB/oct)
-lpfInputR = rIn * lpfCoeffA2;
-lpfFromHistoryR1 = lpfR3 * lpfCoeffA1;
-lpfFromHistoryR2 = lpfR1 * lpfCoeffA0;
-lpfFeedbackR1 = lpfR2 * lpfCoeffB2;
-lpfFeedbackR2 = lpfR4 * lpfCoeffB1;
-lpfFilteredR = ((((lpfFromHistoryR2 + lpfFromHistoryR1)) + lpfInputR)) - ((lpfFeedbackR2 + lpfFeedbackR1));
-
-lpfR1 = fixdenorm(lpfR3);
-lpfR2 = fixdenorm(lpfR4);
-lpfR3 = fixdenorm(rIn);
-lpfR4 = fixdenorm(lpfFilteredR);
-
-// Segunda etapa LPF R (para 24 dB/oct)
-lpfStage2InputR = lpfFilteredR * lpfCoeffA2;
-lpfStage2FromHistoryR1 = lpfR7 * lpfCoeffA1;
-lpfStage2FromHistoryR2 = lpfR5 * lpfCoeffA0;
-lpfStage2FeedbackR1 = lpfR6 * lpfCoeffB2;
-lpfStage2FeedbackR2 = lpfR8 * lpfCoeffB1;
-lpfStage2FilteredR = ((((lpfStage2FromHistoryR2 + lpfStage2FromHistoryR1)) + lpfStage2InputR)) - ((lpfStage2FeedbackR2 + lpfStage2FeedbackR1));
-
-lpfR5 = fixdenorm(lpfR7);
-lpfR6 = fixdenorm(lpfR8);
-lpfR7 = fixdenorm(lpfFilteredR);
-lpfR8 = fixdenorm(lpfStage2FilteredR);
-
-// Seleccionar salida según orden
-lpfFinalR = lpfOrderDiscrete == 0 ? lpfFilteredR : lpfStage2FilteredR;
-
-// Mezclar señal directa con LPF según filter enable
-lpfMixedL = mix(lIn, lpfFinalL, smoothScEnable);
-lpfMixedR = mix(rIn, lpfFinalR, smoothScEnable);
-
-// === HPF CANAL IZQUIERDO ===
-// Primera etapa HPF L (12 dB/oct)
-hpfInputL = lpfMixedL * hpfCoeffA2;
-hpfFromHistoryL1 = hpfL3 * hpfCoeffA1;
-hpfFromHistoryL2 = hpfL2 * hpfCoeffA0;
-hpfFeedbackL1 = hpfL1 * hpfCoeffB2;
-hpfFeedbackL2 = hpfL4 * hpfCoeffB1;
-hpfFilteredL = ((((hpfFromHistoryL2 + hpfFromHistoryL1)) + hpfInputL)) - ((hpfFeedbackL2 + hpfFeedbackL1));
-
-hpfL1 = fixdenorm(hpfL4);
-hpfL2 = fixdenorm(hpfL3);
-hpfL3 = fixdenorm(lpfMixedL);
-hpfL4 = fixdenorm(hpfFilteredL);
-
-// Segunda etapa HPF L (para 24 dB/oct)
-hpfStage2InputL = hpfFilteredL * hpfCoeffA2;
-hpfStage2FromHistoryL1 = hpfL7 * hpfCoeffA1;
-hpfStage2FromHistoryL2 = hpfL6 * hpfCoeffA0;
-hpfStage2FeedbackL1 = hpfL5 * hpfCoeffB2;
-hpfStage2FeedbackL2 = hpfL8 * hpfCoeffB1;
-hpfStage2FilteredL = ((((hpfStage2FromHistoryL2 + hpfStage2FromHistoryL1)) + hpfStage2InputL)) - ((hpfStage2FeedbackL2 + hpfStage2FeedbackL1));
-
-hpfL5 = fixdenorm(hpfL8);
-hpfL6 = fixdenorm(hpfL7);
-hpfL7 = fixdenorm(hpfFilteredL);
-hpfL8 = fixdenorm(hpfStage2FilteredL);
-
-// Seleccionar salida según orden
-hpfFinalL = hpfOrderDiscrete == 0 ? hpfFilteredL : hpfStage2FilteredL;
-
-// === HPF CANAL DERECHO ===
-// Primera etapa HPF R (12 dB/oct)
-hpfInputR = lpfMixedR * hpfCoeffA2;
-hpfFromHistoryR1 = hpfR3 * hpfCoeffA1;
-hpfFromHistoryR2 = hpfR2 * hpfCoeffA0;
-hpfFeedbackR1 = hpfR1 * hpfCoeffB2;
-hpfFeedbackR2 = hpfR4 * hpfCoeffB1;
-hpfFilteredR = ((((hpfFromHistoryR2 + hpfFromHistoryR1)) + hpfInputR)) - ((hpfFeedbackR2 + hpfFeedbackR1));
-
-hpfR1 = fixdenorm(hpfR4);
-hpfR2 = fixdenorm(hpfR3);
-hpfR3 = fixdenorm(lpfMixedR);
-hpfR4 = fixdenorm(hpfFilteredR);
-
-// Segunda etapa HPF R (para 24 dB/oct)
-hpfStage2InputR = hpfFilteredR * hpfCoeffA2;
-hpfStage2FromHistoryR1 = hpfR7 * hpfCoeffA1;
-hpfStage2FromHistoryR2 = hpfR6 * hpfCoeffA0;
-hpfStage2FeedbackR1 = hpfR5 * hpfCoeffB2;
-hpfStage2FeedbackR2 = hpfR8 * hpfCoeffB1;
-hpfStage2FilteredR = ((((hpfStage2FromHistoryR2 + hpfStage2FromHistoryR1)) + hpfStage2InputR)) - ((hpfStage2FeedbackR2 + hpfStage2FeedbackR1));
-
-hpfR5 = fixdenorm(hpfR8);
-hpfR6 = fixdenorm(hpfR7);
-hpfR7 = fixdenorm(hpfFilteredR);
-hpfR8 = fixdenorm(hpfStage2FilteredR);
-
-// Seleccionar salida según orden
-hpfFinalR = hpfOrderDiscrete == 0 ? hpfFilteredR : hpfStage2FilteredR;
-
-// Mezclar señal con HPF según filter enable y obtener señal final filtrada
-lFiltered = mix(lpfMixedL, hpfFinalL, smoothScEnable);
-rFiltered = mix(lpfMixedR, hpfFinalR, smoothScEnable);
-
-// -----------------------------------------------------------------------------
 // INPUT TRIM
 // -----------------------------------------------------------------------------
-lTrimmed = lFiltered * inputTrimLinear;
-rTrimmed = rFiltered * inputTrimLinear;
+lTrimmed = lIn * inputTrimLinear;
+rTrimmed = rIn * inputTrimLinear;
+
+// -----------------------------------------------------------------------------
+// FILTROS DE 1 POLO SIMPLES (6 dB/oct)
+// -----------------------------------------------------------------------------
+// Estos filtros son más simples y siempre funcionan
+
+// Coeficiente HPF (1 polo)
+hpf_freq = clip(smoothHpfFreq, 20, 20000);
+hpf_coeff = exp(-2 * pi * hpf_freq / samplerate);
+
+// Procesamiento HPF
+hpfL_out = lTrimmed - hpfL_z1;
+hpfL_z1 = lTrimmed - (hpfL_out * hpf_coeff);
+
+hpfR_out = rTrimmed - hpfR_z1;
+hpfR_z1 = rTrimmed - (hpfR_out * hpf_coeff);
+
+// Coeficiente LPF (1 polo)
+lpf_freq = clip(smoothLpfFreq, 20, 20000);
+lpf_coeff = 2 * pi * lpf_freq / samplerate;
+lpf_coeff = clip(lpf_coeff, 0, 1);
+
+// Procesamiento LPF (aplicado a la salida del HPF)
+lpfL_z1 = lpfL_z1 + lpf_coeff * (hpfL_out - lpfL_z1);
+lpfR_z1 = lpfR_z1 + lpf_coeff * (hpfR_out - lpfR_z1);
+
+// Señal filtrada
+filteredL = lpfL_z1;
+filteredR = lpfR_z1;
+
+// Mezclar señal filtrada con original según filter enable
+lFiltered = mix(lTrimmed, filteredL, smoothScEnable);
+rFiltered = mix(rTrimmed, filteredR, smoothScEnable);
 
 // -----------------------------------------------------------------------------
 // FILTRO TILT PRE-DISTORSIÓN
@@ -494,15 +331,15 @@ b1Ls = -2 * ((A - 1) + (A + 1) * cs) * b0Ls;
 b2Ls = ((A + 1) + (A - 1) * cs - beta * sn) * b0Ls;
 
 // Aplicar Low Shelf
-lLs = a0Ls * lTrimmed + a1Ls * tiltL2 + a2Ls * tiltL1 - b1Ls * tiltL4 - b2Ls * tiltL3;
+lLs = a0Ls * lFiltered + a1Ls * tiltL2 + a2Ls * tiltL1 - b1Ls * tiltL4 - b2Ls * tiltL3;
 tiltL1 = tiltL2;
-tiltL2 = lTrimmed;
+tiltL2 = lFiltered;
 tiltL3 = tiltL4;
 tiltL4 = lLs;
 
-rLs = a0Ls * rTrimmed + a1Ls * tiltR2 + a2Ls * tiltR1 - b1Ls * tiltR4 - b2Ls * tiltR3;
+rLs = a0Ls * rFiltered + a1Ls * tiltR2 + a2Ls * tiltR1 - b1Ls * tiltR4 - b2Ls * tiltR3;
 tiltR1 = tiltR2;
-tiltR2 = rTrimmed;
+tiltR2 = rFiltered;
 tiltR3 = tiltR4;
 tiltR4 = rLs;
 
@@ -525,7 +362,6 @@ rTilt = a0Hs * rLs + a1Hs * tiltR2 + a2Hs * tiltR1 - b1Hs * tiltR4 - b2Hs * tilt
 // -----------------------------------------------------------------------------
 
 // Ejecutar TODOS los algoritmos con implementación consistente de DC
-// Ahora todas las funciones reciben los mismos parámetros y aplican DC de forma uniforme
 softL, softR = softclip(lTilt, rTilt, drive, dc, ceiling);
 sigmL, sigmR = sigmoid(lTilt, rTilt, drive, dc, ceiling);
 rectL, rectR = rectF(lTilt, rTilt, drive, dc, ceiling);
@@ -594,20 +430,31 @@ wetFinalL = mix(withBitCrusherL, dsHeldL, downsampleOn);
 wetFinalR = mix(withBitCrusherR, dsHeldR, downsampleOn);
 
 // -----------------------------------------------------------------------------
+// OUTPUT MAKEUP (SOLO A LA SEÑAL WET)
+// -----------------------------------------------------------------------------
+// Aplicar makeup gain ANTES del dry/wet para que solo afecte a la señal procesada
+wetWithMakeupL = wetFinalL * outputMakeupLinear;
+wetWithMakeupR = wetFinalR * outputMakeupLinear;
+
+// -----------------------------------------------------------------------------
 // MEZCLA DRY/WET
 // -----------------------------------------------------------------------------
-mixedL = mix(lFiltered, wetFinalL, drywet);
-mixedR = mix(rFiltered, wetFinalR, drywet);
+// Dry = señal original sin procesar (pre-trim, pre-filtros)
+// Wet = señal completamente procesada (trim + filtros + tilt + distorsión + efectos + makeup)
+// Parámetro drywet: 0 = solo dry, 1 = solo wet
+mixedL = mix(lIn, wetWithMakeupL, drywet);
+mixedR = mix(rIn, wetWithMakeupR, drywet);
 
 // -----------------------------------------------------------------------------
-// SALIDA FINAL CON BYPASS Y OUTPUT MAKEUP
+// SALIDA FINAL CON BYPASS
 // -----------------------------------------------------------------------------
-finalWithMakeupL = mixedL * outputMakeupLinear;
-finalWithMakeupR = mixedR * outputMakeupLinear;
+// Ya no aplicamos makeup aquí porque ya está en la señal wet
+finalL = mixedL;
+finalR = mixedR;
 
 // DC Blocker final antes de la salida
-finalDcBlockedL = dcblock(finalWithMakeupL);
-finalDcBlockedR = dcblock(finalWithMakeupR);
+finalDcBlockedL = dcblock(finalL);
+finalDcBlockedR = dcblock(finalR);
 
 // Salidas principales
 out1 = mix(lIn, finalDcBlockedL, bypass);

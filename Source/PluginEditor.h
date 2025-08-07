@@ -227,6 +227,28 @@ private:
         JCBDistortionAudioProcessorEditor* editor;
     };
     
+    // Parameter listener para actualizar estado visual de sliders HPF/LPF cuando l_SC cambia
+    struct SidechainParameterListener : public juce::AudioProcessorValueTreeState::Listener
+    {
+        SidechainParameterListener(JCBDistortionAudioProcessorEditor* e) : editor(e) {}
+        
+        void parameterChanged(const juce::String& parameterID, float /*newValue*/) override
+        {
+            if (parameterID == "l_SC")
+            {
+                // Usar SafePointer para thread safety
+                juce::Component::SafePointer<JCBDistortionAudioProcessorEditor> safeEditor(editor);
+                
+                juce::MessageManager::callAsync([safeEditor]() {
+                    if (safeEditor)
+                        safeEditor->updateSidechainComponentStates();
+                });
+            }
+        }
+        
+        JCBDistortionAudioProcessorEditor* editor;
+    };
+    
     
     //==========================================================================
     // COMPONENTES DE DISPLAY PRINCIPALES
@@ -329,29 +351,29 @@ private:
     } rightBottomKnobs;
     
     //==========================================================================
-    // MAXIMIZER: CONTROLES DE SIDECHAIN COMENTADOS (no tiene sidechain externo)
+    // CONTROLES DE FILTRO DE ENTRADA (j_HPF, k_LPF, l_SC)
     //==========================================================================
     
-    // MAXIMIZER: Controles sidechain comentados completos
-    /*
+    // Controles de filtro para procesamiento de entrada
     struct SidechainControls {
         CustomSlider hpfSlider{"hpf"};
         CustomSlider lpfSlider{"lpf"};
         juce::TextButton scButton{"FILTERS"};
-        juce::TextButton keyButton{"EXT KEY"};
-        juce::TextButton soloScButton{"SOLO SC"};
-        juce::TextButton hpfOrderButton{"12"};
-        juce::TextButton lpfOrderButton{"12"};
+        // Componentes no utilizados comentados para mantener compatibilidad
+        // juce::TextButton keyButton{"EXT KEY"};
+        // juce::TextButton soloScButton{"SOLO SC"};
+        // juce::TextButton hpfOrderButton{"12"};
+        // juce::TextButton lpfOrderButton{"12"};
         
         std::unique_ptr<CustomSliderAttachment> hpfAttachment;
         std::unique_ptr<CustomSliderAttachment> lpfAttachment;
         std::unique_ptr<UndoableButtonAttachment> scAttachment;
-        std::unique_ptr<UndoableButtonAttachment> keyAttachment;
-        std::unique_ptr<UndoableButtonAttachment> soloScAttachment;
-        std::unique_ptr<UndoableButtonAttachment> hpfOrderAttachment;
-        std::unique_ptr<UndoableButtonAttachment> lpfOrderAttachment;
+        // Attachments no utilizados comentados para mantener compatibilidad
+        // std::unique_ptr<UndoableButtonAttachment> keyAttachment;
+        // std::unique_ptr<UndoableButtonAttachment> soloScAttachment;
+        // std::unique_ptr<UndoableButtonAttachment> hpfOrderAttachment;
+        // std::unique_ptr<UndoableButtonAttachment> lpfOrderAttachment;
     } sidechainControls;
-    */
     
     //==========================================================================
     // GRUPOS DE BUTTONS (organizados por función y ubicación)
@@ -889,8 +911,7 @@ private:
     //==========================================================================
     void updateButtonStates();
     void updateBasicButtonStates();
-    // MAXIMIZER: No sidechain components - commenting out function declaration
-    // void updateSidechainComponentStates();
+    void updateSidechainComponentStates();
     void updateBackgroundState();
     void updateFilterButtonText();
     void updateMeterStates();
@@ -1008,6 +1029,7 @@ private:
     // Listeners especializados
     std::unique_ptr<TransferFunctionParameterListener> transferFunctionListener;
     std::unique_ptr<AutorelParameterListener> autorelParameterListener;
+    std::unique_ptr<SidechainParameterListener> sidechainParameterListener;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (JCBDistortionAudioProcessorEditor)
 };

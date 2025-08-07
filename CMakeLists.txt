@@ -129,8 +129,6 @@ juce_add_binary_data(JCBDistortion_BinaryData
         # Code files (existing files only)
         Assets/code/DistortionCore.txt
         Assets/code/EffectsChain.txt
-        Assets/code/GenExpr.txt
-        Assets/code/GenExpr_with_filters.txt
         Assets/code/InputStage.txt
         Assets/code/OutputStage.txt
         # Presets de fábrica

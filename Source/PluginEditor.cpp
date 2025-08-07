@@ -150,6 +150,10 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     autorelParameterListener = std::make_unique<AutorelParameterListener>(this);
     processor.apvts.addParameterListener("m_AUTOREL", autorelParameterListener.get());
     
+    // Crear y registrar parameter listener para estado visual de filtros HPF/LPF
+    sidechainParameterListener = std::make_unique<SidechainParameterListener>(this);
+    processor.apvts.addParameterListener("l_SC", sidechainParameterListener.get());
+    
     // Configurar estado inicial del idioma
     if (processor.getTooltipLanguageEnglish()) {
         currentLanguage = TooltipLanguage::English;
@@ -172,6 +176,9 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     
     updateButtonStates();
     updateFilterButtonText();  // Establecer texto inicial de botones de filtro
+    
+    // Forzar actualización final de estados de componentes de filtro
+    updateSidechainComponentStates();
     
     // Establecer estado inicial de SOLO SIDECHAIN en transfer display
     // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
@@ -281,6 +288,11 @@ JCBDistortionAudioProcessorEditor::~JCBDistortionAudioProcessorEditor()
     if (autorelParameterListener)
     {
         processor.apvts.removeParameterListener("m_AUTOREL", autorelParameterListener.get());
+    }
+    
+    if (sidechainParameterListener)
+    {
+        processor.apvts.removeParameterListener("l_SC", sidechainParameterListener.get());
     }
     
     setLookAndFeel(nullptr);
@@ -454,13 +466,12 @@ void JCBDistortionAudioProcessorEditor::resized()
     // NUEVO: DC slider - área derecha inferior, junto al REL
     rightBottomKnobs.dcSlider.setBounds(getScaledBounds(100, 100, 43, 43));
 
-    // === SIDECHAIN CONTROLS (TOP CENTER) ===
-    // HPF and LPF knobs swapped with their order buttons
-    // Botón orden HPF ahora a la izquierda, perilla HPF se mueve a la derecha
-    // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
+    // === CONTROLES DE FILTRO (TOP CENTER) ===
+    // HPF and LPF sliders para filtrado de entrada
+    sidechainControls.hpfSlider.setBounds(getScaledBounds(280, 5, 36, 36));
+    sidechainControls.lpfSlider.setBounds(getScaledBounds(388, 5, 36, 36));
+    // Componentes no utilizados comentados para mantener compatibilidad
     // sidechainControls.hpfOrderButton.setBounds(getScaledBounds(265, 14, 24, 12));
-    // sidechainControls.hpfSlider.setBounds(getScaledBounds(290, 5, 36, 36));
-    // sidechainControls.lpfSlider.setBounds(getScaledBounds(378, 5, 36, 36));
     // sidechainControls.lpfOrderButton.setBounds(getScaledBounds(415, 14, 24, 12));
     
     // Filter icons below the order buttons
@@ -469,14 +480,12 @@ void JCBDistortionAudioProcessorEditor::resized()
     // lpfIcon.setBounds(getScaledBounds(415, 28, 24, 12));  // Debajo del botón de orden LPF
     
     
-    // Botones SC, KEY y SOLO en el medio - mismo ancho, centrados en 355 (movidos a la derecha)
-    // Movido arriba 1 píxel
-    // MAXIMIZER: Variables para sidechain no usadas - botones comentados según CONTEXTO.txt
-    // const int buttonWidth = 50;
-    // const int centerX = 353;
-    // Posicionamiento del botón SC
-    // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
-    // sidechainControls.scButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 5, buttonWidth, 12));
+    // Botón FILTERS en el medio - centrado entre los sliders HPF y LPF
+    const int buttonWidth = 44;
+    const int centerX = 353;
+    // Posicionamiento del botón FILTERS (SC)
+    sidechainControls.scButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 15, buttonWidth, 12));
+    // Componentes no utilizados comentados para mantener compatibilidad
     // sidechainControls.keyButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 17, buttonWidth, 12));
     // sidechainControls.soloScButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 29, buttonWidth, 12));
     
@@ -504,9 +513,9 @@ void JCBDistortionAudioProcessorEditor::resized()
     
     // Botones DIAGRAM y BYPASS - Centrados en rectángulo inferior
     const int bottomButtonsY = 165;  // Fila superior del rectángulo inferior
-    const int centerX = 358;  // Centro horizontal del plugin
+    const int bottomCenterX = 358;  // Centro horizontal del plugin para botones inferiores
     const int totalButtonWidth = 44 + 10 + 50;  // DIAGRAM + gap + BYPASS
-    const int buttonsStartX = centerX - (totalButtonWidth / 2);
+    const int buttonsStartX = bottomCenterX - (totalButtonWidth / 2);
     
     // DIAGRAM y BYPASS centrados horizontalmente
     centerButtons.diagramButton.setBounds(getScaledBounds(buttonsStartX, bottomButtonsY, 44, 12));
@@ -526,7 +535,7 @@ void JCBDistortionAudioProcessorEditor::resized()
     // === TÍTULO Y VERSIÓN (CENTRO INFERIOR) ===
     // Centrado debajo de los botones DIAGRAM y BYPASS
     const int titleY = 180;  // Desplazado hacia abajo para dar espacio
-    titleLink.setBounds(getScaledBounds(centerX - 53, titleY, 98, 15));
+    titleLink.setBounds(getScaledBounds(centerX - 48, titleY, 98, 15));
     
     // Tooltip en esquina superior derecha - ajustado al rectángulo visible
     tooltipComponent.setBounds(getScaledBounds(448, 0, 230, 42));
@@ -712,13 +721,13 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
         outputMeterL.setBypassMode(bypassActive);
         outputMeterR.setBypassMode(bypassActive);
     }
-    // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
-    /*
+    // DISTORTION: Control de filtros de entrada  
     else if (button == &sidechainControls.scButton)
     {
-        // Actualizar texto del botón y visibilidad del filtro
-        updateButtonStates();
+        // Actualizar estado visual de sliders HPF/LPF
+        updateSidechainComponentStates();
     }
+    /* MAXIMIZER: Otros controles sidechain comentados (no existen en DISTORTION)
     else if (button == &sidechainControls.keyButton)
     {
         // Actualizar visibilidad del medidor de sidechain cuando KEY es activado
@@ -1348,7 +1357,87 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     };
     // MAXIMIZER: c_RATIO, q_KNEE, h_RANGE callbacks eliminados - parámetros inexistentes según CONTEXTO.txt
     
+    // === FILTROS DE ENTRADA ===
+    // Slider HPF - copia EXACTA de ExpansorGate
+    sidechainControls.hpfSlider.setName("hpf");
+    sidechainControls.hpfSlider.setComponentID("hpf");
+    sidechainControls.hpfSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    sidechainControls.hpfSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 60, 16);
+    sidechainControls.hpfSlider.setLookAndFeel(&sliderLAFBig);  // Usar LAF grande como ExpansorGate
+    sidechainControls.hpfSlider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::white);  // Blanco fijo
+    sidechainControls.hpfSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);  // Blanco fijo
+    sidechainControls.hpfSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+    sidechainControls.hpfSlider.setTextBoxIsEditable(true);
+    sidechainControls.hpfSlider.setEnabled(true);  // Inicialmente habilitado
+    sidechainControls.hpfSlider.setAlpha(1.0f);  // Inicialmente visible
+    sidechainControls.hpfSlider.setDoubleClickReturnValue(true, 20.0f);
+    sidechainControls.hpfSlider.setPopupDisplayEnabled(false, false, this);
+    sidechainControls.hpfSlider.setNumDecimalPlacesToDisplay(0);
+    // Formato de texto personalizado para frecuencia
+    sidechainControls.hpfSlider.textFromValueFunction = [](double value) {
+        if (value < 1000.0)
+            return juce::String(static_cast<int>(value));
+        else
+            return juce::String(value / 1000.0, 1) + "k";
+    };
+    sidechainControls.hpfSlider.setTextValueSuffix(" Hz");
+    // Configurar rango y sesgo para poner 1kHz en el centro
+    sidechainControls.hpfSlider.setRange(20.0, 20000.0, 1.0);
+    sidechainControls.hpfSlider.setSkewFactorFromMidPoint(1000.0);  // 1kHz en el centro
+    addAndMakeVisible(sidechainControls.hpfSlider);
+    if (auto* param = processor.apvts.getParameter("j_HPF"))
+    {
+        sidechainControls.hpfAttachment = std::make_unique<CustomSliderAttachment>(
+            *param, sidechainControls.hpfSlider, &undoManager);
+        sidechainControls.hpfAttachment->onParameterChange = [this]() { handleParameterChange(); };
+    }
     
+    // Slider LPF - copia EXACTA de ExpansorGate
+    sidechainControls.lpfSlider.setName("lpf");
+    sidechainControls.lpfSlider.setComponentID("lpf");
+    sidechainControls.lpfSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    sidechainControls.lpfSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 60, 16);
+    sidechainControls.lpfSlider.setLookAndFeel(&sliderLAFBig);  // Usar LAF grande como ExpansorGate
+    sidechainControls.lpfSlider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::white);  // Blanco fijo
+    sidechainControls.lpfSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);  // Blanco fijo
+    sidechainControls.lpfSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+    sidechainControls.lpfSlider.setTextBoxIsEditable(true);
+    sidechainControls.lpfSlider.setEnabled(true);  // Inicialmente habilitado
+    sidechainControls.lpfSlider.setAlpha(1.0f);  // Inicialmente visible
+    sidechainControls.lpfSlider.setDoubleClickReturnValue(true, 20000.0f);
+    sidechainControls.lpfSlider.setPopupDisplayEnabled(false, false, this);
+    sidechainControls.lpfSlider.setNumDecimalPlacesToDisplay(0);
+    // Formato de texto personalizado para frecuencia
+    sidechainControls.lpfSlider.textFromValueFunction = [](double value) {
+        if (value < 1000.0)
+            return juce::String(static_cast<int>(value));
+        else
+            return juce::String(value / 1000.0, 1) + "k";
+    };
+    sidechainControls.lpfSlider.setTextValueSuffix(" Hz");
+    // Configurar rango y sesgo para poner 1kHz en el centro
+    sidechainControls.lpfSlider.setRange(20.0, 20000.0, 1.0);
+    sidechainControls.lpfSlider.setSkewFactorFromMidPoint(1000.0);  // 1kHz en el centro
+    addAndMakeVisible(sidechainControls.lpfSlider);
+    if (auto* param = processor.apvts.getParameter("k_LPF"))
+    {
+        sidechainControls.lpfAttachment = std::make_unique<CustomSliderAttachment>(
+            *param, sidechainControls.lpfSlider, &undoManager);
+        sidechainControls.lpfAttachment->onParameterChange = [this]() { handleParameterChange(); };
+    }
+
+    // Botón FILTERS (antes SC) - VISIBLE para activar/desactivar filtros
+    sidechainControls.scButton.setClickingTogglesState(true);
+    sidechainControls.scButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
+    sidechainControls.scButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::darkviolet.withAlpha(0.3f));
+    sidechainControls.scButton.setColour(juce::TextButton::textColourOffId, DarkTheme::textSecondary.withAlpha(0.7f));
+    sidechainControls.scButton.setColour(juce::TextButton::textColourOnId, DarkTheme::textPrimary);
+    sidechainControls.scButton.addListener(this);
+    addAndMakeVisible(sidechainControls.scButton);
+    sidechainControls.scAttachment = std::make_unique<UndoableButtonAttachment>(
+        *processor.apvts.getParameter("l_SC"), sidechainControls.scButton, &undoManager);
+    sidechainControls.scAttachment->onParameterChange = [this]() { handleParameterChange(); };
+    // Tooltip actualizado via getTooltipText("sc") en updateAllTooltips()
 }
 
 void JCBDistortionAudioProcessorEditor::setupMeters()
@@ -2013,8 +2102,8 @@ void JCBDistortionAudioProcessorEditor::updateButtonStates()
 {
     // Función maestra que actualiza todos los estados de UI
     updateBasicButtonStates();
-    // MAXIMIZER: No sidechain components - commenting out function call
-    // updateSidechainComponentStates();
+    // Actualizar estados de componentes de filtro
+    updateSidechainComponentStates();
     updateBackgroundState();
     updateMeterStates();
     
@@ -2031,38 +2120,23 @@ void JCBDistortionAudioProcessorEditor::updateBasicButtonStates()
     bypassTextVisible = bypassActive;  // Siempre mostrar texto cuando bypass está activo
 }
 
-// MAXIMIZER: No sidechain components - commenting out entire function
-/*
 void JCBDistortionAudioProcessorEditor::updateSidechainComponentStates()
 {
-    // Los filtros HPF/LPF siempre visibles y activos
-    sidechainControls.hpfSlider.setVisible(true);
-    sidechainControls.lpfSlider.setVisible(true);
-    sidechainControls.hpfSlider.setAlpha(1.0f);
-    sidechainControls.lpfSlider.setAlpha(1.0f);
-    sidechainControls.hpfSlider.setEnabled(true);
-    sidechainControls.lpfSlider.setEnabled(true);
+    // Obtener estado del botón FILTERS
+    const bool filtersActive = sidechainControls.scButton.getToggleState();
     
-    // Actualizar visibilidad y estado de los botones de orden de filtro
-    sidechainControls.hpfOrderButton.setVisible(true);
-    sidechainControls.lpfOrderButton.setVisible(true);
-    sidechainControls.hpfOrderButton.setAlpha(1.0f);
-    sidechainControls.lpfOrderButton.setAlpha(1.0f);
-    sidechainControls.hpfOrderButton.setEnabled(true);
-    sidechainControls.lpfOrderButton.setEnabled(true);
+    // Los filtros HPF/LPF activos solo cuando FILTERS está ON
+    sidechainControls.hpfSlider.setVisible(true);  // Siempre visibles
+    sidechainControls.lpfSlider.setVisible(true);  // Siempre visibles
+    sidechainControls.hpfSlider.setEnabled(filtersActive);  // Activos solo si FILTERS ON
+    sidechainControls.lpfSlider.setEnabled(filtersActive);   // Activos solo si FILTERS ON
+    sidechainControls.hpfSlider.setAlpha(filtersActive ? 1.0f : 0.5f);  // Alpha indica estado
+    sidechainControls.lpfSlider.setAlpha(filtersActive ? 1.0f : 0.5f);   // Alpha indica estado
     
     // Forzar repaint para actualizar colores
     sidechainControls.hpfSlider.repaint();
     sidechainControls.lpfSlider.repaint();
-    sidechainControls.hpfOrderButton.repaint();
-    sidechainControls.lpfOrderButton.repaint();
-    
-    // Los sliders de sidechain trim según EXT KEY
-    const bool extKeyActive = sidechainControls.keyButton.getToggleState();
-    scTrimSlider.setEnabled(extKeyActive);
-    scTrimSlider.setAlpha(extKeyActive ? 1.0f : 0.25f);
 }
-*/
 
 void JCBDistortionAudioProcessorEditor::updateBackgroundState()
 {
@@ -2871,15 +2945,13 @@ void JCBDistortionAudioProcessorEditor::updateAllTooltips()
     // Sliders de trim de sidechain
     // scTrimSlider.setTooltip(getTooltipText("sctrim"));
     
-    // MAXIMIZER: No sidechain controls - commenting out tooltip updates
-    /*
-    // Controles de sidechain
+    // Controles de filtro de entrada
     sidechainControls.scButton.setTooltip(getTooltipText("sc"));
-    sidechainControls.keyButton.setTooltip(getTooltipText("extkey"));
-    sidechainControls.soloScButton.setTooltip(getTooltipText("solosc"));
     sidechainControls.hpfSlider.setTooltip(getTooltipText("hpf"));
     sidechainControls.lpfSlider.setTooltip(getTooltipText("lpf"));
-    */
+    // Componentes no utilizados comentados para mantener compatibilidad
+    // sidechainControls.keyButton.setTooltip(getTooltipText("extkey"));
+    // sidechainControls.soloScButton.setTooltip(getTooltipText("solosc"));
     
     // Área de presets
     presetArea.saveButton.setTooltip(getTooltipText("save"));
@@ -2932,10 +3004,10 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "mode") return JUCE_UTF8("MODE: algoritmo de distorsión\n8 tipos diferentes: Soft Clip, Sigmoid, Rectifier, etc.\nRango: 1 a 8 (mostrado) | Por defecto: 1");
         if (key == "trim") return JUCE_UTF8("TRIM: ganancia de entrada al distorsionador\nAjusta el nivel antes del procesamiento\nRango: -12 a +12 dB | Por defecto: 0 dB");
         if (key == "makeup") return JUCE_UTF8("MAKEUP: ganancia de salida POST procesador\nAjusta el nivel final después de la distorsión\nRango: -12 a +12 dB | Por defecto: 0 dB");
-        //if (key == "sc") return JUCE_UTF8("FILTERS: activa los filtros del sidechain.\nPermite filtrar la señal, tanto interna como externa, que controla el expansor.\nValor por defecto: OFF");
+        if (key == "sc") return JUCE_UTF8("FILTERS: activa los filtros de entrada.\nPermite filtrar la señal antes del procesamiento de distorsión.\nValor por defecto: OFF");
         //if (key == "solosc") return JUCE_UTF8("SOLO SC: escucha filtros sidechain int/ext\nParámetro global, no automatizable\nRango: OFF/ON | Por defecto: OFF");
-        //if (key == "hpf") return JUCE_UTF8("HPF: filtro pasa altos del sidechain\nFiltra frecuencias del detector de expansión\nRango: 20 a 20k Hz | Por defecto: 20 Hz");
-        //if (key == "lpf") return JUCE_UTF8("LPF: filtro pasa bajos del sidechain\nElimina frecuencias agudas del detector\nRango: 20 Hz a 20 kHz | Por defecto: 20 kHz");
+        if (key == "hpf") return JUCE_UTF8("HPF: filtro pasa altos de entrada\nFiltra frecuencias graves antes de la distorsión\nRango: 20 a 20k Hz | Por defecto: 20 Hz");
+        if (key == "lpf") return JUCE_UTF8("LPF: filtro pasa bajos de entrada\nElimina frecuencias agudas antes de la distorsión\nRango: 20 Hz a 20 kHz | Por defecto: 20 kHz");
         if (key == "save") return JUCE_UTF8("SAVE: guarda el preset actual\nSobrescribe el preset seleccionado con valores actuales\nNo funciona con DEFAULT");
         if (key == "saveas") return JUCE_UTF8("SAVE AS: guarda como nuevo preset\nCrea un nuevo archivo de preset con los valores actuales\nPermite crear presets personalizados");
         if (key == "delete") return JUCE_UTF8("BORRAR: elimina el preset seleccionado\nRequiere confirmación antes de borrar");
@@ -2977,10 +3049,10 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "mode") return "MODE: distortion algorithm\n8 different types: Soft Clip, Sigmoid, Rectifier, etc.\nRange: 1 to 8 (displayed) | Default: 1";
         if (key == "trim") return "TRIM: distortion input gain\nAdjusts level before processing\nRange: -12 to +12 dB | Default: 0 dB";
         if (key == "makeup") return "MAKEUP: output gain POST processor\nAdjusts final level after distortion\nRange: -12 to +12 dB | Default: 0 dB";
-        //if (key == "sc") return "FILTERS: activates sidechain filters.\nAllows filtering the signal, both internal and external, that controls the expander.\nDefault: OFF";
+        if (key == "sc") return "FILTERS: activates input filters.\nAllows filtering the signal before distortion processing.\nDefault: OFF";
         //if (key == "solosc") return "SOLO SC: listen to int/ext sidechain filters\nGlobal parameter, non-automatable\nRange: OFF/ON | Default: OFF";
-        //if (key == "hpf") return "HPF: sidechain high-pass filter\nFilters frequencies from expansion detector\nRange: 20 to 20k Hz | Default: 20 Hz";
-        //if (key == "lpf") return "LPF: sidechain low-pass filter.\nRemoves treble frequencies from detector.\nRange: 20 Hz to 20 kHz | Default: 20 kHz";
+        if (key == "hpf") return "HPF: input high-pass filter\nFilters bass frequencies before distortion\nRange: 20 to 20k Hz | Default: 20 Hz";
+        if (key == "lpf") return "LPF: input low-pass filter\nRemoves treble frequencies before distortion\nRange: 20 Hz to 20 kHz | Default: 20 kHz";
         if (key == "save") return "SAVE: save or overwrite preset\nSave new or update current preset";
         if (key == "saveas") return "SAVE AS: save as new preset.\nCreates new preset file with current values.\nAllows creating custom presets";
         if (key == "delete") return "DELETE: remove selected preset\nRequires confirmation before deleting";
@@ -3204,8 +3276,8 @@ void JCBDistortionAudioProcessorEditor::initializeCodeContentCache()
         {"INPUT STAGE", BinaryData::InputStage_txt, BinaryData::InputStage_txtSize},
         {"EFFECTS CHAIN", BinaryData::EffectsChain_txt, BinaryData::EffectsChain_txtSize},
         {"DISTORTION CORE", BinaryData::DistortionCore_txt, BinaryData::DistortionCore_txtSize},
-        {"GEN EXPR", BinaryData::GenExpr_txt, BinaryData::GenExpr_txtSize},
-        {"GEN EXPR (FILTERS)", BinaryData::GenExpr_with_filters_txt, BinaryData::GenExpr_with_filters_txtSize},
+        //{"GEN EXPR", BinaryData::GenExpr_txt, BinaryData::GenExpr_txtSize},
+        //{"GEN EXPR (FILTERS)", BinaryData::GenExpr_with_filters_txt, BinaryData::GenExpr_with_filters_txtSize},
         {"OUTPUT STAGE", BinaryData::OutputStage_txt, BinaryData::OutputStage_txtSize},
     };
     
@@ -3301,9 +3373,10 @@ int JCBDistortionAudioProcessorEditor::getControlParameterIndex(juce::Component&
     // else if (&control == &rightBottomKnobs.holdSlider) parameterID = "f_HOLD";
     // speedButton removido - parámetro t_AUTORELEASESPEED ya no existe
     
-    // MAXIMIZER: Controles de Sidechain comentados (no existen)
-    // else if (&control == &sidechainControls.hpfSlider) parameterID = "j_HPF";
-    // else if (&control == &sidechainControls.lpfSlider) parameterID = "k_LPF";
+    // Controles de filtro de entrada
+    else if (&control == &sidechainControls.hpfSlider) parameterID = "j_HPF";
+    else if (&control == &sidechainControls.lpfSlider) parameterID = "k_LPF";
+    // Componentes no utilizados comentados para mantener compatibilidad
     // else if (&control == &sidechainControls.keyButton) parameterID = "r_KEY";
     
     // Sliders de Trim
@@ -3312,8 +3385,7 @@ int JCBDistortionAudioProcessorEditor::getControlParameterIndex(juce::Component&
     // else if (&control == &scTrimSlider) parameterID = "y_SCTRIM";
     
     // Botones Automatizables
-    // MAXIMIZER: scButton comentado (no existe)
-    // else if (&control == &sidechainControls.scButton) parameterID = "l_SC";
+    else if (&control == &sidechainControls.scButton) parameterID = "l_SC";
     
     // Parámetros no automatizables (retornar -1)
     // Estos son parámetros globales/utility que no deberían mostrar carriles de automatización
