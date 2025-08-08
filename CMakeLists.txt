@@ -131,7 +131,11 @@ juce_add_binary_data(JCBDistortion_BinaryData
         Assets/code/InputStage.txt
         Assets/code/OutputStage.txt
         # Presets de fábrica
-        Assets/FactoryPresets/plus6.preset
+        Assets/FactoryPresets/Ali.preset
+        Assets/FactoryPresets/BrightLight.preset
+        Assets/FactoryPresets/Midy.preset
+        Assets/FactoryPresets/PlusSixAll.preset
+        Assets/FactoryPresets/Spark.preset
 )
 
 # Linkear binary data al plugin

@@ -146,7 +146,7 @@ void CreditsWindow::paint(juce::Graphics& g)
         {
             if (line.contains(link.text))
             {
-                // Calcular bounds centrados
+                // Calcular bounds centrados con posición fija
                 int textWidth = static_cast<int>(juce::GlyphArrangement::getStringWidth(monoFont, link.text));
                 int lineWidth = static_cast<int>(juce::GlyphArrangement::getStringWidth(monoFont, line));
                 int lineX = textArea.getCentreX() - lineWidth / 2;
@@ -175,9 +175,13 @@ void CreditsWindow::paint(juce::Graphics& g)
             }
         }
         
+        // Siempre dibujar la línea completa primero
+        g.drawText(line, textArea.getX(), yPos, textArea.getWidth(), lineHeight,
+                  juce::Justification::centred, false);
+        
+        // Si hay un link con hover en esta línea, añadir efectos visuales
         if (hasLinkInLine && hoveredLinkIndex == linkIndexInLine)
         {
-            // Si hay un link con hover, dibujar la línea por partes para evitar doble texto
             int lineWidth = static_cast<int>(juce::GlyphArrangement::getStringWidth(monoFont, line));
             int startX = textArea.getCentreX() - lineWidth / 2;
             
@@ -185,37 +189,22 @@ void CreditsWindow::paint(juce::Graphics& g)
             int linkStart = line.indexOf(links[linkIndexInLine].text);
             juce::String beforeLink = line.substring(0, linkStart);
             juce::String linkText = links[linkIndexInLine].text;
-            juce::String afterLink = line.substring(linkStart + linkText.length());
             
-            // Dibujar parte antes del link
-            if (beforeLink.isNotEmpty())
-            {
-                g.drawText(beforeLink, startX, yPos, static_cast<int>(juce::GlyphArrangement::getStringWidth(monoFont, beforeLink)), lineHeight,
-                          juce::Justification::left, false);
-            }
-            
-            // Dibujar el link con estilo
+            // Calcular posición exacta del link
             int linkX = startX + static_cast<int>(juce::GlyphArrangement::getStringWidth(monoFont, beforeLink));
-            g.setColour(textColour.brighter(0.3f));
-            g.setFont(monoFont.withStyle(juce::Font::underlined));
-            g.drawText(linkText, linkX, yPos, static_cast<int>(juce::GlyphArrangement::getStringWidth(monoFont, linkText)), lineHeight,
-                      juce::Justification::left, false);
+            int linkWidth = static_cast<int>(juce::GlyphArrangement::getStringWidth(monoFont, linkText));
             
-            // Restaurar estilo y dibujar parte después del link
-            g.setFont(monoFont);
+            // Dibujar highlight semi-transparente sobre el link (sin redibujar texto)
+            g.setColour(juce::Colours::cyan.withAlpha(0.15f));
+            g.fillRect(linkX, yPos, linkWidth, lineHeight);
+            
+            // Dibujar subrayado manual con color destacado
+            g.setColour(textColour.brighter(0.3f));
+            float underlineY = yPos + lineHeight - 2.0f;
+            g.fillRect(linkX, static_cast<int>(underlineY), linkWidth, 1);
+            
+            // Restaurar color
             g.setColour(textColour);
-            if (afterLink.isNotEmpty())
-            {
-                int afterX = linkX + static_cast<int>(juce::GlyphArrangement::getStringWidth(monoFont, linkText));
-                g.drawText(afterLink, afterX, yPos, static_cast<int>(juce::GlyphArrangement::getStringWidth(monoFont, afterLink)), lineHeight,
-                          juce::Justification::left, false);
-            }
-        }
-        else
-        {
-            // Dibujar línea normal
-            g.drawText(line, textArea.getX(), yPos, textArea.getWidth(), lineHeight,
-                      juce::Justification::centred, false);
         }
         
         // Espaciado adicional después del título
@@ -234,6 +223,9 @@ void CreditsWindow::resized()
 {
     // Posicionar el botón de idioma en la esquina superior derecha
     langButton.setBounds(getWidth() - 40, 5, 35, 20);
+    
+    // Recalcular las posiciones de los links
+    recalculateLinkBounds();
 }
 
 bool CreditsWindow::keyPressed(const juce::KeyPress& key)
@@ -306,6 +298,7 @@ void CreditsWindow::toggleLanguage()
     isEnglish = !isEnglish;
     langButton.setButtonText(isEnglish ? "ESP" : "ENG");
     buildFullCreditsText();
+    recalculateLinkBounds();
     repaint();
     
     // Notificar al padre para que ajuste el tamaño
@@ -340,7 +333,6 @@ void CreditsWindow::buildFullCreditsTextSpanish()
     fullText += JUCE_UTF8(" Recursos \n");
     fullText += JUCE_UTF8(" Graham Wakefield & Gregory Taylor - Generating Sound and Organizing Time \n");
     fullText += JUCE_UTF8(" Will C. Pirkle - Designing Audio Effect Plugins in C++ \n");
-    fullText += JUCE_UTF8(" Dynamic Range Compressor Design - Giannoulis, Massberg, Reiss \n");
     fullText += JUCE_UTF8(" The Complete Beginner's Guide to Audio Plug-in Development - Matthijs Hollemans \n\n");
 
     // Tercer bloque: Contribuciones de código base
@@ -351,20 +343,21 @@ void CreditsWindow::buildFullCreditsTextSpanish()
     fullText += JUCE_UTF8(" Este plugin ha sido desarrollado con el framework JUCE bajo licencia GPLv3. \n");
     fullText += JUCE_UTF8(" Formatos compatibles: AU, VST3 y AAX \n");
 
-    // Definir los links clickeables disponibles
-    links.push_back({" Juan Carlos Blancas ", "https://github.com/cjitter/JCBCompressor", {}});
-    links.push_back({" gen~ (Max/MSP, Cycling'74) ", "https://cycling74.com", {}});
-    links.push_back({" JUCE ", "https://github.com/juce-framework/JUCE", {}});
-    links.push_back({" CMake ", "https://cmake.org", {}});
-    links.push_back({" Claude Code ", "https://claude.ai/", {}});
-    links.push_back({" Graham Wakefield & Gregory Taylor - Generating Sound and Organizing Time ", "https://cycling74.com/books/go", {}});
-    links.push_back({" Will C. Pirkle - Designing Audio Effect Plugins in C++ ", "https://www.willpirkle.com", {}});
-    links.push_back({" Dynamic Range Compressor Design - Giannoulis, Massberg, Reiss ", "https://eecs.qmul.ac.uk/~josh/documents/2012/GiannoulisMassbergReiss-dynamicrangecompression-JAES2012.pdf", {}});
-    links.push_back({" (A. Murthy) ", "https://www.youtube.com/watch?v=ILMdPjFQ9ps", {}});
-    links.push_back({" (F. Becker) ", "https://github.com/francoisbecker/fb-utils/blob/master/include/fbu/tooltip_component.hpp", {}});
-    //links.push_back({" JUCE ", "https://juce.com", {}});
-    links.push_back({" (Kengo Suzuki) ", "https://github.com/szkkng/jr-granular", {}});
-    links.push_back({" The Complete Beginner's Guide to Audio Plug-in Development - Matthijs Hollemans ", "https://www.theaudioprogrammer.com/books/beginners-plugin-book", {}});
+    // Definir los links clickeables disponibles - SIN espacios extras
+    links.push_back({"Juan Carlos Blancas", "https://github.com/cjitter", {}});
+    links.push_back({"gen~ (Max/MSP, Cycling'74)", "https://cycling74.com", {}});
+    links.push_back({"JUCE", "https://github.com/juce-framework/JUCE", {}});
+    links.push_back({"JUCE 8", "https://github.com/juce-framework/JUCE", {}});
+    links.push_back({"JUCE APVTS", "https://github.com/juce-framework/JUCE", {}});
+    links.push_back({"CMake", "https://cmake.org", {}});
+    links.push_back({"Claude Code", "https://claude.ai/", {}});
+    links.push_back({"Graham Wakefield & Gregory Taylor - Generating Sound and Organizing Time", "https://cycling74.com/books/go", {}});
+    links.push_back({"Will C. Pirkle - Designing Audio Effect Plugins in C++", "https://www.willpirkle.com", {}});
+    links.push_back({"(A. Murthy)", "https://www.youtube.com/watch?v=ILMdPjFQ9ps", {}});
+    links.push_back({"(F. Becker)", "https://github.com/francoisbecker/fb-utils/blob/master/include/fbu/tooltip_component.hpp", {}});
+    links.push_back({"(J. Peña)", "https://github.com/cjitter", {}});
+    links.push_back({"(Kengo Suzuki)", "https://github.com/szkkng/jr-granular", {}});
+    links.push_back({"The Complete Beginner's Guide to Audio Plug-in Development - Matthijs Hollemans", "https://www.theaudioprogrammer.com/books/beginners-plugin-book", {}});
 }
 
 void CreditsWindow::buildFullCreditsTextEnglish() 
@@ -389,7 +382,6 @@ void CreditsWindow::buildFullCreditsTextEnglish()
     fullText += JUCE_UTF8(" Resources \n");
     fullText += JUCE_UTF8(" Graham Wakefield & Gregory Taylor - Generating Sound and Organizing Time \n");
     fullText += JUCE_UTF8(" Will C. Pirkle - Designing Audio Effect Plugins in C++ \n");
-    fullText += JUCE_UTF8(" Dynamic Range Compressor Design - Giannoulis, Massberg, Reiss \n");
     fullText += JUCE_UTF8(" The Complete Beginner's Guide to Audio Plug-in Development - Matthijs Hollemans \n\n");
 
     // Tercer bloque: Contribuciones de código base
@@ -400,20 +392,21 @@ void CreditsWindow::buildFullCreditsTextEnglish()
     fullText += JUCE_UTF8(" This plugin has been developed with the JUCE framework under GPLv3 license. \n");
     fullText += JUCE_UTF8(" Compatible formats: AU, VST3 and AAX \n");
 
-    // Definir los links clickeables disponibles (idénticos a la versión en español)
-    links.push_back({" Juan Carlos Blancas ", "https://github.com/cjitter/JCBCompressor", {}});
-    links.push_back({" gen~ (Max/MSP, Cycling'74) ", "https://cycling74.com", {}});
-    links.push_back({" JUCE ", "https://github.com/juce-framework/JUCE", {}});
-    links.push_back({" CMake ", "https://cmake.org", {}});
-    links.push_back({" Claude Code ", "https://claude.ai/", {}});
-    links.push_back({" Graham Wakefield & Gregory Taylor - Generating Sound and Organizing Time ", "https://cycling74.com/books/go", {}});
-    links.push_back({" Will C. Pirkle - Designing Audio Effect Plugins in C++ ", "https://www.willpirkle.com", {}});
-    links.push_back({" Dynamic Range Compressor Design - Giannoulis, Massberg, Reiss ", "https://eecs.qmul.ac.uk/~josh/documents/2012/GiannoulisMassbergReiss-dynamicrangecompression-JAES2012.pdf", {}});
-    links.push_back({" (A. Murthy) ", "https://www.youtube.com/watch?v=ILMdPjFQ9ps", {}});
-    links.push_back({" (F. Becker) ", "https://github.com/francoisbecker/fb-utils/blob/master/include/fbu/tooltip_component.hpp", {}});
-    //links.push_back({" JUCE ", "https://juce.com", {}});
-    links.push_back({" (Kengo Suzuki) ", "https://github.com/szkkng/jr-granular", {}});
-    links.push_back({" The Complete Beginner's Guide to Audio Plug-in Development - Matthijs Hollemans ", "https://www.theaudioprogrammer.com/books/beginners-plugin-book", {}});
+    // Definir los links clickeables disponibles (idénticos a la versión en español) - SIN espacios extras
+    links.push_back({"Juan Carlos Blancas", "https://github.com/cjitter", {}});
+    links.push_back({"gen~ (Max/MSP, Cycling'74)", "https://cycling74.com", {}});
+    links.push_back({"JUCE", "https://github.com/juce-framework/JUCE", {}});
+    links.push_back({"JUCE 8", "https://github.com/juce-framework/JUCE", {}});
+    links.push_back({"JUCE APVTS", "https://github.com/juce-framework/JUCE", {}});
+    links.push_back({"CMake", "https://cmake.org", {}});
+    links.push_back({"Claude Code", "https://claude.ai/", {}});
+    links.push_back({"Graham Wakefield & Gregory Taylor - Generating Sound and Organizing Time", "https://cycling74.com/books/go", {}});
+    links.push_back({"Will C. Pirkle - Designing Audio Effect Plugins in C++", "https://www.willpirkle.com", {}});
+    links.push_back({"(A. Murthy)", "https://www.youtube.com/watch?v=ILMdPjFQ9ps", {}});
+    links.push_back({"(F. Becker)", "https://github.com/francoisbecker/fb-utils/blob/master/include/fbu/tooltip_component.hpp", {}});
+    links.push_back({"(J. Peña)", "https://github.com/cjitter", {}});
+    links.push_back({"(Kengo Suzuki)", "https://github.com/szkkng/jr-granular", {}});
+    links.push_back({"The Complete Beginner's Guide to Audio Plug-in Development - Matthijs Hollemans", "https://www.theaudioprogrammer.com/books/beginners-plugin-book", {}});
 }
 
 juce::Colour CreditsWindow::getTerminalColour() const
@@ -422,27 +415,74 @@ juce::Colour CreditsWindow::getTerminalColour() const
     return juce::Colours::white;
 }
 
-juce::Rectangle<int> CreditsWindow::getLinkBounds() const
+void CreditsWindow::recalculateLinkBounds()
 {
-    // Calcular la posición aproximada del link en el texto (método legacy)
-    // Basándonos en el layout actual de renderizado
-    int padding = static_cast<int>(10 * (getHeight() / 120.0f));
-    auto textArea = getLocalBounds().reduced(padding);
+    // Limpiar bounds previos
+    for (auto& link : links)
+    {
+        link.bounds = {};
+    }
     
-    // El link está cerca del final del texto
-    // Estimamos su posición basándonos en el número de líneas
+    // Calcular dimensiones de renderizado
     float scaleFactor = getHeight() / 120.0f;
     float fontSize = 9.0f * scaleFactor;
+    
+    juce::Font monoFont = juce::Font(juce::Font::getDefaultMonospacedFontName(), fontSize, juce::Font::plain);
     int lineHeight = static_cast<int>(fontSize * 1.2f);
     
-    // El link está en la línea 11 aproximadamente
-    int linkY = textArea.getY() + (textArea.getHeight() - lineHeight * 12) / 2 + lineHeight * 10;
+    int padding = static_cast<int>(10 * scaleFactor);
+    auto textArea = getLocalBounds().reduced(padding);
     
-    // Ancho estimado del link
-    int linkWidth = static_cast<int>(fontSize * 30); // ~30 caracteres
-    int linkX = textArea.getCentreX() - linkWidth / 2;
+    // Simular el mismo proceso de renderizado para calcular posiciones
+    auto lines = juce::StringArray::fromLines(fullText);
+    float yPos = textArea.getY() + (textArea.getHeight() - lines.size() * lineHeight) / 2.0f;
     
-    return juce::Rectangle<int>(linkX, linkY, linkWidth, lineHeight);
+    for (const auto& line : lines)
+    {
+        if (yPos < textArea.getY())
+        {
+            yPos += lineHeight;
+            continue;
+        }
+        
+        if (yPos + lineHeight > textArea.getBottom())
+            break;
+        
+        // Buscar links en esta línea
+        for (auto& link : links)
+        {
+            if (line.contains(link.text))
+            {
+                // Calcular bounds centrados con posición fija
+                int textWidth = static_cast<int>(juce::GlyphArrangement::getStringWidth(monoFont, link.text));
+                int lineWidth = static_cast<int>(juce::GlyphArrangement::getStringWidth(monoFont, line));
+                int lineX = textArea.getCentreX() - lineWidth / 2;
+                
+                int linkStart = line.indexOf(link.text);
+                juce::String beforeLink = line.substring(0, linkStart);
+                int beforeWidth = static_cast<int>(juce::GlyphArrangement::getStringWidth(monoFont, beforeLink));
+                
+                link.bounds = juce::Rectangle<int>(lineX + beforeWidth, static_cast<int>(yPos), textWidth, lineHeight);
+            }
+        }
+        
+        // Espaciado adicional después del título
+        bool isTitle = line.contains("JCBDistortion v");
+        if (isTitle)
+        {
+            yPos += lineHeight * 2.0f;
+        }
+        else
+        {
+            yPos += lineHeight;
+        }
+    }
+}
+
+juce::Rectangle<int> CreditsWindow::getLinkBounds() const
+{
+    // Método legacy - devolver rectángulo vacío
+    return {};
 }
 
 //==============================================================================

@@ -98,6 +98,7 @@ private:
     void buildFullCreditsText();             // Construir texto según idioma actual
     void buildFullCreditsTextSpanish();     // Generar texto en español
     void buildFullCreditsTextEnglish();     // Generar texto en inglés
+    void recalculateLinkBounds();           // Recalcular posiciones de links
     void toggleLanguage();                   // Cambiar entre español e inglés
     juce::Colour getTerminalColour() const;  // Obtener color del texto (terminal style)
     juce::Rectangle<int> getLinkBounds() const;  // Calcular bounds de links (legacy)

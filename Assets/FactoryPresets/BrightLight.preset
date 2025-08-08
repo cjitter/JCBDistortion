@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<PARAMETERS>
+  <PARAM id="a_DRYWET" value="0.25"/>
+  <PARAM id="b_DRIVE" value="12.0"/>
+  <PARAM id="c_DC" value="1.0"/>
+  <PARAM id="d_MODE" value="2.700000047683716"/>
+  <PARAM id="e_CEILING" value="2.000000238418579"/>
+  <PARAM id="f_BYPASS" value="0.0"/>
+  <PARAM id="g_BITS" value="6.300000190734863"/>
+  <PARAM id="h_BITSON" value="1.0"/>
+  <PARAM id="i_TILT" value="3.000000238418579"/>
+  <PARAM id="j_HPF" value="124.0"/>
+  <PARAM id="k_INPUT" value="1.788139343261719e-7"/>
+  <PARAM id="k_LPF" value="20000.0"/>
+  <PARAM id="l_OUTPUT" value="1.788139343261719e-7"/>
+  <PARAM id="l_SC" value="1.0"/>
+  <PARAM id="m_DOWNSAMPLE" value="0.0"/>
+  <PARAM id="n_DOWNSAMPLEON" value="0.0"/>
+  <PARAM id="p_DISPLAYMODE" value="0.0"/>
+  <Presets currentPresetID="0" tooltipEnabled="1" presetDisplayText="DEFAULT*"
+           presetTextItalic="1" envelopeVisualEnabled="1" tooltipLanguageEnglish="1"
+           editorWidth="1435" editorHeight="410"/>
+  <ABStates isStateA="1">
+    <StateA/>
+    <StateB/>
+  </ABStates>
+</PARAMETERS>

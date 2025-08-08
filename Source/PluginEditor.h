@@ -761,52 +761,25 @@ private:
         {
             if (clickableAreasCached) return;
             
-            // Áreas clickables en coordenadas del sistema de referencia
+            // Áreas clickables para el diagrama de distorsión
+            // Distribución horizontal de los 4 bloques principales
             cachedClickableAreas = {
-                // Sección de entrada
-                {"TRIM IN", 75.f, 87.f, 55.6f, 33.0f},
-                //{"TRIM SC", 77.8f, 122.2f, 55.6f, 30.6f},
-                
-                // Procesamiento principal
-                {"LOOKAHEAD", 170.8f, 16.7f, 430.7f, 13.9f},
-                //{"FILTERS", 192.8f, 100.0f, 52.8f, 69.4f},
-                {"DETECTOR", 215.0f, 112.0f, 120.0f, 57.0f},
-                //{"GAIN CALC", 316.1f, 100.0f, 55.6f, 69.4f},
-                {"GAIN CORE", 335.2f, 50.0f, 97.0f, 45.0f},
-                
-                // Sección de salida
-                //{"MAKEUP", 468.0f, 54.4f, 50.4f, 33.3f},
-                //{"PARALLEL", 461.1f, 54.4f, 76.1f, 33.3f},
-                {"OUTPUT", 540.0f, 54.4f, 82.2f, 33.3f},
+                // Los 4 bloques del procesamiento de distorsión
+                {"INPUT STAGE", 75.f, 75.f, 55.f, 65.f},      // Entrada y trim
+                {"DISTORTION CORE", 163.f, 80.f, 125.f, 55.f}, // Motor de distorsión
+                {"EFFECTS CHAIN", 377.f, 89.f, 95.f, 40.f},   // Bit crusher, downsample, filtros
+                {"OUTPUT STAGE", 510.f, 82.f, 85.f, 50.f},    // Salida y makeup gain
             };
             
             clickableAreasCached = true;
         }
         
-        // Obtener color específico por bloque para efectos hover dinámicos
+        // Obtener color para efectos hover - Todos blancos para el distorsionador
         juce::Colour getBlockColor(const juce::String& blockName)
         {
-            // Mapeo de bloques a colores temáticos basado en función:
-            // Verde: Parámetros de detector (ATK, REL, HOLD, REACT, SMO)
-            // Púrpura: Parámetros de ganancia (THD, RATIO, KNEE, RANGE) y parallel
-            // Azul: Procesamiento core, salida, makeup y temporal (lookahead)
-            // Blanco: Filtros sidechain (HPF, LPF)
-            // Gris: Controles de nivel (trim)
-            
-            if (blockName == "DETECTOR")
-                return juce::Colour(0xFF1DB954);  // Verde Spotify (parámetros ATK, REL, HOLD, REACT, SMO)
-            else if (blockName == "GAIN CALC")
-                return DarkTheme::accentSecondary;  // Púrpura (parámetros THD, RATIO, KNEE, RANGE)
-            else if (blockName == "GAIN CORE" || blockName == "MAKEUP" || blockName == "OUTPUT" || blockName == "LOOKAHEAD")
-                return DarkTheme::accent;  // Azul (procesamiento core, salida, temporal)
-            else if (blockName == "FILTERS")
-                return DarkTheme::textPrimary;  // Blanco (filtros HPF, LPF sidechain)
-            else if (blockName == "PARALLEL")
-                return DarkTheme::accentSecondary;  // Púrpura (parallel)
-            else if (blockName == "TRIM IN" || blockName == "TRIM SC")
-                return DarkTheme::textSecondary;  // Gris claro (controles de nivel)
-            else
-                return juce::Colours::lightblue;  // Fallback al color original
+            // Todos los bloques del distorsionador usan el mismo color blanco
+            // para mantener coherencia visual
+            return DarkTheme::textPrimary;  // Blanco para todos los bloques
         }
         
         void drawHoverGlow(juce::Graphics& g)
