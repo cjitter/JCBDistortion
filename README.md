@@ -122,8 +122,6 @@ Los tests validan los formatos VST3 y AU del plugin.
 - Añadir oversampling opcional para evitar aliasing en modos extremos.
 - Crear versión simplificada para Max for Live.
 - Portar el modelo a SuperCollider como UGen personalizado.
-- Explorar morphing entre modos de distorsión.
-- Optimizar el código GenExpr para CPU en tiempo real.
 
 ---
 
