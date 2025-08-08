@@ -18,7 +18,7 @@ class SpectrumAnalyzerComponent : public juce::Component,
 public:
     SpectrumAnalyzerComponent(juce::AudioProcessorValueTreeState& apvts);
     
-    // Update sample rate for correct frequency mapping
+    // Actualiza sample rate para mapeo de frecuencia correcto
     void setSampleRate(double newSampleRate) noexcept;
     ~SpectrumAnalyzerComponent() override;
     
@@ -28,13 +28,13 @@ public:
     void mouseDown(const juce::MouseEvent& event) override;
     void mouseDoubleClick(const juce::MouseEvent& event) override;
     
-    // TooltipClient interface
+    // Interfaz TooltipClient
     juce::String getTooltip() override;
     
     void pushNextSampleIntoFifo(float sample) noexcept;
     void setBypassMode(bool enabled) noexcept;
     
-    // Frequency scale toggle
+    // Alternador de escala de frecuencia
     enum class FrequencyScale {
         Linear,
         Logarithmic
@@ -43,35 +43,35 @@ public:
     void setFrequencyScale(FrequencyScale scale) noexcept;
     FrequencyScale getFrequencyScale() const noexcept { return currentScale; }
     
-    // Zoom control for FFT mode
+    // Control de zoom para modo FFT
     void setZoomEnabled(bool enabled) noexcept;
     bool getZoomEnabled() const noexcept { return zoomEnabled; }
     
 private:
-    // FFT Configuration - High resolution for professional analysis
-    static constexpr auto fftOrder = 11;  // 2048 points (increased resolution)
+    // Configuración FFT - Alta resolución para análisis profesional
+    static constexpr auto fftOrder = 11;  // 2048 puntos (resolución aumentada)
     static constexpr auto fftSize = 1 << fftOrder;
-    static constexpr auto scopeSize = 512;  // Visual resolution
+    static constexpr auto scopeSize = 512;  // Resolución visual
     
-    // Display Range Configuration - Easy to modify
-    static constexpr float defaultMinDB = -80.0f;  // Full range bottom
-    static constexpr float defaultMaxDB = 0.0f;    // Full range top
-    static constexpr float zoomedMinDB = -48.0f;   // Zoomed range bottom
-    static constexpr float zoomedMaxDB = 0.0f;     // Zoomed range top
+    // Configuración de rango de display - Fácil de modificar
+    static constexpr float defaultMinDB = -80.0f;  // Límite inferior rango completo
+    static constexpr float defaultMaxDB = 0.0f;    // Límite superior rango completo
+    static constexpr float zoomedMinDB = -48.0f;   // Límite inferior con zoom
+    static constexpr float zoomedMaxDB = 0.0f;     // Límite superior con zoom
     
-    // FFT Components
+    // Componentes FFT
     juce::dsp::FFT forwardFFT;
     juce::dsp::WindowingFunction<float> window;
     
-    // Data Buffers - Lock-free design
+    // Buffers de datos - Diseño lock-free
     std::array<float, fftSize> fifo;
-    std::array<float, fftSize> fftCopy;  // Intermediate buffer for audio thread
-    std::array<float, fftSize * 2> fftData;  // GUI thread processing buffer
+    std::array<float, fftSize> fftCopy;  // Buffer intermedio para thread de audio
+    std::array<float, fftSize * 2> fftData;  // Buffer de procesamiento para thread GUI
     std::array<float, scopeSize> scopeData;
-    std::array<float, scopeSize> copyScopeData;  // Thread-safe copy for painting
+    std::array<float, scopeSize> copyScopeData;  // Copia thread-safe para pintar
     std::array<float, scopeSize> peakHoldData;
     
-    // Thread-safe State Management
+    // Gestión de estado thread-safe
     std::atomic<int> fifoIndex{0};
     std::atomic<bool> nextFFTBlockReady{false};
     std::atomic<bool> bypassMode{false};
@@ -79,19 +79,19 @@ private:
     FrequencyScale currentScale = FrequencyScale::Logarithmic;
     std::atomic<double> currentSampleRate{44100.0};
     std::atomic<int> peakHoldCounter{0};
-    static constexpr int peakHoldFrames = 60;  // Hold peaks for ~2 seconds at 30 FPS
+    static constexpr int peakHoldFrames = 60;  // Mantener picos por ~2 segundos a 30 FPS
     
-    // Thread safety flags (no mutex needed in audio thread)
+    // Flags de seguridad de threads (sin mutex en thread de audio)
     std::atomic<bool> scopeDataReady{false};
     std::atomic<bool> isDestroying{false};
     
-    // GUI thread mutex (never used in audio thread)
+    // Mutex para thread GUI (nunca usado en thread de audio)
     mutable std::mutex guiMutex;
     
-    // Reference to value tree
+    // Referencia al value tree
     juce::AudioProcessorValueTreeState& valueTreeState;
     
-    // Internal methods
+    // Métodos internos
     void parameterChanged(const juce::String& parameterID, float newValue) override;
     void drawNextFrameOfSpectrum();
     void drawFrame(juce::Graphics& g, const juce::Rectangle<int>& bounds);

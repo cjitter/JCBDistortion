@@ -5,6 +5,7 @@
 #include <juce_graphics/juce_graphics.h>
 
 class DistortionCurveComponent : public juce::Component,
+                                public juce::TooltipClient,
                                 private juce::AudioProcessorValueTreeState::Listener
 {
 public:
@@ -12,6 +13,9 @@ public:
     ~DistortionCurveComponent() override;
     
     void paint(juce::Graphics& g) override;
+    
+    // Interfaz TooltipClient
+    juce::String getTooltip() override;
     
     // Control de modo BYPASS
     void setBypassMode(bool enabled) noexcept { bypassMode = enabled; repaint(); }

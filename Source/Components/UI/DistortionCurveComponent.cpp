@@ -348,3 +348,10 @@ juce::String DistortionCurveComponent::getModeFormula()
         default: return "";
     }
 }
+
+juce::String DistortionCurveComponent::getTooltip()
+{
+    // El tooltip se establece desde PluginEditor usando setHelpText()
+    // Este método debe retornar el helpText establecido por el componente padre
+    return getHelpText();
+}

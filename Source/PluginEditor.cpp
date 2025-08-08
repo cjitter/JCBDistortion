@@ -55,7 +55,6 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     setupParameterButtons();
     
     // Agregar display principal
-    addAndMakeVisible(transferDisplay);
     
     // Agregar visualizador de curvas de distorsión
     addAndMakeVisible(distortionCurveDisplay);
@@ -182,7 +181,6 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     
     // Establecer estado inicial de SOLO SIDECHAIN en transfer display
     // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
-    // transferDisplay.setSoloSidechain(sidechainControls.soloScButton.getToggleState());
     
     // Restaurar estado del display mode desde parámetro guardado
     auto displayModeParam = processor.apvts.getRawParameterValue("p_DISPLAYMODE");
@@ -191,7 +189,6 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
         // Estado guardado es FFT (1)
         currentDisplayMode = DisplayMode::FFT;
         
-        transferDisplay.setVisible(false);
         distortionCurveDisplay.setVisible(false);
         spectrumAnalyzer.setVisible(true);
         
@@ -206,7 +203,6 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
         // Estado por defecto es CURVES (0)
         currentDisplayMode = DisplayMode::Curves;
         
-        transferDisplay.setVisible(true);
         distortionCurveDisplay.setVisible(true);
         spectrumAnalyzer.setVisible(false);
         
@@ -219,7 +215,6 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     
     // Configurar estado inicial basado en el processor (solo para envolventes)
     bool initialEnvelopeState = processor.getEnvelopeVisualEnabled();
-    transferDisplay.setEnvelopeVisible(initialEnvelopeState);
     utilityButtons.runGraphicsButton.setToggleState(false, juce::dontSendNotification);
     // DISTORTION: grMeter eliminado - no hay gain reduction
     
@@ -415,7 +410,6 @@ void JCBDistortionAudioProcessorEditor::resized()
     float y = 73.0f * 200.0f / 353.0f + 4.0f;
     float w = 335.0f * 700.0f / 1247.0f;
     float h = 205.0f * 200.0f / 353.0f - 5.0f;
-    transferDisplay.setBounds(getScaledBounds(x, y, w, h));
     
     // Posicionar el visualizador de curvas de distorsión en el mismo lugar
     distortionCurveDisplay.setBounds(getScaledBounds(x, y, w, h));
@@ -629,40 +623,11 @@ void JCBDistortionAudioProcessorEditor::timerCallback()
     
     // Sistema original comentado en processBlock:
     // bool isProcessingInactive = processor.getIsLogicStopped();
-    transferDisplay.setLogicStoppedState(isProcessingInactive);
     
     // Actualizar datos de waveform y obtener gain reduction para el medidor
     if (!isBypassed && !isProcessingInactive)
     {
-        // Obtener datos de waveform si las envolventes están visibles
-        if (transferDisplay.isEnvelopeVisible())
-        {
-            std::vector<float> inputSamples, processedSamples;
-            processor.getWaveformData(inputSamples, processedSamples);
-            
-            if (!inputSamples.empty() && !processedSamples.empty())
-            {
-                // DISTORTION: No hay gain reduction - eliminar lógica de medidor GR
-                
-                // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
-                // bool keyEnabled = sidechainControls.keyButton.getToggleState();
-                // transferDisplay.setExtKeyActive(keyEnabled);
-                
-                // MAXIMIZER: No sidechain - set sidechain level to silence
-                // float scLevel = (processor.getSCValue(0) + processor.getSCValue(1)) * 0.5f;
-                float scLevel = -100.0f;  // Silent sidechain for Maximizer
-                transferDisplay.setSidechainLevel(scLevel);
-                
-                // DISTORTION: Usar updateWaveformData sin gain reduction
-                transferDisplay.updateWaveformData(&inputSamples[0], &processedSamples[0], 1);
-                
-                // DISTORTION: No hay gain reduction - eliminar setCurrentGainReduction
-                
-                // Forzar repintado para mostrar envolvente actualizada
-                transferDisplay.repaint();
-            }
-        }
-        // DISTORTION: No hay gain reduction - eliminar else branch
+            // DISTORTION: No hay gain reduction - eliminar else branch
     }
     else
     {
@@ -673,7 +638,6 @@ void JCBDistortionAudioProcessorEditor::timerCallback()
         // para que las envolventes y el histograma desaparezcan
         if (isProcessingInactive)
         {
-            transferDisplay.repaint();
         }
     }
     
@@ -712,7 +676,6 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
         
         // Actualizar transfer display para ocultar/mostrar envolventes basado en estado de bypass
         bool bypassActive = parameterButtons.bypassButton.getToggleState();
-        transferDisplay.setBypassMode(bypassActive);
         
         // Actualizar distortion curve display para ocultar curvas cuando bypass está activo
         distortionCurveDisplay.setBypassMode(bypassActive);
@@ -734,7 +697,6 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
         updateButtonStates();
         
         // Actualizar estado EXT KEY en transfer display
-        transferDisplay.setExtKeyActive(sidechainControls.keyButton.getToggleState());
     }
     else if (button == &sidechainControls.soloScButton)
     {
@@ -751,7 +713,6 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
         
         // Actualizar transfer function display para estado SOLO SC
         bool soloActive = sidechainControls.soloScButton.getToggleState();
-        transferDisplay.setSoloSidechain(soloActive);
     }
     */
     else if (button == &utilityButtons.runGraphicsButton)
@@ -959,35 +920,8 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
         }
         else
         {
-            // Original zoom functionality for transfer function display (CURVES mode)
-            auto currentZoom = transferDisplay.getZoomLevel();
-            TransferFunctionDisplay::ZoomLevel newZoom;
-            
-            switch (currentZoom)
-            {
-                case TransferFunctionDisplay::ZoomLevel::Normal:
-                    // Normal -> Ampliado
-                    newZoom = TransferFunctionDisplay::ZoomLevel::Zoomed;
-                    utilityButtons.zoomButton.setButtonText("zoom x2");
-                    utilityButtons.zoomButton.setToggleState(true, juce::dontSendNotification);
-                    break;
-                    
-                case TransferFunctionDisplay::ZoomLevel::Zoomed:
-                    // Ampliado -> Normal
-                    newZoom = TransferFunctionDisplay::ZoomLevel::Normal;
-                    utilityButtons.zoomButton.setButtonText("zoom");
-                    utilityButtons.zoomButton.setToggleState(false, juce::dontSendNotification);
-                    break;
-                    
-                default:
-                    // Por defecto a Normal si algo sale mal
-                    newZoom = TransferFunctionDisplay::ZoomLevel::Normal;
-                    utilityButtons.zoomButton.setButtonText("zoom");
-                    utilityButtons.zoomButton.setToggleState(false, juce::dontSendNotification);
-                    break;
-            }
-            
-            transferDisplay.setZoomLevel(newZoom);
+            // Zoom no está disponible en modo CURVES
+            // El botón ya está deshabilitado en este modo
         }
     }
     else if (button == &centerButtons.diagramButton)
@@ -1143,6 +1077,16 @@ void JCBDistortionAudioProcessorEditor::setupKnobs()
     leftBottomKnobs.drywetSlider.setRange(0.0, 1.0, 0.01);  // Rango interno 0.0-1.0
     leftBottomKnobs.drywetSlider.textFromValueFunction = [](double value) {
         return juce::String(static_cast<int>(value * 101)) + " %";
+    };
+    leftBottomKnobs.drywetSlider.valueFromTextFunction = [](const juce::String& text) {
+        auto trimmed = text.trim();
+        // Eliminar símbolo de porcentaje si existe
+        if (trimmed.endsWith("%"))
+            trimmed = trimmed.dropLastCharacters(1).trim();
+        
+        // Convertir a número y normalizar de 0-100 a 0-1
+        auto percentage = trimmed.getDoubleValue();
+        return juce::jlimit(0.0, 1.0, percentage / 100.0);
     };
     addAndMakeVisible(leftBottomKnobs.drywetSlider);
     if (auto* param = processor.apvts.getParameter("a_DRYWET"))
@@ -1352,7 +1296,6 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     leftBottomKnobs.drywetSlider.onValueChange = [this]() {
         // THD ahora está en rango de dB (-60 a 0)
         float thresholdDB = static_cast<float>(leftBottomKnobs.drywetSlider.getValue());
-        transferDisplay.setThreshold(thresholdDB);
         updateTransferDisplay();
     };
     // MAXIMIZER: c_RATIO, q_KNEE, h_RANGE callbacks eliminados - parámetros inexistentes según CONTEXTO.txt
@@ -1861,10 +1804,8 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
         // Es necesario obtener los valores directamente de los parámetros
         // porque los sliders pueden no estar actualizados todavía
         if (auto* thdParam = processor.apvts.getRawParameterValue("l_OUTPUT")) {
-            transferDisplay.setThreshold(thdParam->load());
         }
         if (auto* ceilingParam = processor.apvts.getRawParameterValue("e_CEILING")) {
-            transferDisplay.setCeiling(ceilingParam->load());
         }
         // MAXIMIZER: c_RATIO y q_KNEE no existen - eliminados según CONTEXTO.txt
         updateTransferDisplay();
@@ -2226,7 +2167,6 @@ void JCBDistortionAudioProcessorEditor::updateMeterStates()
     
     // CORRECCIÓN: Asegurar sincronización estado BYPASS al reabrir plugin
     // Esto resuelve el problema de la función de transferencia que reaparece incorrectamente
-    transferDisplay.setBypassMode(bypassActive);
     distortionCurveDisplay.setBypassMode(bypassActive);
 }
 
@@ -2237,7 +2177,6 @@ void JCBDistortionAudioProcessorEditor::updateTransferDisplay()
     // No se actualiza desde parámetros porque no hay curva de transferencia interactiva
     
     // Solo actualizar la visualización básica si es necesario
-    transferDisplay.updateCurve();
 }
 
 void JCBDistortionAudioProcessorEditor::updateMeters()
@@ -2977,11 +2916,15 @@ void JCBDistortionAudioProcessorEditor::updateAllTooltips()
     // Update TODO button tooltips
     updateTodoButtonTexts();
     
-    // Actualizar tooltip del transfer display
-    transferDisplay.setHelpText(getTooltipText("transfer"));
     
     // Botones de utilidad - fila inferior
     utilityButtons.stereoLinkedButton.setTooltip(getTooltipText("link"));
+    
+    // Tooltip para el analizador FFT (usa setHelpText porque hereda de TooltipClient)
+    spectrumAnalyzer.setHelpText(getTooltipText("spectrum"));
+    
+    // Tooltip para el visualizador de curvas de distorsión (usa setHelpText porque hereda de TooltipClient)
+    distortionCurveDisplay.setHelpText(getTooltipText("curves"));
     // CODE button removed
 }
 
@@ -3020,7 +2963,6 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "graphics") return JUCE_UTF8("GRAPHICS: alterna entre FFT y curvas de distorsión\nFFT: analizador de espectro | curves: visualizador de curvas\nClick para cambiar entre modos");
         if (key == "zoom") return JUCE_UTF8("ZOOM: cicla entre vista normal y ampliada del FFT\nNormal: -80 a 0dB | x2: -48 a 0dB\nSolo activo en modo FFT");
         if (key == "diagram") return JUCE_UTF8("DIAGRAM: muestra diagrama de bloques del procesador\nDespliega menú con código GenExpr por bloque para copiar");
-        if (key == "transfer") return JUCE_UTF8("GRÁFICA: función de transferencia del limitador\nMuestra la curva de limitación y reducción de ganancia\nClick derecho para opciones adicionales");
         if (key == "tooltiptoggle") return JUCE_UTF8("TOOLTIP: muestra/oculta los tooltips de ayuda\nActiva o desactiva las ventanas de ayuda emergentes");
         if (key == "tooltiplang") return JUCE_UTF8("IDIOMA: cambia entre español e inglés.\nAlterna el idioma de los tooltips.");
         if (key == "link") return JUCE_UTF8("STEREO LINKED: siempre activo.\nEl plugin solo funciona en modo stereo linked.\nAmbos canales siempre están vinculados");
@@ -3031,6 +2973,8 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "midilearn") return JUCE_UTF8("POR HACER: Asigna control MIDI.");
         if (key == "abcopyatob") return JUCE_UTF8("Copiar A a B");
         if (key == "abcopybtoa") return JUCE_UTF8("Copiar B a A");
+        if (key == "spectrum") return JUCE_UTF8("ANALIZADOR FFT: visualización del espectro de frecuencias\nMuestra análisis en tiempo real de 20Hz a 20kHz\nUsar botón ZOOM para cambiar escala");
+        if (key == "curves") return JUCE_UTF8("CURVAS DE DISTORSIÓN: visualización de función de transferencia\nMuestra cómo el algoritmo seleccionado transforma la señal\nTILT colorea el fondo según balance tonal");
     }
     else
     {
@@ -3065,7 +3009,6 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "graphics") return "GRAPHICS: toggles between FFT and distortion curves\nFFT: spectrum analyzer | curves: curve visualizer\nClick to switch between modes";
         if (key == "zoom") return "ZOOM: cycles between normal and zoomed FFT view\nNormal: -80 to 0dB | x2: -48 to 0dB\nOnly active in FFT mode";
         if (key == "diagram") return "DIAGRAM: shows processor block diagram\nDisplays menu with GenExpr code per block for copying";
-        if (key == "transfer") return "GRAPH: limiter transfer function\nShows limiting curve and gain reduction\nRight click for additional options";
         if (key == "tooltiptoggle") return "TOOLTIP: show/hide help tooltips.\nEnables or disables popup help windows.";
         if (key == "tooltiplang") return "LANGUAGE: switch between Spanish and English.\nToggles tooltip language.";
         if (key == "link") return "STEREO LINKED: always active.\nPlugin only works in stereo linked mode.\nBoth channels are always linked";
@@ -3076,6 +3019,8 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "midilearn") return "TODO: Assigns MIDI control.";
         if (key == "abcopyatob") return "Copy A to B";
         if (key == "abcopybtoa") return "Copy B to A";
+        if (key == "spectrum") return "FFT ANALYZER: frequency spectrum visualization\nShows real-time analysis from 20Hz to 20kHz\nUse ZOOM button to change scale";
+        if (key == "curves") return "DISTORTION CURVES: transfer function visualization\nShows how the selected algorithm transforms the signal\nTILT colors background based on tonal balance";
     }
 
     return "";
@@ -3106,7 +3051,6 @@ void JCBDistortionAudioProcessorEditor::applyAlphaToMainControls(float alpha)
     // speedButton removed
     
     // Transfer display
-    transferDisplay.setAlpha(alpha);
     
     // Parameter buttons (not including BYPASS which have special handling)
     
@@ -3460,7 +3404,6 @@ void JCBDistortionAudioProcessorEditor::toggleDisplayMode()
         }
         
         // Activar modo FFT Spectrum Analyzer
-        transferDisplay.setVisible(false);
         distortionCurveDisplay.setVisible(false);
         spectrumAnalyzer.setVisible(true);
         
@@ -3487,7 +3430,6 @@ void JCBDistortionAudioProcessorEditor::toggleDisplayMode()
         }
         
         // Visibilidad de componentes
-        transferDisplay.setVisible(true);
         distortionCurveDisplay.setVisible(true);
         spectrumAnalyzer.setVisible(false);
         
@@ -3498,20 +3440,9 @@ void JCBDistortionAudioProcessorEditor::toggleDisplayMode()
         utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId, 
                                                   DarkTheme::accent.withAlpha(0.3f));  // curves: azul original consistente
         
-        // Restaurar botón zoom para transfer function (deshabilitado visualmente)
-        auto currentZoom = transferDisplay.getZoomLevel();
-        if (currentZoom == TransferFunctionDisplay::ZoomLevel::Zoomed)
-        {
-            utilityButtons.zoomButton.setButtonText("zoom x2");
-            utilityButtons.zoomButton.setToggleState(true, juce::dontSendNotification);
-        }
-        else
-        {
-            utilityButtons.zoomButton.setButtonText("zoom");
-            utilityButtons.zoomButton.setToggleState(false, juce::dontSendNotification);
-        }
-        
-        // Deshabilitar botón zoom en modo CURVES - no clickeable
+        // Botón zoom no disponible en modo CURVES
+        utilityButtons.zoomButton.setButtonText("zoom");
+        utilityButtons.zoomButton.setToggleState(false, juce::dontSendNotification);
         utilityButtons.zoomButton.setAlpha(0.4f);
         utilityButtons.zoomButton.setEnabled(false);
     }

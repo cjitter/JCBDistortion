@@ -104,7 +104,6 @@ target_sources(JCBDistortion PRIVATE
         Source/PluginEditor.cpp
 
         # UI Components
-        Source/Components/UI/TransferFunctionDisplay.cpp
         Source/Components/UI/CustomComboBox.cpp
         Source/Components/Windows/CreditsWindow.cpp
         Source/Components/Windows/CodeWindow.cpp

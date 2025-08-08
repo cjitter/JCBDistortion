@@ -19,7 +19,6 @@
 // Archivos del proyecto
 #include "PluginProcessor.h"
 #include "BinaryData.h"
-#include "Components/UI/TransferFunctionDisplay.h"
 #include "Components/UI/GradientMeter.h"
 #include "Components/UI/DistortionCurveComponent.h"
 #include "Components/UI/SpectrumAnalyzerComponent.h"
@@ -255,7 +254,6 @@ private:
     //==========================================================================
     
     // Componente de visualización principal
-    TransferFunctionDisplay transferDisplay;
     
     // Componente de visualización de curvas de distorsión
     DistortionCurveComponent distortionCurveDisplay;
