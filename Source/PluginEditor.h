@@ -68,7 +68,7 @@ public:
     //==========================================================================
     // INTERFAZ PÚBLICA
     //==========================================================================
-    void updateTransferFunctionFromProcessor() { updateTransferDisplay(); }
+    void updateTransferFunctionFromProcessor() { }
     bool getIsLoadingPreset() const noexcept { return isLoadingPreset; }
     JCBDistortionAudioProcessor& getProcessor() const noexcept { return processor; }
     
@@ -187,18 +187,9 @@ private:
     {
         TransferFunctionParameterListener(JCBDistortionAudioProcessorEditor* e) : editor(e) {}
         
-        void parameterChanged(const juce::String& parameterID, float /*newValue*/) override
+        void parameterChanged(const juce::String& /*parameterID*/, float /*newValue*/) override
         {
-            if (parameterID == "l_OUTPUT" || parameterID == "e_CEILING")
-            {
-                // Usar SafePointer para thread safety
-                juce::Component::SafePointer<JCBDistortionAudioProcessorEditor> safeEditor(editor);
-                
-                juce::MessageManager::callAsync([safeEditor]() {
-                    if (safeEditor)
-                        safeEditor->updateTransferDisplay();
-                });
-            }
+            // Listener vacío - mantenido por compatibilidad
         }
         
         JCBDistortionAudioProcessorEditor* editor;
@@ -913,8 +904,6 @@ private:
     void updateBackgroundState();
     void updateFilterButtonText();
     void updateMeterStates();
-    
-    void updateTransferDisplay();
     void updateMeters();
     void updateSliderValues();
     

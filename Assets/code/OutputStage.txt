@@ -8,15 +8,10 @@
 // - in2: Wet R (señal procesada con efectos)
 // - in3: Dry L (señal original sin procesar - pre-trim, pre-filtros)
 // - in4: Dry R (señal original sin procesar - pre-trim, pre-filtros)
-// - in5: L post-trim (para medidores)
-// - in6: R post-trim (para medidores)
 //
 // SALIDAS:
 // - out1: L final
 // - out2: R final
-// - out3: 0 (placeholder para consistencia)
-// - out4: L post-trim (para medidores)
-// - out5: R post-trim (para medidores)
 // =============================================================================
 
 // PARÁMETROS
@@ -41,8 +36,6 @@ wetL = in1;
 wetR = in2;
 dryL = in3;  // Señal original sin procesar
 dryR = in4;  // Señal original sin procesar
-trimmedL = in5;  // Para medidores
-trimmedR = in6;  // Para medidores
 
 // Smoothing de parámetros
 hDrywet = hDrywet * smoothFactor + a_DRYWET * (1 - smoothFactor);
@@ -56,23 +49,24 @@ outputMakeupDb = hOutput;
 outputMakeupLinear = dbtoa(outputMakeupDb);
 
 // -----------------------------------------------------------------------------
-// MEZCLA DRY/WET
+// OUTPUT MAKEUP GAIN (SOLO A LA SEÑAL WET)
 // -----------------------------------------------------------------------------
-// Parámetro drywet: 0 = solo dry (original), 1 = solo wet (procesada)
-mixedL = mix(dryL, wetL, drywet);
-mixedR = mix(dryR, wetR, drywet);
+// Aplicar makeup gain ANTES del dry/wet para que solo afecte a la señal procesada
+wetWithMakeupL = wetL * outputMakeupLinear;
+wetWithMakeupR = wetR * outputMakeupLinear;
 
 // -----------------------------------------------------------------------------
-// OUTPUT MAKEUP GAIN
+// MEZCLA DRY/WET
 // -----------------------------------------------------------------------------
-finalWithMakeupL = mixedL * outputMakeupLinear;
-finalWithMakeupR = mixedR * outputMakeupLinear;
+// Parámetro drywet: 0 = solo dry (original), 1 = solo wet (procesada con makeup)
+mixedL = mix(dryL, wetWithMakeupL, drywet);
+mixedR = mix(dryR, wetWithMakeupR, drywet);
 
 // -----------------------------------------------------------------------------
 // DC BLOCKER FINAL
 // -----------------------------------------------------------------------------
-finalDcBlockedL = dcblock(finalWithMakeupL);
-finalDcBlockedR = dcblock(finalWithMakeupR);
+finalDcBlockedL = dcblock(mixedL);
+finalDcBlockedR = dcblock(mixedR);
 
 // -----------------------------------------------------------------------------
 // BYPASS
@@ -80,10 +74,3 @@ finalDcBlockedR = dcblock(finalWithMakeupR);
 // El bypass mezcla entre la señal original sin procesar y la señal procesada
 out1 = mix(dryL, finalDcBlockedL, bypass);
 out2 = mix(dryR, finalDcBlockedR, bypass);
-
-// -----------------------------------------------------------------------------
-// SALIDAS ADICIONALES
-// -----------------------------------------------------------------------------
-out3 = 0;        // Placeholder para mantener consistencia
-out4 = trimmedL;  // L post-trim para medidores
-out5 = trimmedR;  // R post-trim para medidores

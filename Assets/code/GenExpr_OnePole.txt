@@ -204,10 +204,8 @@ History hpfFreqHistory(0);
 History lpfFreqHistory(0);
 History scEnableHistory(0);
 
-// Historiales para el downsampler
-History dsCounter(0);
-History dsHeldL(0);
-History dsHeldR(0);
+// Historiales para el downsampler con phasor
+History dsPhasor(0);
 
 // Historiales para filtros Tilt
 History tiltL1(0), tiltL2(0), tiltL3(0), tiltL4(0);
@@ -411,19 +409,21 @@ bcR = dcblock(bitR);
 withBitCrusherL = mix(processedL, bcL, bitson);
 withBitCrusherR = mix(processedR, bcR, bitson);
 
-// Downsampling simple
-// Incrementar contador
-dsCounter = dsCounter + 1;
+// Downsampling con phasor y latch
+// Calcular frecuencia del decimador basada en el parámetro
+// Convertir el parámetro (0-99) a factor de decimación (1-100)
+deciFactor = hDownsample + 1;
+deciFreq = (samplerate * 0.5) / deciFactor;
 
-// Calcular cuántas muestras saltar (0 = ninguna, 99 = saltar 99)
-skipSamples = floor(hDownsample) + 1;
+// Generar phasor para el downsampling
+dsPhasor = phasor(deciFreq, 0);
 
-// Si es momento de tomar nueva muestra o no hay downsampling
-if (dsCounter >= skipSamples || hDownsample < 0.5) {
-    dsHeldL = withBitCrusherL;
-    dsHeldR = withBitCrusherR;
-    dsCounter = 0;
-}
+// Crear trigger cuando el phasor cruza 0.5
+dsTrigger = dsPhasor > 0.5;
+
+// Usar latch para mantener las muestras
+dsHeldL = latch(withBitCrusherL, dsTrigger);
+dsHeldR = latch(withBitCrusherR, dsTrigger);
 
 // Aplicar downsampling
 wetFinalL = mix(withBitCrusherL, dsHeldL, downsampleOn);

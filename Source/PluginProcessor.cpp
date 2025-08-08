@@ -192,7 +192,6 @@ void JCBDistortionAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
         const size_t maxWaveformSize = static_cast<size_t>(maxExpectedBufferSize);
         currentInputSamples.resize(maxWaveformSize);
         currentProcessedSamples.resize(maxWaveformSize);
-        // DISTORTION: currentGainReductionSamples eliminado - no hay gain reduction
     }
     
     // DISTORTION: Latencia mínima fija - no necesita lookahead variable
@@ -207,21 +206,16 @@ void JCBDistortionAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
     leftOutputRMS.store(-100.0f, std::memory_order_relaxed);
     rightOutputRMS.store(-100.0f, std::memory_order_relaxed);
     
-    // DISTORTION: gainReduction eliminado - no hay gain reduction
     
-    // DISTORTION: grMovingAverage eliminado - no hay gain reduction
     
-    // MAXIMIZER: No sidechain - removed leftSC/rightSC initialization
     // leftSC.store(-100.0f, std::memory_order_relaxed);
     // rightSC.store(-100.0f, std::memory_order_relaxed);
     
     // Configurar buffers auxiliares
-    // DISTORTION: grBuffer eliminado - no hay gain reduction
     
     trimInputBuffer.setSize(2, samplesPerBlock);
     trimInputBuffer.clear();
     
-    // MAXIMIZER: No sidechain - removed sidechainBuffer initialization
     // sidechainBuffer.setSize(getTotalNumInputChannels(), samplesPerBlock);
     // sidechainBuffer.clear();
     
@@ -244,9 +238,7 @@ void JCBDistortionAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
 void JCBDistortionAudioProcessor::releaseResources()
 {
     // Limpiar buffers auxiliares
-    // DISTORTION: grBuffer eliminado - no hay gain reduction
     trimInputBuffer.setSize(0, 0);
-    // MAXIMIZER: No sidechain - removed sidechainBuffer cleanup
     // sidechainBuffer.setSize(0, 0);
 }
 
@@ -287,8 +279,6 @@ void JCBDistortionAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer,
     // Actualizar medidores
     updateInputMeters(buffer);
     updateOutputMeters(buffer);
-    // DISTORTION: No requiere gain reduction meter - eliminado
-    // MAXIMIZER: No sidechain - removed updateSidechainMeters call
     
 }
 
@@ -328,7 +318,6 @@ void JCBDistortionAudioProcessor::fillGenInputBuffers(const juce::AudioBuffer<fl
     const auto mainInputChannels = getMainBusNumInputChannels();
     const int numSamples = buffer.getNumSamples();
     
-    // MAXIMIZER: Only 2 inputs (main L/R) - no sidechain inputs
     if (mainInputChannels > 1) {
         // Modo estéreo - fill main L/R inputs (inputs 0 and 1)
         for (int j = 0; j < numSamples; j++) {
@@ -460,10 +449,8 @@ void JCBDistortionAudioProcessor::updateOutputMeters(const juce::AudioBuffer<flo
     }
 }
 
-// DISTORTION: No requiere medidor de gain reduction - eliminado
 // Los distorsionadores no tienen reducción dinámica de ganancia
 
-// MAXIMIZER: No sidechain - removed entire updateSidechainMeters function
 /*
 void JCBDistortionAudioProcessor::updateSidechainMeters(const juce::AudioBuffer<float>& buffer)
 {
@@ -472,14 +459,12 @@ void JCBDistortionAudioProcessor::updateSidechainMeters(const juce::AudioBuffer<
     // Resetear flags de clipping sidechain para este buffer
     bool scClip[2] = {false, false};
     
-    // MAXIMIZER: No tiene sidechain externo, siempre usar silencio en medidores SC
     const bool extKeyActive = false;  // Maximizer no tiene external key
     
     // Si EXT KEY no está activo, mostrar silencio en los medidores
     if (!extKeyActive) {
         const auto valueSC = -100.0f;
         
-        // MAXIMIZER: No sidechain - leftSC/rightSC variables eliminadas según CONTEXTO.txt
         // leftSC.store(valueSC, std::memory_order_relaxed);
         // rightSC.store(valueSC, std::memory_order_relaxed);
         
@@ -531,7 +516,6 @@ void JCBDistortionAudioProcessor::updateSidechainMeters(const juce::AudioBuffer<
         const auto valueSCLeft = (peakValueSCLeft > -3.0f) ? peakValueSCLeft : displayValueSCLeft;
         const auto valueSCRight = (peakValueSCRight > -3.0f) ? peakValueSCRight : displayValueSCRight;
         
-        // MAXIMIZER: No sidechain - leftSC/rightSC variables eliminadas según CONTEXTO.txt
         // if (!isProTools()) {
         //     leftSC.store(valueSCLeft, std::memory_order_relaxed);
         //     rightSC.store(valueSCRight, std::memory_order_relaxed);
@@ -544,7 +528,6 @@ void JCBDistortionAudioProcessor::updateSidechainMeters(const juce::AudioBuffer<
         // Sidechain no disponible - mostrar silencio
         const auto valueSC = -100.0f;
         
-        // MAXIMIZER: No sidechain - leftSC/rightSC variables eliminadas según CONTEXTO.txt
         // leftSC.store(valueSC, std::memory_order_relaxed);
         // rightSC.store(valueSC, std::memory_order_relaxed);
     }
@@ -563,12 +546,10 @@ void JCBDistortionAudioProcessor::updateSidechainMeters(const juce::AudioBuffer<
 //==============================================================================
 juce::AudioProcessor::BusesProperties JCBDistortionAudioProcessor::createBusesProperties()
 {
-    // MAXIMIZER: Simple stereo I/O - no sidechain buses
     auto propBuses = juce::AudioProcessor::BusesProperties()
         .withOutput("Output", juce::AudioChannelSet::stereo(), true)
         .withInput("Input", juce::AudioChannelSet::stereo(), true);
     
-    // MAXIMIZER: No sidechain - removed sidechain bus configuration
     /*
     juce::PluginHostType daw;
     
@@ -608,7 +589,6 @@ bool JCBDistortionAudioProcessor::isBusesLayoutSupported(const juce::AudioProces
         return false;
 #endif
     
-    // MAXIMIZER: No sidechain - removed sidechain bus validation
     /*
     // Si hay bus de sidechain, verificar que sea válido
     if (layouts.inputBuses.size() > 1)
@@ -955,7 +935,6 @@ float JCBDistortionAudioProcessor::getRmsOutputValue(const int channel) const no
 // DISTORTION: No requiere función getGainReductionValue - eliminada
 // Los distorsionadores no tienen gain reduction
 
-// MAXIMIZER: No sidechain - removed getSCValue function
 /*
 float JCBDistortionAudioProcessor::getSCValue(const int channel) const noexcept
 {
@@ -1047,7 +1026,6 @@ void JCBDistortionAudioProcessor::captureOutputWaveformData(int numSamples)
     if (currentProcessedSamples.size() < static_cast<size_t>(numSamples)) {
         currentProcessedSamples.resize(juce::jmax(numSamples, 4096));
     }
-    // DISTORTION: currentGainReductionSamples eliminado - no hay gain reduction
     
     // Copiar salida procesada (promedio de canales principales L/R)
     for (int i = 0; i < numSamples; ++i)
@@ -1146,10 +1124,9 @@ void JCBDistortionAudioProcessor::setStateInformation(const void* data, int size
     if (tree.isValid()) {
         apvts.state = tree;
         
-        // Forzar parámetros momentáneos a OFF después de cargar (MAXIMIZER)
+        // Forzar parámetros momentáneos a OFF después de cargar
         apvts.getParameter("f_BYPASS")->setValueNotifyingHost(0.0f);
         // DISTORTION: Parámetros momentáneos validados y actualizados
-        // MAXIMIZER: No tiene m_SOLOSC
         
         // Clear undo history AFTER all values have been set
         // This prevents any parameter changes from being recorded in undo history
@@ -1279,7 +1256,6 @@ void JCBDistortionAudioProcessor::copyBtoA()
     stateA = stateB;
 }
 
-// isBeingAutomated() eliminado - ya no necesario con sistema undo simplificado
 
 //==============================================================================
 // MÉTODOS LEGACY
@@ -1468,7 +1444,6 @@ bool JCBDistortionAudioProcessor::getOutputClipDetected(const int channel) const
     return false;
 }
 
-// MAXIMIZER: No sidechain - removed getSidechainClipDetected function
 /*
 bool JCBDistortionAudioProcessor::getSidechainClipDetected(const int channel) const noexcept
 {
@@ -1485,7 +1460,6 @@ void JCBDistortionAudioProcessor::resetClipIndicators()
     for (int channel = 0; channel < 2; ++channel) {
         inputClipDetected[channel] = false;
         outputClipDetected[channel] = false;
-        // MAXIMIZER: No sidechain - removed sidechainClipDetected reset
         // sidechainClipDetected[channel] = false;
     }
 }
@@ -1495,7 +1469,6 @@ void JCBDistortionAudioProcessor::resetClipIndicators()
 
 //==============================================================================
 // Timer implementation
-// DISTORTION: No requiere timer AAX - eliminado
 // Los distorsionadores no tienen parámetros AAX de gain reduction
 
 //==============================================================================

@@ -37,10 +37,8 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
       spectrumAnalyzer(processor.apvts),          // Declarado segundo en .h
       inputMeterL([]() { return -100.0f; }),      // Safe dummy value for input meters  
       inputMeterR([]() { return -100.0f; }),      // Safe dummy value for input meters
-      // DISTORTION: grMeter eliminado - no hay gain reduction
       outputMeterL([]() { return -100.0f; }),     // Safe dummy value for output meters
       outputMeterR([]() { return -100.0f; })      // Safe dummy value for output meters
-      // MAXIMIZER: Medidores sidechain comentados (no tiene sidechain externo)
       // scMeterL([&p](){ return p.getSCValue(0); }), // SC meter L
       // scMeterR([&p](){ return p.getSCValue(1); }) // SC meter R
 {
@@ -48,7 +46,6 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     setupBackground();
     setupKnobs();
     setupMeters();
-    // MAXIMIZER: No tiene sidechain externo - comentado para evitar crash
     // setupSidechainControls();
     setupPresetArea();
     setupUtilityButtons();
@@ -135,13 +132,9 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     // DISTORTION: Transfer display no necesita inicialización con parámetros
     // Se usará solo para visualización de salida, no función de transferencia
 
-    // DISTORTION: Transfer display callbacks eliminados - no hay función de transferencia en distortion
     // Solo se usará para visualización de salida, sin controles interactivos
     
-    // Updates iniciales
-    updateTransferDisplay();
     
-    // DISTORTION: Transfer function listener eliminado - no hay función de transferencia interactiva
     // Solo se mantiene para visualización básica si es necesario en el futuro
     transferFunctionListener = std::make_unique<TransferFunctionParameterListener>(this);
     
@@ -180,7 +173,6 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     updateSidechainComponentStates();
     
     // Establecer estado inicial de SOLO SIDECHAIN en transfer display
-    // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
     
     // Restaurar estado del display mode desde parámetro guardado
     auto displayModeParam = processor.apvts.getRawParameterValue("p_DISPLAYMODE");
@@ -214,9 +206,7 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     }
     
     // Configurar estado inicial basado en el processor (solo para envolventes)
-    bool initialEnvelopeState = processor.getEnvelopeVisualEnabled();
     utilityButtons.runGraphicsButton.setToggleState(false, juce::dontSendNotification);
-    // DISTORTION: grMeter eliminado - no hay gain reduction
     
     // Actualizar valores de sliders desde APVTS para evitar problemas al cargar sesión
     // Usar MessageManager::callAsync para ejecución thread-safe sin delay
@@ -246,7 +236,6 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     // Esto evita accesos prematuros a valores atómicos del processor durante la construcción
     inputMeterL.setValueFunction([this](){ return processor.isInitialized() ? processor.getRmsInputValue(0) : -100.0f; });
     inputMeterR.setValueFunction([this](){ return processor.isInitialized() ? processor.getRmsInputValue(1) : -100.0f; });
-    // DISTORTION: grMeter eliminado - no hay gain reduction
     outputMeterL.setValueFunction([this](){ return processor.isInitialized() ? processor.getRmsOutputValue(0) : -100.0f; });
     outputMeterR.setValueFunction([this](){ return processor.isInitialized() ? processor.getRmsOutputValue(1) : -100.0f; });
     
@@ -319,9 +308,7 @@ void JCBDistortionAudioProcessorEditor::paintOverChildren (juce::Graphics& g)
     }
     
     
-    // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
     /*
-    // MAXIMIZER: No sidechain functionality - all sidechain display logic commented out
     // Texto SOLO SIDECHAIN con info de filtros (cuando está activo)
     // if (sidechainControls.soloScButton.getToggleState()) {
         // g.setColour(juce::Colours::transparentWhite.withAlpha(0.85f));
@@ -382,7 +369,6 @@ void JCBDistortionAudioProcessorEditor::resized()
     inputMeterR.setBounds(getScaledBounds(12, 42, 12, 117));
     
     // Meters de sidechain - ahora directamente adyacentes a los meters de entrada (sin gap)
-    // MAXIMIZER: Medidores sidechain comentados (no tiene sidechain externo)
     // scMeterL.setBounds(getScaledBounds(24, 42, 12, 117));
     // scMeterR.setBounds(getScaledBounds(34, 42, 12, 117));
     
@@ -390,11 +376,9 @@ void JCBDistortionAudioProcessorEditor::resized()
     trimSlider.setBounds(getScaledBounds(2, 40, 22, 130));  // Altura expandida para TextBox integrado
     
     // Sliders de trim de sidechain superpuestos a los medidores de sidechain
-    // MAXIMIZER: No sidechain trim - commenting out setBounds
     // scTrimSlider.setBounds(getScaledBounds(24, 40, 22, 130));  // Altura expandida para TextBox integrado
     
     // Medidor GR (centro-derecha) - más delgado y alto, posición final ajustada
-    // DISTORTION: grMeter eliminado - no hay gain reduction
     
     // Medidores de salida (lado derecho)
     outputMeterL.setBounds(getScaledBounds(677, 42, 12, 117));
@@ -423,22 +407,14 @@ void JCBDistortionAudioProcessorEditor::resized()
 
     
     // === LEFT SIDE KNOBS === (Between SC meters and transfer function)
-    // Top row - THD, CEILING (MAXIMIZER-specific parameters)
     leftBottomKnobs.drywetSlider.setBounds(getScaledBounds(24, 100, 53, 53));
     leftTopKnobs.ceilingSlider.setBounds(getScaledBounds(200, 50, 50, 50));  // NUEVO - e_CEILING slider
-    // MAXIMIZER: c_RATIO no existe - eliminado según CONTEXTO.txt
-    // MAXIMIZER: h_RANGE no existe - eliminado según CONTEXTO.txt
-    // MAXIMIZER: q_KNEE no existe - eliminado según CONTEXTO.txt
 
     // Bottom row - D/W, LA, CLIP (AGAIN está en fila superior)
-    // MAXIMIZER: o_DRYWET no existe - eliminado según CONTEXTO.txt
-    // MAXIMIZER: lookaheadSlider movido a rightTopControls
-    // MAXIMIZER: u_SOFTCLIP no existe - eliminado según CONTEXTO.txt
     
 
     // === RIGHT SIDE CONTROLS ===
     // Top row - REACT, SMOOTH knobs (RANGE moved to left side)
-    // MAXIMIZER: g_REACT y z_SMOOTH no existen - eliminados según CONTEXTO.txt
     
     // NUEVO: DET knob - área derecha superior
     rightTopControls.tiltSlider.setBounds(getScaledBounds(170, 100, 48, 48));
@@ -454,7 +430,6 @@ void JCBDistortionAudioProcessorEditor::resized()
 
     // Bottom row - Attack, Release, Hold
     rightBottomKnobs.driveSlider.setBounds(getScaledBounds(135, 47, 53, 53));
-    // MAXIMIZER: f_HOLD no existe - eliminado según CONTEXTO.txt
     rightBottomKnobs.modeSlider.setBounds(getScaledBounds(65, 50, 53, 53));
     
     // NUEVO: DC slider - área derecha inferior, junto al REL
@@ -464,12 +439,10 @@ void JCBDistortionAudioProcessorEditor::resized()
     // HPF and LPF sliders para filtrado de entrada
     sidechainControls.hpfSlider.setBounds(getScaledBounds(280, 5, 36, 36));
     sidechainControls.lpfSlider.setBounds(getScaledBounds(388, 5, 36, 36));
-    // Componentes no utilizados comentados para mantener compatibilidad
     // sidechainControls.hpfOrderButton.setBounds(getScaledBounds(265, 14, 24, 12));
     // sidechainControls.lpfOrderButton.setBounds(getScaledBounds(415, 14, 24, 12));
     
-    // Filter icons below the order buttons
-    // MAXIMIZER: No filter icons - commenting out setBounds
+    // Iconos de filtro debajo de los botones de orden
     // hpfIcon.setBounds(getScaledBounds(265, 28, 24, 12));  // Debajo del botón de orden HPF
     // lpfIcon.setBounds(getScaledBounds(415, 28, 24, 12));  // Debajo del botón de orden LPF
     
@@ -479,7 +452,6 @@ void JCBDistortionAudioProcessorEditor::resized()
     const int centerX = 353;
     // Posicionamiento del botón FILTERS (SC)
     sidechainControls.scButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 15, buttonWidth, 12));
-    // Componentes no utilizados comentados para mantener compatibilidad
     // sidechainControls.keyButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 17, buttonWidth, 12));
     // sidechainControls.soloScButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 29, buttonWidth, 12));
     
@@ -621,7 +593,6 @@ void JCBDistortionAudioProcessorEditor::timerCallback()
     // Usar sistema híbrido optimizado (timestamp + playhead + audio tail)
     bool isProcessingInactive = !processor.isPlaybackActive();
     
-    // Sistema original comentado en processBlock:
     // bool isProcessingInactive = processor.getIsLogicStopped();
     
     // Actualizar datos de waveform y obtener gain reduction para el medidor
@@ -665,8 +636,7 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     {
         if (parameterButtons.bypassButton.getToggleState()) {
             // BYPASS desactiva SOLO SC y DIAGRAM
-            // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
-            // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
+                    // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
             if (centerButtons.diagramButton.getToggleState()) {
                 centerButtons.diagramButton.setToggleState(false, juce::dontSendNotification);
                 hideDiagram(); // Cerrar DIAGRAM si está abierto
@@ -725,40 +695,35 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     {
         // Desactivar botones momentáneos antes de guardar
         parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
-        // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
-        // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
+            // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
         savePresetFile();
     }
     else if (button == &presetArea.saveAsButton)
     {
         // Desactivar botones momentáneos antes de guardar
         parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
-        // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
-        // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
+            // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
         saveAsPresetFile();
     }
     else if (button == &presetArea.deleteButton)
     {
         // Desactivar botones momentáneos antes de mostrar el diálogo
         parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
-        // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
-        // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
+            // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
         deletePresetFile();
     }
     else if (button == &presetArea.backButton)
     {
         // Desactivar botones momentáneos antes de cambiar preset
         parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
-        // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
-        // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
+            // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
         selectPreviousPreset();
     }
     else if (button == &presetArea.nextButton)
     {
         // Desactivar botones momentáneos antes de cambiar preset
         parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
-        // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
-        // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
+            // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
         selectNextPreset();
     }
     else if (button == &utilityButtons.tooltipToggleButton)
@@ -941,8 +906,7 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
         if (diagramWillBeActivated) {
             // DIAGRAM desactiva BYPASS y SOLO SC cuando se activa
             parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
-                // MAXIMIZER: Controles sidechain comentados (no tiene sidechain externo)
-            // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
+                        // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
         }
         
         // Ejecutar el alternado
@@ -1013,9 +977,7 @@ void JCBDistortionAudioProcessorEditor::handleParameterChange()
     }
     
     // Actualizar texto del botón EXT KEY dinámicamente basándose en el estado del parámetro "r_KEY"
-    // MAXIMIZER: No sidechain controls - commenting out key button text updates
     /*
-    // DISTORTION: r_KEY eliminado - parámetro inexistente
     // if (auto* keyParam = processor.apvts.getRawParameterValue("r_KEY")) {
         bool isExtKeyActive = keyParam->load() > 0.5f;
         if (isExtKeyActive) {
@@ -1172,7 +1134,6 @@ void JCBDistortionAudioProcessorEditor::setupKnobs()
         rightBottomKnobs.modeAttachment->onParameterChange = [this]() { handleParameterChange(); };
     }
 
-    // === NUEVOS CONTROLES MAXIMIZER ===
     
     // DITHER button - área izquierda
     rightBottomKnobs.bitButton.setComponentID("bitcrusher");
@@ -1280,25 +1241,14 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     } 
     // Tooltip actualizado via getTooltipText("dc") en updateAllTooltips()
 
-    // MAXIMIZER: f_HOLD no existe - eliminado según CONTEXTO.txt
 
-    // AR - botón con texto dinámico AR OFF/AR ON (removido - ya no existe)
     
     
     
-    // MAXIMIZER: h_RANGE no existe - eliminado según CONTEXTO.txt
     
-    // MAXIMIZER: z_SMOOTH no existe - eliminado según CONTEXTO.txt
     
-    // MAXIMIZER: g_REACT no existe - eliminado según CONTEXTO.txt
     
     // Conectar perillas al transfer display
-    leftBottomKnobs.drywetSlider.onValueChange = [this]() {
-        // THD ahora está en rango de dB (-60 a 0)
-        float thresholdDB = static_cast<float>(leftBottomKnobs.drywetSlider.getValue());
-        updateTransferDisplay();
-    };
-    // MAXIMIZER: c_RATIO, q_KNEE, h_RANGE callbacks eliminados - parámetros inexistentes según CONTEXTO.txt
     
     // === FILTROS DE ENTRADA ===
     // Slider HPF - copia EXACTA de ExpansorGate
@@ -1389,13 +1339,11 @@ void JCBDistortionAudioProcessorEditor::setupMeters()
     addAndMakeVisible(inputMeterL);
     addAndMakeVisible(inputMeterR);
     // Medidor GR
-    // DISTORTION: grMeter eliminado - no hay gain reduction
     
     // Medidores de salida
     addAndMakeVisible(outputMeterL);
     addAndMakeVisible(outputMeterR);
     
-    // MAXIMIZER: No sidechain meters - commenting out
     /*
     // Medidores de sidechain (siempre visibles)
     scMeterL.setVisible(true);
@@ -1428,17 +1376,14 @@ void JCBDistortionAudioProcessorEditor::setupMeters()
         makeupAttachment->onParameterChange = [this]() { handleParameterChange(); };
     }
 
-    // MAXIMIZER: No sidechain trim - commenting out entire scTrimSlider setup
     /*
     // Slider de trim de sidechain
     scTrimSlider.setComponentID("sctrim");
     addAndMakeVisible(scTrimSlider);
     
     // Establecer propiedades iniciales para el slider de trim de sidechain
-    // MAXIMIZER: No sidechain trim parameter - tooltip comentado
     // scTrimSlider.setTooltip(JUCE_UTF8("SC TRIM: ganancia de entrada del sidechain entre -12 y +12 dB.\nAjusta el nivel del sidechain externo.\nValor por defecto: 0 dB, se activa con EXT KEY"));
     
-    // MAXIMIZER: No sidechain trim parameter
     // Vincular slider de trim de sidechain al parámetro y_SCTRIM - ahora usando attachment thread-safe
     // if (auto* param = processor.apvts.getParameter("y_SCTRIM"))
     // {
@@ -1562,7 +1507,6 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
                 leftTopKnobs.ceilingSlider.setValue(realValue, juce::sendNotificationSync);
             }
-            // MAXIMIZER: c_RATIO no existe - comentado según CONTEXTO.txt
             /*
             if (auto* param = processor.apvts.getParameter("c_RATIO")) {
                 float defaultValue = param->getDefaultValue();
@@ -1617,7 +1561,6 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
                 makeupSlider.setValue(realValue, juce::sendNotificationSync);
             }
-            // MAXIMIZER: No sidechain controls - commenting out
             /*
             if (auto* param = processor.apvts.getParameter("j_HPF")) {
                 float defaultValue = param->getDefaultValue();
@@ -1625,7 +1568,6 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 sidechainControls.hpfSlider.setValue(realValue, juce::sendNotificationSync);
             }
             */
-            // MAXIMIZER: No sidechain controls - commenting out
             /*
             if (auto* param = processor.apvts.getParameter("k_LPF")) {
                 float defaultValue = param->getDefaultValue();
@@ -1633,7 +1575,6 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 sidechainControls.lpfSlider.setValue(realValue, juce::sendNotificationSync);
             }
             */
-            // MAXIMIZER: No sidechain controls - commenting out
             /*
             if (auto* param = processor.apvts.getParameter("l_SC")) {
                 float defaultValue = param->getDefaultValue();
@@ -1641,7 +1582,6 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 sidechainControls.scButton.setToggleState(toggleState, juce::sendNotificationSync);
             }
             */
-            // MAXIMIZER: No sidechain controls - commenting out
             /*
             if (auto* param = processor.apvts.getParameter("m_SOLOSC")) {
                 float defaultValue = param->getDefaultValue();
@@ -1649,21 +1589,18 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 sidechainControls.soloScButton.setToggleState(toggleState, juce::sendNotificationSync);
             }
             */
-            // DISTORTION: n_LOOKAHEAD eliminado - no existe en distorsionador
             // MAXIMIZER: o_DRYWET no existe - comentado según CONTEXTO.txt
             /*
             if (auto* param = processor.apvts.getParameter("o_DRYWET")) {
                 float defaultValue = param->getDefaultValue();
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
-                // MAXIMIZER: o_DRYWET no existe - eliminado según CONTEXTO.txt
-            }
+                        }
             */
             if (auto* param = processor.apvts.getParameter("f_BYPASS")) {
                 float defaultValue = param->getDefaultValue();
                 bool toggleState = defaultValue >= 0.5f;
                 parameterButtons.bypassButton.setToggleState(toggleState, juce::sendNotificationSync);
             }
-            // MAXIMIZER: No sidechain controls - commenting out
             /*
             if (auto* param = processor.apvts.getParameter("r_KEY")) {
                 float defaultValue = param->getDefaultValue();
@@ -1701,7 +1638,6 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
                 rightTopControls.downsampleSlider.setValue(realValue, juce::sendNotificationSync);
             }
-            // MAXIMIZER: No sidechain trim - commenting out
             /*
             if (auto* param = processor.apvts.getParameter("y_SCTRIM")) {
                 float defaultValue = param->getDefaultValue();
@@ -1764,9 +1700,8 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                         if (xmlState != nullptr && xmlState->hasTagName(processor.apvts.state.getType())) {
                             processor.apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
                             
-                            // Queue las actualizaciones de parámetros para botones momentáneos (MAXIMIZER)
+                            // Encolar actualizaciones de parámetros para botones momentáneos
                             queueParameterUpdate("h_BYPASS", 0.0f);
-                                            // MAXIMIZER: No tiene m_SOLOSC
                         }
                     }
                     break;
@@ -1784,7 +1719,7 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 if (xmlState != nullptr && xmlState->hasTagName(processor.apvts.state.getType())) {
                     processor.apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
                     
-                    // Queue actualizaciones de parámetros para botones momentáneos (MAXIMIZER)
+                    // Encolar actualizaciones de parámetros para botones momentáneos
                     queueParameterUpdate("h_BYPASS", 0.0f);
                             // MAXIMIZER: No tiene m_SOLOSC
                 }
@@ -1801,21 +1736,10 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
         updateSliderValues();
         
         // Actualizar la gráfica de transferencia con los valores actuales
-        // Es necesario obtener los valores directamente de los parámetros
-        // porque los sliders pueden no estar actualizados todavía
-        if (auto* thdParam = processor.apvts.getRawParameterValue("l_OUTPUT")) {
-        }
-        if (auto* ceilingParam = processor.apvts.getRawParameterValue("e_CEILING")) {
-        }
-        // MAXIMIZER: c_RATIO y q_KNEE no existen - eliminados según CONTEXTO.txt
-        updateTransferDisplay();
         
         // Borrar el historial de undos DESPUÉS de haber establecido todos los valores.
         // Esto previene que los cambios de parámetros se registren en el historial de undo
         undoManager.clearUndoHistory();
-        
-        // Asegurar que el transfer display se actualice después de limpiar el historial de undo
-        updateTransferDisplay();
         
         
         // Nota: el flag isLoadingPreset se resetea automáticamente por el destructor LoadingGuard
@@ -1859,7 +1783,7 @@ void JCBDistortionAudioProcessorEditor::setupUtilityButtons()
     utilityButtons.redoButton.setAlpha(0.3f);
     utilityButtons.redoButton.setEnabled(false);
     
-    // Reset GUI - estilo transparente
+    // Reiniciar GUI - estilo transparente
     utilityButtons.resetGuiButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
     utilityButtons.resetGuiButton.setColour(juce::TextButton::buttonOnColourId, DarkTheme::accent.withAlpha(0.3f));
     utilityButtons.resetGuiButton.setColour(juce::TextButton::textColourOffId, DarkTheme::textPrimary);
@@ -2022,7 +1946,6 @@ void JCBDistortionAudioProcessorEditor::setupBackground()
     bypassBackground = juce::ImageCache::getFromMemory(BinaryData::bypass_png, BinaryData::bypass_pngSize);
     diagramBackground = juce::ImageCache::getFromMemory(BinaryData::diagramaFondo_png, BinaryData::diagramaFondo_pngSize);
     
-    // MAXIMIZER: No filter icons - removed hpfOff.png and lpfOff.png assets
     
     // Establecer background inicial
     if (normalBackground.isValid())
@@ -2032,7 +1955,6 @@ void JCBDistortionAudioProcessorEditor::setupBackground()
         backgroundImage.toBack();
     }
     
-    // MAXIMIZER: No filter icons - removed icon setup code
 }
 
 //==============================================================================
@@ -2095,7 +2017,6 @@ void JCBDistortionAudioProcessorEditor::updateBackgroundState()
 
 void JCBDistortionAudioProcessorEditor::updateFilterButtonText()
 {
-    // MAXIMIZER: No sidechain controls - commenting out filter order updates
     /*
     // Actualizar texto del botón HPF Order
     if (auto* hpfParam = processor.apvts.getParameter("j_HPFORDER"))
@@ -2113,7 +2034,6 @@ void JCBDistortionAudioProcessorEditor::updateFilterButtonText()
     }
     */
     
-    // MAXIMIZER: No sidechain controls - commenting out filter order updates
     /*
     // Actualizar texto del botón LPF Order
     if (auto* lpfParam = processor.apvts.getParameter("k_LPFORDER"))
@@ -2144,22 +2064,18 @@ void JCBDistortionAudioProcessorEditor::updateMeterStates()
     // Si bypass está activo, no cambiar colores (mantener normales)
     // Si solo SC está activo, usar colores rojos
     bool soloMode = soloScActive && !bypassActive;
-    // MAXIMIZER: No sidechain meters - commenting out
     // scMeterL.setSoloScMode(soloMode);
     // scMeterR.setSoloScMode(soloMode);
-    // DISTORTION: grMeter eliminado - no hay gain reduction
     
     inputMeterL.setSoloScMode(soloMode);
     inputMeterR.setSoloScMode(soloMode);
     outputMeterL.setSoloScMode(soloMode);
     outputMeterR.setSoloScMode(soloMode);
-    // MAXIMIZER: No sidechain meters - commenting out
     // scMeterL.setSoloScMode(soloMode);
     // scMeterR.setSoloScMode(soloMode);
     
     // Ocultar gain reduction meter cuando SOLO SC está activo (no hay compresión activa)
     // NUEVO: También ocultar cuando BYPASS está activo
-    // DISTORTION: grMeter eliminado - no hay gain reduction
     
     // Actualizar gradiente de salida para modo bypass
     outputMeterL.setBypassMode(bypassActive);
@@ -2168,15 +2084,6 @@ void JCBDistortionAudioProcessorEditor::updateMeterStates()
     // CORRECCIÓN: Asegurar sincronización estado BYPASS al reabrir plugin
     // Esto resuelve el problema de la función de transferencia que reaparece incorrectamente
     distortionCurveDisplay.setBypassMode(bypassActive);
-}
-
-
-void JCBDistortionAudioProcessorEditor::updateTransferDisplay()
-{
-    // DISTORTION: Transfer display solo para visualización, sin función de transferencia
-    // No se actualiza desde parámetros porque no hay curva de transferencia interactiva
-    
-    // Solo actualizar la visualización básica si es necesario
 }
 
 void JCBDistortionAudioProcessorEditor::updateMeters()
@@ -2200,24 +2107,21 @@ void JCBDistortionAudioProcessorEditor::updateMeters()
                 // Ocultar medidores principales de entrada
                 inputMeterL.setVisible(false);
                 inputMeterR.setVisible(false);
-                // MAXIMIZER: No sidechain meters - commenting out
-                // Hacer visibles los medidores de sidechain
+                            // Hacer visibles los medidores de sidechain
                 // scMeterL.setVisible(true);
                 // scMeterR.setVisible(true);
             } else {
                 // Mostrar medidores principales de entrada en modo SOLO SC (sidechain interno)
                 inputMeterL.setVisible(true);
                 inputMeterR.setVisible(true);
-                // MAXIMIZER: No sidechain meters - commenting out
-                // scMeterL.setVisible(true);
+                            // scMeterL.setVisible(true);
                 // scMeterR.setVisible(true);
             }
         } else {
             // Modo normal - mostrar todos los medidores normalmente
             inputMeterL.setVisible(true);
             inputMeterR.setVisible(true);
-            // MAXIMIZER: No sidechain meters - commenting out
-            // scMeterL.setVisible(true);
+                    // scMeterL.setVisible(true);
             // scMeterR.setVisible(true);
         }
         
@@ -2234,7 +2138,6 @@ void JCBDistortionAudioProcessorEditor::updateMeters()
         inputMeterR.repaint();
     }
     
-    // MAXIMIZER: No sidechain meters - commenting out
     /*
     if (scMeterL.isVisible()) {
         scMeterL.updateLevel();
@@ -2244,7 +2147,6 @@ void JCBDistortionAudioProcessorEditor::updateMeters()
     }
     */
     
-    // MAXIMIZER: No sidechain meters - commenting out clip detection
     /*
     // Siempre actualizar detección de clip de sidechain
     scMeterL.setClipDetected(processor.getSidechainClipDetected(0));
@@ -2252,7 +2154,6 @@ void JCBDistortionAudioProcessorEditor::updateMeters()
     */
     
     // Siempre actualizar medidores de salida y reducción de ganancia
-    // DISTORTION: grMeter eliminado - no hay gain reduction
     
     outputMeterL.updateLevel();
     outputMeterR.updateLevel();
@@ -2274,11 +2175,10 @@ void JCBDistortionAudioProcessorEditor::updateSliderValues()
     if (auto* param = processor.apvts.getRawParameterValue("e_CEILING"))
         leftTopKnobs.ceilingSlider.setValue(param->load(), juce::dontSendNotification);
     
-    // MAXIMIZER: c_RATIO no existe - parámetro eliminado según CONTEXTO.txt
     // if (auto* param = processor.apvts.getRawParameterValue("c_RATIO"))
     //     leftTopKnobs.ratioSlider.setValue(param->load(), juce::dontSendNotification);
         
-    // MAXIMIZER: q_KNEE no existe - parámetro eliminado según CONTEXTO.txt  
+  
     // if (auto* param = processor.apvts.getRawParameterValue("q_KNEE"))
     //     leftTopKnobs.kneeSlider.setValue(param->load(), juce::dontSendNotification);
     
@@ -2311,7 +2211,6 @@ void JCBDistortionAudioProcessorEditor::updateSliderValues()
     // if (auto* param = processor.apvts.getRawParameterValue("z_SMOOTH"))
     //     rightTopControls.smoothSlider.setValue(param->load(), juce::dontSendNotification);
     
-    // MAXIMIZER: No sidechain controls - commenting out parameter loading
     /*
     // Controles de sidechain - Todos usan CustomSliderAttachment
     if (auto* param = processor.apvts.getRawParameterValue("j_HPF"))
@@ -2333,7 +2232,6 @@ void JCBDistortionAudioProcessorEditor::updateSliderValues()
         makeupSlider.setValue(makeupValue, juce::dontSendNotification);
     }
     
-    // MAXIMIZER: No sidechain trim - commenting out parameter loading
     /*
     // Slider de trim de sidechain
     if (auto* param = processor.apvts.getRawParameterValue("y_SCTRIM")) {
@@ -2530,7 +2428,7 @@ void JCBDistortionAudioProcessorEditor::savePresetFile()
                         }
                     }
                 }
-                } else if (result == 2) { // Save As...
+                } else if (result == 2) { // Guardar como...
                     saveAsPresetFile();
                 }
                 // result == 3 is Cancel, do nothing
@@ -2791,7 +2689,6 @@ void JCBDistortionAudioProcessorEditor::showCredits()
 {
     // Desactivar estados operacionales antes de mostrar créditos (consistencia con DIAGRAM)
     parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
-    // MAXIMIZER: No sidechain controls - commenting out solo button reset
     // sidechainControls.soloScButton.setToggleState(false, juce::sendNotification);
     
     if (creditsOverlay == nullptr)
@@ -2824,7 +2721,7 @@ void JCBDistortionAudioProcessorEditor::hideCredits()
 //==============================================================================
 void JCBDistortionAudioProcessorEditor::updateTodoButtonTexts()
 {
-    // Update TODO button tooltips using getTooltipText() for consistency
+    // Actualizar tooltips de botones TODO usando getTooltipText() para consistencia
     utilityButtons.hqButton.setTooltip(getTooltipText("hq"));
     utilityButtons.dualMonoButton.setTooltip(getTooltipText("dualmono"));
     utilityButtons.msButton.setTooltip(getTooltipText("ms"));
@@ -2880,7 +2777,6 @@ void JCBDistortionAudioProcessorEditor::updateAllTooltips()
     // RESTAURADO: i_MAKEUP tooltip
     makeupSlider.setTooltip(getTooltipText("makeup"));
     
-    // MAXIMIZER: No sidechain trim - commenting out tooltip
     // Sliders de trim de sidechain
     // scTrimSlider.setTooltip(getTooltipText("sctrim"));
     
@@ -2888,7 +2784,6 @@ void JCBDistortionAudioProcessorEditor::updateAllTooltips()
     sidechainControls.scButton.setTooltip(getTooltipText("sc"));
     sidechainControls.hpfSlider.setTooltip(getTooltipText("hpf"));
     sidechainControls.lpfSlider.setTooltip(getTooltipText("lpf"));
-    // Componentes no utilizados comentados para mantener compatibilidad
     // sidechainControls.keyButton.setTooltip(getTooltipText("extkey"));
     // sidechainControls.soloScButton.setTooltip(getTooltipText("solosc"));
     
@@ -2913,7 +2808,7 @@ void JCBDistortionAudioProcessorEditor::updateAllTooltips()
     parameterButtons.bypassButton.setTooltip(getTooltipText("bypass"));
 
     
-    // Update TODO button tooltips
+    // Actualizar tooltips de botones TODO
     updateTodoButtonTexts();
     
     
@@ -3035,19 +2930,15 @@ void JCBDistortionAudioProcessorEditor::applyAlphaToMainControls(float alpha)
     // Main knobs
     leftBottomKnobs.drywetSlider.setAlpha(alpha);
     leftTopKnobs.ceilingSlider.setAlpha(alpha);  // NUEVO - alpha para e_CEILING
-    // MAXIMIZER: c_RATIO y q_KNEE no existen - eliminados según CONTEXTO.txt
     
-    // MAXIMIZER: o_DRYWET y u_SOFTCLIP no existen - eliminados según CONTEXTO.txt
     rightTopControls.bitsSlider.setAlpha(alpha);
     rightBottomKnobs.bitButton.setAlpha(alpha);  // NUEVO - alpha para DITHER button
     
-    // MAXIMIZER: h_RANGE, g_REACT y z_SMOOTH no existen - eliminados según CONTEXTO.txt
     rightTopControls.tiltSlider.setAlpha(alpha);  // NUEVO - alpha para DET knob
     
     rightBottomKnobs.driveSlider.setAlpha(alpha);
     rightBottomKnobs.modeSlider.setAlpha(alpha);
     rightBottomKnobs.dcSlider.setAlpha(alpha);  // NUEVO - alpha para DC slider
-    // MAXIMIZER: f_HOLD no existe - eliminado según CONTEXTO.txt
     // speedButton removed
     
     // Transfer display
@@ -3056,7 +2947,6 @@ void JCBDistortionAudioProcessorEditor::applyAlphaToMainControls(float alpha)
     
     // Trim and makeup sliders
     trimSlider.setAlpha(alpha);
-    // MAXIMIZER: i_MAKEUP no existe - eliminado según CONTEXTO.txt
 }
 
 
@@ -3313,14 +3203,11 @@ int JCBDistortionAudioProcessorEditor::getControlParameterIndex(juce::Component&
     // Perillas Inferiores Derechas (attack, release, hold)
     else if (&control == &rightBottomKnobs.driveSlider) parameterID = "b_DRIVE";
     else if (&control == &rightBottomKnobs.modeSlider) parameterID = "d_MODE";
-    // MAXIMIZER: No tiene holdSlider
     // else if (&control == &rightBottomKnobs.holdSlider) parameterID = "f_HOLD";
-    // speedButton removido - parámetro t_AUTORELEASESPEED ya no existe
     
     // Controles de filtro de entrada
     else if (&control == &sidechainControls.hpfSlider) parameterID = "j_HPF";
     else if (&control == &sidechainControls.lpfSlider) parameterID = "k_LPF";
-    // Componentes no utilizados comentados para mantener compatibilidad
     // else if (&control == &sidechainControls.keyButton) parameterID = "r_KEY";
     
     // Sliders de Trim
@@ -3333,7 +3220,6 @@ int JCBDistortionAudioProcessorEditor::getControlParameterIndex(juce::Component&
     
     // Parámetros no automatizables (retornar -1)
     // Estos son parámetros globales/utility que no deberían mostrar carriles de automatización
-    // MAXIMIZER: soloScButton comentado (no existe)
     // else if (&control == &sidechainControls.soloScButton) return -1;  // m_SOLOSC (no automatizable)
     else if (&control == &rightBottomKnobs.bitButton) return -1;      // g_DITHER (no automatizable)
     else if (&control == &rightBottomKnobs.dcSlider) parameterID = "c_DC";  // c_DC (continuo 0-1)
@@ -3360,7 +3246,6 @@ void JCBDistortionAudioProcessorEditor::applyMeterDecayIfNeeded()
 
 void JCBDistortionAudioProcessorEditor::updateARButtonText()
 {
-    // MAXIMIZER: Esta función ya no es necesaria - se puede dejar vacía para compatibilidad
     // En el original ExpansorGate manejaba el texto dinámico AR OFF/AR ON
     // El Maximizer tiene AUTOREL como botón toggle separado
 }

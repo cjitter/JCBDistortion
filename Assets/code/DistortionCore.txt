@@ -18,8 +18,8 @@
 
 // MODO 0 - Soft Clipping
 softclip(inl, inr, dr, dc, cell) {
-    lWithDC = inl + (dc * 0.05);
-    rWithDC = inr + (dc * 0.05);
+    lWithDC = inl + (dc * 0.01);
+    rWithDC = inr + (dc * 0.01);
     
     lNorm = (lWithDC * dr) / cell;
     rNorm = (rWithDC * dr) / cell;
@@ -38,8 +38,8 @@ softclip(inl, inr, dr, dc, cell) {
 
 // MODO 1 - Sigmoid
 sigmoid(inl, inr, dr, dc, cell) {
-    lWithDC = inl + (dc * 0.05);
-    rWithDC = inr + (dc * 0.05);
+    lWithDC = inl + (dc * 0.01);
+    rWithDC = inr + (dc * 0.01);
     
     factor = (-1) * dr;
     l = (2 * (1 / (1 + exp(factor * lWithDC)))) - 1;
@@ -53,8 +53,8 @@ sigmoid(inl, inr, dr, dc, cell) {
 
 // MODO 2 - Rectificador Full Wave
 rectF(inl, inr, dr, dc, cell) {
-    lWithDC = inl + (dc * 0.05);
-    rWithDC = inr + (dc * 0.05);
+    lWithDC = inl + (dc * 0.01);
+    rWithDC = inr + (dc * 0.01);
     
     l = sign(lWithDC) * abs(lWithDC * dr) * 0.707;
     r = sign(rWithDC) * abs(rWithDC * dr) * 0.707;
@@ -65,8 +65,8 @@ rectF(inl, inr, dr, dc, cell) {
 
 // MODO 3 - Fuzz Exponencial
 fuzzExp1(inl, inr, dr, dc, cell) {
-    lWithDC = inl + (dc * 0.05);
-    rWithDC = inr + (dc * 0.05);
+    lWithDC = inl + (dc * 0.01);
+    rWithDC = inr + (dc * 0.01);
     
     signl = sign(lWithDC);
     signr = sign(rWithDC);
@@ -84,8 +84,8 @@ fuzzExp1(inl, inr, dr, dc, cell) {
 
 // MODO 4 - Tangente Hiperbólica
 tangenteHiperbolica(inl, inr, dr, dc, cell) {
-    lWithDC = inl + (dc * 0.05);
-    rWithDC = inr + (dc * 0.05);
+    lWithDC = inl + (dc * 0.01);
+    rWithDC = inr + (dc * 0.01);
     
     l = clip(lWithDC * dr, -cell, cell);
     r = clip(rWithDC * dr, -cell, cell);
@@ -96,8 +96,8 @@ tangenteHiperbolica(inl, inr, dr, dc, cell) {
 
 // MODO 5 - Rectificador Half Wave
 rectH(inl, inr, dr, dc, cell) {
-    lWithDC = inl + (dc * 0.05);
-    rWithDC = inr + (dc * 0.05);
+    lWithDC = inl + (dc * 0.01);
+    rWithDC = inr + (dc * 0.01);
     
     lPositive = max(lWithDC, 0);
     rPositive = max(rWithDC, 0);
@@ -108,8 +108,8 @@ rectH(inl, inr, dr, dc, cell) {
 
 // MODO 6 - Arctangente
 arctangent(inl, inr, dr, dc, cell) {
-    lWithDC = inl + (dc * 0.05);
-    rWithDC = inr + (dc * 0.05);
+    lWithDC = inl + (dc * 0.01);
+    rWithDC = inr + (dc * 0.01);
     
     lScaled = lWithDC * dr * 2;
     rScaled = rWithDC * dr * 2;
@@ -125,8 +125,8 @@ arctangent(inl, inr, dr, dc, cell) {
 
 // MODO 7 - Hard Clip
 hardClip(inl, inr, dr, dc, cell) {
-    lWithDC = inl + (dc * 0.05);
-    rWithDC = inr + (dc * 0.05);
+    lWithDC = inl + (dc * 0.01);
+    rWithDC = inr + (dc * 0.01);
     
     lDriven = lWithDC * dr;
     rDriven = rWithDC * dr;
