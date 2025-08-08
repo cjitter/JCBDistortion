@@ -781,12 +781,6 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
    params.push_back(std::move(downsample));     // m_DOWNSAMPLE
    params.push_back(std::move(downsampleOn));  // n_DOWNSAMPLEON
 
-   // p_DISPLAYMODE @min 0 @max 1 @default 0 (Display Mode: 0=Curves, 1=FFT)
-   auto displayMode = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("p_DISPLAYMODE", versionHint),
-                                                                juce::CharPointer_UTF8("Display Mode"),
-                                                                0, 1, 0);
-   params.push_back(std::move(displayMode));  // p_DISPLAYMODE
-
    // DISTORTION: No requiere parámetros especiales AAX de gain reduction
 
    return { params.begin(), params.end() };
@@ -1096,6 +1090,9 @@ void JCBDistortionAudioProcessor::getStateInformation(juce::MemoryBlock& destDat
     preset.setProperty("editorWidth", editorSize.x, nullptr);
     preset.setProperty("editorHeight", editorSize.y, nullptr);
     
+    // Guardar estado del modo de visualización (no automatizable)
+    preset.setProperty("displayModeIsFFT", displayModeIsFFT, nullptr);
+    
     // Save A/B states
     auto abNode = stateCopy.getOrCreateChildWithName("ABStates", nullptr);
     abNode.setProperty("isStateA", isStateA, nullptr);
@@ -1145,6 +1142,9 @@ void JCBDistortionAudioProcessor::setStateInformation(const void* data, int size
             int savedWidth = preset.getProperty("editorWidth", 1250);
             int savedHeight = preset.getProperty("editorHeight", 350);
             editorSize = {savedWidth, savedHeight};
+            
+            // Restaurar estado del modo de visualización (no automatizable)
+            displayModeIsFFT = preset.getProperty("displayModeIsFFT", false);
         }
         
         // Restore A/B states

@@ -174,11 +174,10 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     
     // Establecer estado inicial de SOLO SIDECHAIN en transfer display
     
-    // Restaurar estado del display mode desde parámetro guardado
-    auto displayModeParam = processor.apvts.getRawParameterValue("p_DISPLAYMODE");
-    if (displayModeParam != nullptr && *displayModeParam > 0.5f)
+    // Restaurar estado del display mode desde el procesador (no es parámetro automatizable)
+    if (processor.displayModeIsFFT)
     {
-        // Estado guardado es FFT (1)
+        // Estado guardado es FFT
         currentDisplayMode = DisplayMode::FFT;
         
         distortionCurveDisplay.setVisible(false);
@@ -1188,7 +1187,21 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     rightTopControls.downsampleSlider.setPopupDisplayEnabled(false, false, this);
     // IMPORTANTE: Configurar formatter ANTES de setValue para evitar bug de inicialización
     rightTopControls.downsampleSlider.textFromValueFunction = [](double value) {
-        return juce::String(static_cast<int>(value)) + " %";
+        // Mapear 0-99 a 0-100 para display
+        int displayValue = (value == 99) ? 100 : static_cast<int>((value * 100.0) / 99.0 + 0.5);
+        return juce::String(displayValue) + " %";
+    };
+    rightTopControls.downsampleSlider.valueFromTextFunction = [](const juce::String& text) {
+        auto trimmed = text.trim();
+        // Eliminar símbolo de porcentaje si existe
+        if (trimmed.endsWith("%"))
+            trimmed = trimmed.dropLastCharacters(1).trim();
+        
+        // Mapear 0-100 ingresado a 0-99 interno
+        auto percentage = trimmed.getDoubleValue();
+        if (percentage >= 100.0)
+            return 99.0;
+        return juce::jlimit(0.0, 99.0, (percentage * 99.0) / 100.0);
     };
     rightTopControls.downsampleSlider.setValue(0.0);  // Default 0 (sin downsampling) - ahora con formatter activo
     addAndMakeVisible(rightTopControls.downsampleSlider);
@@ -2837,7 +2850,7 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "bitcrusher") return JUCE_UTF8("BIT CRUSHER: activa la cuantización digital\nReduce la resolución de bits para distorsión digital\nRango: OFF/ON | Por defecto: OFF");
         if (key == "bits") return JUCE_UTF8("BITS: resolución del bit crusher\nControla la cuantización digital de bits\nRango: 3 a 16 bits | Por defecto: 16 bits");
         if (key == "even") return JUCE_UTF8("EVEN: asimetría DC para armónicos pares\nAñade componente continua para generar armónicos pares\nRango: 0 a 1 | Por defecto: 0");
-        if (key == "downsample") return JUCE_UTF8("DECI: factor de decimación\nReduce el sample rate para distorsión aliasing\nRango: 0 a 99% | Por defecto: 0%");
+        if (key == "downsample") return JUCE_UTF8("DECI: factor de decimación\nReduce el sample rate para distorsión aliasing\nRango: 0 a 100% | Por defecto: 0%");
         if (key == "downsampleon") return JUCE_UTF8("DOWNSAMPLE: activa la decimación\nActiva el efecto de reducción de sample rate\nRango: OFF/ON | Por defecto: OFF");
         if (key == "mode") return JUCE_UTF8("MODE: algoritmo de distorsión\n8 tipos diferentes: Soft Clip, Sigmoid, Rectifier, etc.\nRango: 1 a 8 (mostrado) | Por defecto: 1");
         if (key == "trim") return JUCE_UTF8("TRIM: ganancia de entrada al distorsionador\nAjusta el nivel antes del procesamiento\nRango: -12 a +12 dB | Por defecto: 0 dB");
@@ -2883,7 +2896,7 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "bitcrusher") return "BIT CRUSHER: enables digital quantization\nReduces bit resolution for digital distortion\nRange: OFF/ON | Default: OFF";
         if (key == "bits") return "BITS: bit crusher resolution\nControls digital bit quantization\nRange: 3 to 16 bits | Default: 16 bits";
         if (key == "even") return "EVEN: DC asymmetry for even harmonics\nAdds DC component to generate even harmonics\nRange: 0 to 1 | Default: 0";
-        if (key == "downsample") return "DECI: decimation factor\nReduces sample rate for aliasing distortion\nRange: 0 to 99% | Default: 0%";
+        if (key == "downsample") return "DECI: decimation factor\nReduces sample rate for aliasing distortion\nRange: 0 to 100% | Default: 0%";
         if (key == "downsampleon") return "DOWNSAMPLE: enables decimation\nActivates sample rate reduction effect\nRange: OFF/ON | Default: OFF";
         if (key == "mode") return "MODE: distortion algorithm\n8 different types: Soft Clip, Sigmoid, Rectifier, etc.\nRange: 1 to 8 (displayed) | Default: 1";
         if (key == "trim") return "TRIM: distortion input gain\nAdjusts level before processing\nRange: -12 to +12 dB | Default: 0 dB";
@@ -3281,12 +3294,8 @@ void JCBDistortionAudioProcessorEditor::toggleDisplayMode()
     {
         currentDisplayMode = DisplayMode::FFT;
         
-        // Guardar estado en parámetro para persistencia
-        auto displayModeParam = processor.apvts.getParameter("p_DISPLAYMODE");
-        if (displayModeParam != nullptr)
-        {
-            displayModeParam->setValueNotifyingHost(1.0f);  // 1 = FFT
-        }
+        // Guardar estado en el procesador para persistencia (no automatizable)
+        processor.displayModeIsFFT = true;
         
         // Activar modo FFT Spectrum Analyzer
         distortionCurveDisplay.setVisible(false);
@@ -3307,12 +3316,8 @@ void JCBDistortionAudioProcessorEditor::toggleDisplayMode()
     {
         currentDisplayMode = DisplayMode::Curves;
         
-        // Guardar estado en parámetro para persistencia
-        auto displayModeParam = processor.apvts.getParameter("p_DISPLAYMODE");
-        if (displayModeParam != nullptr)
-        {
-            displayModeParam->setValueNotifyingHost(0.0f);  // 0 = CURVES
-        }
+        // Guardar estado en el procesador para persistencia (no automatizable)
+        processor.displayModeIsFFT = false;
         
         // Visibilidad de componentes
         distortionCurveDisplay.setVisible(true);
