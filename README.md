@@ -61,18 +61,24 @@ cmake --build build-release   # Para Release
 
 ## Características principales
 
-- **Distorsionador multietapa con 8 modos seleccionables**, que abarcan desde saturaciones suaves hasta distorsión extrema digital.
-- **Control de ganancia de entrada (DRIVE)** de 1 a 50, para modular el grado de distorsión.
-- **Distorsión asimétrica (EVEN)** con control de offset DC para simetría armónica variable.
-- **Bit Crusher y Downsampler** con controles independientes de profundidad de bits (BIT) y decimación (DECI), y activadores dedicados.
-- **Filtro Tilt** para balance espectral previo a la distorsión.
-- **Control de techo (CEIL)** y trimeo de salida (TRIM) para ajustar el rango dinámico resultante.
-- **Control Dry/Wet** post-procesamiento para mezclar señal limpia y distorsionada.
-- **Bypass verdadero** mediante botón dedicado.
-- **Visualización gráfica** y controles agrupados por bloques funcionales.
-- **Procesamiento estéreo fijo** con parámetros compartidos entre canales.
-- **Tooltips bilingües** conmutables (Español/Inglés).
-- **Visualización del diagrama de bloques** y acceso al código GenExpr para estudio técnico.
+- **Distorsionador multimodal con 8 algoritmos seleccionables** (MODE 0-7): Soft Clipping, Sigmoid, Full/Half Wave Rectifier, Fuzz Exponential, Hyperbolic Tangent, Arctangent, Hard Clip
+- **Control de ganancia de entrada (DRIVE)** de 1 a 50x para modular la intensidad de distorsión
+- **Control de asimetría DC (EVEN)** de 0 a 1 para generar armónicos pares mediante offset DC variable
+- **Bit Crusher configurable** de 3 a 16 bits con activador independiente (BIT CRUSHER)
+- **Downsampler/Decimador** de 0 a 100% con activador dedicado (DOWNSAMPLE)
+- **Filtros HPF/LPF** configurables (20Hz-20kHz) con botón activador (FILTERS)
+- **Filtro Tilt** de ±6dB para balance espectral pre-distorsión
+- **Control de techo (CEILING)** de -20 a +6 dB para limitar la salida
+- **Trim de salida** de ±12dB para ajuste fino del nivel
+- **Control Dry/Wet** (0-100%) para mezcla paralela post-procesamiento
+- **Bypass verdadero** con botón dedicado
+- **Analizador de espectro FFT profesional** 2048-point con toggle FFT/CURVES
+- **Visualizador de curvas de distorsión** en tiempo real con respuesta dinámica
+- **Medidores de entrada/salida** con gradiente visual RMS/Peak
+- **5 Factory Presets** integrados (Ali, BrightLight, Midy, PlusSixAll, Spark)
+- **Procesamiento estéreo completo** con parámetros unificados
+- **Tooltips bilingües** conmutables (Español/Inglés)
+- **Diagrama de bloques interactivo** con acceso al código GenExpr para estudio técnico
 
 ![Diagrama de Bloques](Assets/screenshotDiagram.png)
 
@@ -81,7 +87,6 @@ cmake --build build-release   # Para Release
 ### Bibliografía técnica
 - [Graham Wakefield & Gregory Taylor - *Generating Sound and Organizing Time*](https://cycling74.com/books/go)
 - [Will C. Pirkle - *Designing Audio Effect Plugins in C++*](https://www.willpirkle.com)
-- [Vadim Zavalishin - *The Art of VA Filter Design*](https://www.native-instruments.com/fileadmin/ni_media/downloads/pdf/VAFilterDesign_1.1.1.pdf)
 - [Matthijs Hollemans - *The Complete Beginner's Guide to Audio Plug-in Development*](https://www.theaudioprogrammer.com/books/beginners-plugin-book)
 
 ## Testing con pluginval
