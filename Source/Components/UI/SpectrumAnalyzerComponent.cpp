@@ -1,8 +1,7 @@
 #include "SpectrumAnalyzerComponent.h"
 
 SpectrumAnalyzerComponent::SpectrumAnalyzerComponent(juce::AudioProcessorValueTreeState& apvts)
-    : valueTreeState(apvts),
-      forwardFFT(fftOrder),
+    : forwardFFT(fftOrder),
       window(fftSize, juce::dsp::WindowingFunction<float>::hann)
 {
     // Inicializar buffers (diseño lock-free)

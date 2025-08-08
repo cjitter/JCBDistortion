@@ -88,8 +88,6 @@ private:
     // Mutex para thread GUI (nunca usado en thread de audio)
     mutable std::mutex guiMutex;
     
-    // Referencia al value tree
-    juce::AudioProcessorValueTreeState& valueTreeState;
     
     // Métodos internos
     void parameterChanged(const juce::String& parameterID, float newValue) override;

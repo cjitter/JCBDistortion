@@ -427,7 +427,7 @@ void CreditsWindow::recalculateLinkBounds()
     float scaleFactor = getHeight() / 120.0f;
     float fontSize = 9.0f * scaleFactor;
     
-    juce::Font monoFont = juce::Font(juce::Font::getDefaultMonospacedFontName(), fontSize, juce::Font::plain);
+    juce::Font monoFont(juce::FontOptions(juce::Font::getDefaultMonospacedFontName(), fontSize, juce::Font::plain));
     int lineHeight = static_cast<int>(fontSize * 1.2f);
     
     int padding = static_cast<int>(10 * scaleFactor);

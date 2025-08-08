@@ -69,8 +69,8 @@ juce_add_plugin(JCBDistortion
         # Información básica del plugin
         PLUGIN_NAME "JCBDistortion"
         PRODUCT_NAME "JCBDistortion"
-        VERSION 0.9.1
-        DESCRIPTION "Stereo-linked maximizer with lookahead"
+        VERSION 0.9.0
+        DESCRIPTION "Stereo multimodal distortion plugin"
 
         # Información de la empresa
         COMPANY_NAME "Coeval"
