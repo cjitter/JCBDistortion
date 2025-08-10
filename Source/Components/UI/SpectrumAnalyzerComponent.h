@@ -89,6 +89,7 @@ private:
     std::atomic<float> crossoverHighFreq{5000.0f}; // Frecuencia XHigh (k_LPF)
     std::atomic<float> selectedBand{1.0f};         // Banda seleccionada (o_BAND: 0=low, 1=mid, 2=high)
     std::atomic<bool> filtersEnabled{false};       // Estado del botón FILTERS (l_SC)
+    std::atomic<float> tiltValue{0.0f};            // Valor del tilt EQ (-6 a +6 dB)
     
     // Flags de seguridad de threads (sin mutex en thread de audio)
     std::atomic<bool> scopeDataReady{false};

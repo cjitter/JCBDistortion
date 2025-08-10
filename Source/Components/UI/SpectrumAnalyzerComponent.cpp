@@ -18,6 +18,7 @@ SpectrumAnalyzerComponent::SpectrumAnalyzerComponent(juce::AudioProcessorValueTr
     apvts.addParameterListener("k_LPF", this);      // XHigh frequency
     apvts.addParameterListener("o_BAND", this);     // Band selector
     apvts.addParameterListener("l_SC", this);       // Filters enable
+    apvts.addParameterListener("i_TILT", this);     // Tilt EQ
     
     // Inicializar valores desde APVTS
     if (auto* param = apvts.getRawParameterValue("j_HPF"))
@@ -28,6 +29,8 @@ SpectrumAnalyzerComponent::SpectrumAnalyzerComponent(juce::AudioProcessorValueTr
         selectedBand.store(param->load());
     if (auto* param = apvts.getRawParameterValue("l_SC"))
         filtersEnabled.store(param->load() > 0.5f);
+    if (auto* param = apvts.getRawParameterValue("i_TILT"))
+        tiltValue.store(param->load());
     
     // Iniciar timer para actualizaciones de display (30 FPS estable)
     startTimerHz(30);
@@ -48,6 +51,7 @@ SpectrumAnalyzerComponent::~SpectrumAnalyzerComponent()
     valueTreeState.removeParameterListener("k_LPF", this);
     valueTreeState.removeParameterListener("o_BAND", this);
     valueTreeState.removeParameterListener("l_SC", this);
+    valueTreeState.removeParameterListener("i_TILT", this);
     
     // Pequeña demora para asegurar que callbacks de audio en curso terminen
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -407,6 +411,42 @@ void SpectrumAnalyzerComponent::drawFrame(juce::Graphics& g, const juce::Rectang
         g.fillRect(xHighPixel, 0.0f, (float)bounds.getWidth() - xHighPixel, (float)bounds.getHeight());
     }
     
+    // === VISUALIZACIÓN DEL TILT ===
+    // Dibujar gradiente de color según el valor del tilt
+    float tilt = tiltValue.load();
+    if (std::abs(tilt) > 0.1f)  // Solo si tilt es significativo
+    {
+        // Posición de 1kHz (centro del tilt)
+        auto x1k = mapFrequencyToX(1000.0f, bounds.getWidth());
+        
+        if (tilt > 0)  // Más agudos (azul/púrpura)
+        {
+            // Gradiente de transparente a azul-púrpura hacia la derecha
+            juce::ColourGradient tiltGradient(
+                juce::Colours::transparentBlack,
+                x1k, 0,
+                juce::Colour(0xFF2196F3).withAlpha(0.05f + 0.1f * std::abs(tilt) / 6.0f),
+                bounds.getWidth(), 0,
+                false
+            );
+            g.setGradientFill(tiltGradient);
+            g.fillRect(x1k, 0.0f, bounds.getWidth() - x1k, (float)bounds.getHeight());
+        }
+        else  // Más graves (rojo)
+        {
+            // Gradiente de rojo a transparente hacia la derecha
+            juce::ColourGradient tiltGradient(
+                juce::Colour(0xFFFF4444).withAlpha(0.05f + 0.1f * std::abs(tilt) / 6.0f),
+                0, 0,
+                juce::Colours::transparentBlack,
+                x1k, 0,
+                false
+            );
+            g.setGradientFill(tiltGradient);
+            g.fillRect(0.0f, 0.0f, x1k, (float)bounds.getHeight());
+        }
+    }
+    
     // Dibujar línea de espectro con codificación de color basada en frecuencia
     if (!bypassMode.load())
     {
@@ -576,7 +616,14 @@ void SpectrumAnalyzerComponent::drawFrame(juce::Graphics& g, const juce::Rectang
             y >= 12.0f && y <= bounds.getHeight() - 12.0f)
         {
             juce::String dbText = juce::String((int)ampDB);
-            int xOffset = dbText.length() <= 2 ? 18 : 22; // Menos offset para números cortos
+            int xOffset;
+            if (dbText.length() == 1) {
+                xOffset = 16;  // Para "0"
+            } else if (dbText == "-6") {
+                xOffset = 19;  // Ajuste especial para "-6"
+            } else {
+                xOffset = 22;  // Para "-12", "-24", etc.
+            }
             g.drawText(dbText, bounds.getRight() - xOffset, y - 6, 20, 12, juce::Justification::left);
         }
     }
@@ -584,8 +631,8 @@ void SpectrumAnalyzerComponent::drawFrame(juce::Graphics& g, const juce::Rectang
     // Etiquetas superior e inferior en el lado derecho
     juce::String topText = juce::String((int)currentMaxDB);
     juce::String bottomText = juce::String((int)currentMinDB);
-    int topOffset = topText.length() <= 2 ? 18 : 22;
-    int bottomOffset = bottomText.length() <= 2 ? 18 : 22;
+    int topOffset = (topText.length() == 1) ? 16 : (topText == "-6" ? 19 : 22);
+    int bottomOffset = (bottomText.length() == 1) ? 16 : (bottomText == "-6" ? 19 : 22);
     g.drawText(topText, bounds.getRight() - topOffset, bounds.getY() + 2, 20, 12, juce::Justification::left);
     g.drawText(bottomText, bounds.getRight() - bottomOffset, bounds.getBottom() - 25, 20, 12, juce::Justification::left);
     
@@ -676,6 +723,12 @@ void SpectrumAnalyzerComponent::parameterChanged(const juce::String& parameterID
     else if (parameterID == "l_SC")
     {
         filtersEnabled.store(newValue > 0.5f);
+        repaint();
+    }
+    // Actualizar valor del tilt
+    else if (parameterID == "i_TILT")
+    {
+        tiltValue.store(newValue);
         repaint();
     }
 }

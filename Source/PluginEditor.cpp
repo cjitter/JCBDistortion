@@ -466,7 +466,7 @@ void JCBDistortionAudioProcessorEditor::resized()
     // HPF and LPF sliders para filtrado de entrada con crossover
     sidechainControls.hpfSlider.setBounds(getScaledBounds(285, 5, 36, 36));
     sidechainControls.lpfSlider.setBounds(getScaledBounds(388, 5, 36, 36));
-    
+
     // BAND slider horizontal debajo del botón FILTERS
     const int bandCenterX = 353;  // Mismo centro que el botón FILTERS
     sidechainControls.bandSlider.setBounds(getScaledBounds(bandCenterX - 35, 24, 70, 10));  // Slider horizontal delgado, bajado 4px
