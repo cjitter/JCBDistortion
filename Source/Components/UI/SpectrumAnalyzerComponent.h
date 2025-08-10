@@ -26,6 +26,8 @@ public:
     void timerCallback() override;
     void mouseMove(const juce::MouseEvent& event) override;
     void mouseDown(const juce::MouseEvent& event) override;
+    void mouseDrag(const juce::MouseEvent& event) override;
+    void mouseUp(const juce::MouseEvent& event) override;
     void mouseDoubleClick(const juce::MouseEvent& event) override;
     
     // Interfaz TooltipClient
@@ -95,6 +97,15 @@ private:
     std::atomic<bool> scopeDataReady{false};
     std::atomic<bool> isDestroying{false};
     
+    // Variables para interacción con líneas de crossover
+    std::atomic<bool> isDraggingLowFreq{false};
+    std::atomic<bool> isDraggingHighFreq{false};
+    std::atomic<bool> isHoveringLowFreq{false};
+    std::atomic<bool> isHoveringHighFreq{false};
+    std::atomic<int> hoveringBandIndex{-1};  // -1=ninguna, 0=low, 1=mid, 2=high
+    float dragStartValue{0.0f};  // Para undo/redo
+    juce::RangedAudioParameter* currentDragParameter{nullptr};  // Parámetro siendo arrastrado
+    
     // Mutex para thread GUI (nunca usado en thread de audio)
     mutable std::mutex guiMutex;
     
@@ -103,6 +114,10 @@ private:
     void parameterChanged(const juce::String& parameterID, float newValue) override;
     void drawNextFrameOfSpectrum();
     void drawFrame(juce::Graphics& g, const juce::Rectangle<int>& bounds);
+    
+    // Helpers para líneas interactivas
+    float mapXToFrequency(float xPos, float width) const noexcept;
+    float mapFrequencyToX(float freq, float width) const noexcept;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(SpectrumAnalyzerComponent)
 };

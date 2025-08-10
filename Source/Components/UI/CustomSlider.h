@@ -87,7 +87,8 @@ public:
             juce::String id = slider.getComponentID().toLowerCase();
             
             // FILTROS (Blanco por defecto, pero verificar color custom)
-            if (name == "hpf" || id == "hpf" || name == "lpf" || id == "lpf") {
+            if (name == "hpf" || id == "hpf" || name == "xlow" || id == "xlow" || 
+                name == "lpf" || id == "lpf" || name == "xhigh" || id == "xhigh") {
                 // Verificar si se ha establecido un color custom vía setColour()
                 // Siempre usar el color establecido en el componente slider
                 accentColour = slider.findColour(juce::Slider::rotarySliderOutlineColourId);
@@ -178,7 +179,7 @@ public:
             // Dibujar arco de valor para knobs pequeños
             if (isSmall && slider.isEnabled())
             {
-                bool isLPF = (name == "lpf" || id == "lpf");
+                bool isLPF = (name == "lpf" || id == "lpf" || name == "xhigh" || id == "xhigh");
                 
                 if (isLPF) {
                     // LPF: Color desde posición actual hasta el FINAL (lógica invertida)
@@ -265,9 +266,9 @@ public:
             if (name == "release" || id == "release") return "REL";
             if (name == "hold" || id == "hold") return "HOLD";
             if (name == "react" || id == "react") return "REACT";
-            if (name == "hpf" || id == "hpf") return "XLow";  // Crossover Low
+            if (name == "hpf" || id == "hpf" || name == "xlow" || id == "xlow") return "XLow";  // Crossover Low
             if (name == "band" || id == "band") return "BAND";  // Crossover Band selector
-            if (name == "lpf" || id == "lpf") return "XHigh";  // Crossover High
+            if (name == "lpf" || id == "lpf" || name == "xhigh" || id == "xhigh") return "XHigh";  // Crossover High
             if (name == "thd" || id == "thd") return "GAIN";
             if (name == "ratio" || id == "ratio") return "RATIO";
             if (name == "range" || id == "range") return "RANGE";

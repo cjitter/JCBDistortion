@@ -336,28 +336,59 @@ void SpectrumAnalyzerComponent::paint(juce::Graphics& g)
     drawFrame(g, getLocalBounds());
 }
 
+// Helper function para mapeo de frecuencia a posición X (movida fuera de drawFrame para reutilización)
+float SpectrumAnalyzerComponent::mapFrequencyToX(float freq, float width) const noexcept
+{
+    const float log20 = std::log10(20.0f);
+    const float log250 = std::log10(250.0f);
+    const float log1k = std::log10(1000.0f);
+    const float log20k = std::log10(20000.0f);
+    
+    float position;
+    if (freq <= 250.0f) {
+        // Primer segmento: 20Hz-250Hz mapea a 0-0.25 (25%)
+        position = (std::log10(freq) - log20) / (log250 - log20) * 0.25f;
+    } else if (freq <= 1000.0f) {
+        // Segundo segmento: 250Hz-1kHz mapea a 0.25-0.5 (25%)
+        position = 0.25f + (std::log10(freq) - log250) / (log1k - log250) * 0.25f;
+    } else {
+        // Tercer segmento: 1kHz-20kHz mapea a 0.5-1.0 (50%)
+        position = 0.5f + (std::log10(freq) - log1k) / (log20k - log1k) * 0.5f;
+    }
+    return width * position;
+}
+
+// Helper function para mapeo inverso: posición X a frecuencia
+float SpectrumAnalyzerComponent::mapXToFrequency(float xPos, float width) const noexcept
+{
+    const float log20 = std::log10(20.0f);
+    const float log250 = std::log10(250.0f);
+    const float log1k = std::log10(1000.0f);
+    const float log20k = std::log10(20000.0f);
+    
+    float normalizedPos = xPos / width;
+    normalizedPos = juce::jlimit(0.0f, 1.0f, normalizedPos);
+    
+    float logFreq;
+    if (normalizedPos <= 0.25f) {
+        // Inverso del primer segmento: 0-0.25 mapea a 20Hz-250Hz
+        logFreq = log20 + (normalizedPos / 0.25f) * (log250 - log20);
+    } else if (normalizedPos <= 0.5f) {
+        // Inverso del segundo segmento: 0.25-0.5 mapea a 250Hz-1kHz
+        logFreq = log250 + ((normalizedPos - 0.25f) / 0.25f) * (log1k - log250);
+    } else {
+        // Inverso del tercer segmento: 0.5-1.0 mapea a 1kHz-20kHz
+        logFreq = log1k + ((normalizedPos - 0.5f) / 0.5f) * (log20k - log1k);
+    }
+    
+    return std::pow(10.0f, logFreq);
+}
+
 void SpectrumAnalyzerComponent::drawFrame(juce::Graphics& g, const juce::Rectangle<int>& bounds)
 {
-    // Helper functions para mapeo de 3 segmentos con mejor simetría visual
-    // Mantiene el rango 20Hz-20kHz, centra 1kHz al 50%, y posiciona 250Hz al 17.5%
-    auto mapFrequencyToX = [](float freq, float width) -> float {
-        const float log20 = std::log10(20.0f);
-        const float log250 = std::log10(250.0f);
-        const float log1k = std::log10(1000.0f);
-        const float log20k = std::log10(20000.0f);
-        
-        float position;
-        if (freq <= 250.0f) {
-            // Primer segmento: 20Hz-250Hz mapea a 0-0.25 (25%)
-            position = (std::log10(freq) - log20) / (log250 - log20) * 0.25f;
-        } else if (freq <= 1000.0f) {
-            // Segundo segmento: 250Hz-1kHz mapea a 0.25-0.5 (25%)
-            position = 0.25f + (std::log10(freq) - log250) / (log1k - log250) * 0.25f;
-        } else {
-            // Tercer segmento: 1kHz-20kHz mapea a 0.5-1.0 (50%)
-            position = 0.5f + (std::log10(freq) - log1k) / (log20k - log1k) * 0.5f;
-        }
-        return width * position;
+    // Helper lambda local que usa la función miembro
+    auto mapFrequencyToX = [this](float freq, float width) -> float {
+        return this->mapFrequencyToX(freq, width);
     };
     
     // Fondo oscuro
@@ -395,18 +426,28 @@ void SpectrumAnalyzerComponent::drawFrame(juce::Graphics& g, const juce::Rectang
             highGlow = bandValue - 1.0f;
         }
         
+        // Obtener banda en hover para brillo adicional
+        int hoveredBand = hoveringBandIndex.load();
+        const float hoverAlpha = 0.04f; // Alpha adicional para hover
+        
         // Banda Low (púrpura - graves)
-        juce::Colour lowColour = juce::Colour(0xFF9C27B0).withAlpha(baseAlpha + (lowGlow * glowAlpha));
+        float lowAlpha = baseAlpha + (lowGlow * glowAlpha);
+        if (hoveredBand == 0) lowAlpha += hoverAlpha; // Añadir brillo si está en hover
+        juce::Colour lowColour = juce::Colour(0xFF9C27B0).withAlpha(lowAlpha);
         g.setColour(lowColour);
         g.fillRect(0.0f, 0.0f, xLowPixel, (float)bounds.getHeight());
         
         // Banda Mid (intermedio púrpura-azul)
-        juce::Colour midColour = juce::Colour(0xFF9C27B0).interpolatedWith(juce::Colour(0xFF2196F3), 0.5f).withAlpha(baseAlpha + (midGlow * glowAlpha));
+        float midAlpha = baseAlpha + (midGlow * glowAlpha);
+        if (hoveredBand == 1) midAlpha += hoverAlpha; // Añadir brillo si está en hover
+        juce::Colour midColour = juce::Colour(0xFF9C27B0).interpolatedWith(juce::Colour(0xFF2196F3), 0.5f).withAlpha(midAlpha);
         g.setColour(midColour);
         g.fillRect(xLowPixel, 0.0f, xHighPixel - xLowPixel, (float)bounds.getHeight());
         
         // Banda High (azul - agudos)
-        juce::Colour highColour = juce::Colour(0xFF2196F3).withAlpha(baseAlpha + (highGlow * glowAlpha));
+        float highAlpha = baseAlpha + (highGlow * glowAlpha);
+        if (hoveredBand == 2) highAlpha += hoverAlpha; // Añadir brillo si está en hover
+        juce::Colour highColour = juce::Colour(0xFF2196F3).withAlpha(highAlpha);
         g.setColour(highColour);
         g.fillRect(xHighPixel, 0.0f, (float)bounds.getWidth() - xHighPixel, (float)bounds.getHeight());
     }
@@ -648,29 +689,73 @@ void SpectrumAnalyzerComponent::drawFrame(juce::Graphics& g, const juce::Rectang
         auto xLowPixel = mapFrequencyToX(xLowFreq, bounds.getWidth());
         auto xHighPixel = mapFrequencyToX(xHighFreq, bounds.getWidth());
         
-        // Dibujar líneas verticales punteadas
-        g.setColour(juce::Colours::white.withAlpha(0.4f));
+        // Obtener estados de interacción
+        bool hoveringLow = isHoveringLowFreq.load();
+        bool hoveringHigh = isHoveringHighFreq.load();
+        bool draggingLow = isDraggingLowFreq.load();
+        bool draggingHigh = isDraggingHighFreq.load();
+        
+        // Dibujar líneas verticales con highlighting
+        float dashPattern[] = {4.0f, 4.0f};
         
         // Línea XLow
-        float dashPattern[] = {4.0f, 4.0f};
-        g.drawDashedLine(juce::Line<float>(xLowPixel, 0, xLowPixel, bounds.getHeight()),
-                         dashPattern, 2, 1.0f);
+        if (draggingLow)
+        {
+            // Línea siendo arrastrada - más brillante y gruesa
+            g.setColour(juce::Colours::white.withAlpha(0.9f));
+            g.drawDashedLine(juce::Line<float>(xLowPixel, 0, xLowPixel, bounds.getHeight()),
+                            dashPattern, 2, 2.0f);
+        }
+        else if (hoveringLow)
+        {
+            // Línea con hover - moderadamente brillante
+            g.setColour(juce::Colours::white.withAlpha(0.7f));
+            g.drawDashedLine(juce::Line<float>(xLowPixel, 0, xLowPixel, bounds.getHeight()),
+                            dashPattern, 2, 1.5f);
+        }
+        else
+        {
+            // Línea normal
+            g.setColour(juce::Colours::white.withAlpha(0.4f));
+            g.drawDashedLine(juce::Line<float>(xLowPixel, 0, xLowPixel, bounds.getHeight()),
+                            dashPattern, 2, 1.0f);
+        }
         
         // Línea XHigh
-        g.drawDashedLine(juce::Line<float>(xHighPixel, 0, xHighPixel, bounds.getHeight()),
-                         dashPattern, 2, 1.0f);
+        if (draggingHigh)
+        {
+            // Línea siendo arrastrada - más brillante y gruesa
+            g.setColour(juce::Colours::white.withAlpha(0.9f));
+            g.drawDashedLine(juce::Line<float>(xHighPixel, 0, xHighPixel, bounds.getHeight()),
+                            dashPattern, 2, 2.0f);
+        }
+        else if (hoveringHigh)
+        {
+            // Línea con hover - moderadamente brillante
+            g.setColour(juce::Colours::white.withAlpha(0.7f));
+            g.drawDashedLine(juce::Line<float>(xHighPixel, 0, xHighPixel, bounds.getHeight()),
+                            dashPattern, 2, 1.5f);
+        }
+        else
+        {
+            // Línea normal
+            g.setColour(juce::Colours::white.withAlpha(0.4f));
+            g.drawDashedLine(juce::Line<float>(xHighPixel, 0, xHighPixel, bounds.getHeight()),
+                            dashPattern, 2, 1.0f);
+        }
         
         // Etiquetas de frecuencia en las líneas
         g.setFont(8.0f);
-        g.setColour(juce::Colours::white.withAlpha(0.7f));
         
-        // Etiqueta XLow
+        // Etiqueta XLow - más brillante si está activa
+        g.setColour(juce::Colours::white.withAlpha(draggingLow ? 0.9f : (hoveringLow ? 0.8f : 0.7f)));
         juce::String xLowText = xLowFreq < 1000.0f ? 
             juce::String((int)xLowFreq) + "Hz" : 
             juce::String(xLowFreq/1000.0f, 1) + "kHz";
         g.drawText(xLowText, xLowPixel - 20, 2, 40, 12, juce::Justification::centred);
         
-        // Etiqueta XHigh
+        // Etiqueta XHigh - más brillante si está activa
+        g.setColour(juce::Colours::white.withAlpha(draggingHigh ? 0.9f : (hoveringHigh ? 0.8f : 0.7f)));
         juce::String xHighText = xHighFreq < 1000.0f ? 
             juce::String((int)xHighFreq) + "Hz" : 
             juce::String(xHighFreq/1000.0f, 1) + "kHz";
@@ -735,20 +820,279 @@ void SpectrumAnalyzerComponent::parameterChanged(const juce::String& parameterID
 
 void SpectrumAnalyzerComponent::mouseMove(const juce::MouseEvent& event)
 {
+    if (filtersEnabled.load() && !isDraggingLowFreq.load() && !isDraggingHighFreq.load())
+    {
+        const float mouseX = event.position.x;
+        const float width = getWidth();
+        const float tolerance = 5.0f; // Misma tolerancia que en mouseDown
+        
+        // Obtener posiciones actuales de las líneas
+        float xLowFreq = crossoverLowFreq.load();
+        float xHighFreq = crossoverHighFreq.load();
+        float xLowPixel = mapFrequencyToX(xLowFreq, width);
+        float xHighPixel = mapFrequencyToX(xHighFreq, width);
+        
+        // Actualizar estado de hovering de líneas
+        bool wasHoveringLow = isHoveringLowFreq.load();
+        bool wasHoveringHigh = isHoveringHighFreq.load();
+        
+        bool nowHoveringLow = std::abs(mouseX - xLowPixel) <= tolerance;
+        bool nowHoveringHigh = std::abs(mouseX - xHighPixel) <= tolerance;
+        
+        isHoveringLowFreq.store(nowHoveringLow);
+        isHoveringHighFreq.store(nowHoveringHigh);
+        
+        // Detectar qué banda está bajo el cursor
+        int wasHoveringBand = hoveringBandIndex.load();
+        int nowHoveringBand = -1;
+        
+        // Solo detectar banda si no está sobre una línea
+        if (!nowHoveringLow && !nowHoveringHigh)
+        {
+            if (mouseX < xLowPixel)
+            {
+                nowHoveringBand = 0; // Banda Low
+            }
+            else if (mouseX < xHighPixel)
+            {
+                nowHoveringBand = 1; // Banda Mid
+            }
+            else
+            {
+                nowHoveringBand = 2; // Banda High
+            }
+        }
+        
+        hoveringBandIndex.store(nowHoveringBand);
+        
+        // Establecer cursor apropiado
+        if (nowHoveringLow || nowHoveringHigh)
+        {
+            // Cursor de redimensionar para líneas
+            setMouseCursor(juce::MouseCursor::LeftRightResizeCursor);
+        }
+        else if (nowHoveringBand >= 0)
+        {
+            // Cursor de mano para bandas clickeables
+            setMouseCursor(juce::MouseCursor::PointingHandCursor);
+        }
+        else
+        {
+            setMouseCursor(juce::MouseCursor::NormalCursor);
+        }
+        
+        // Repintar si cambió el estado de hovering (líneas o bandas)
+        if (wasHoveringLow != nowHoveringLow || 
+            wasHoveringHigh != nowHoveringHigh ||
+            wasHoveringBand != nowHoveringBand)
+        {
+            repaint();
+        }
+    }
+    else if (!filtersEnabled.load())
+    {
+        // Si los filtros no están activos, limpiar todos los estados de hovering
+        if (isHoveringLowFreq.load() || isHoveringHighFreq.load() || hoveringBandIndex.load() >= 0)
+        {
+            isHoveringLowFreq.store(false);
+            isHoveringHighFreq.store(false);
+            hoveringBandIndex.store(-1);
+            setMouseCursor(juce::MouseCursor::NormalCursor);
+            repaint();
+        }
+    }
+    
     // Tooltip es manejado por el método getTooltip()
 }
 
 void SpectrumAnalyzerComponent::mouseDown(const juce::MouseEvent& event)
 {
-    // Alternar escala de frecuencia al hacer clic
-    setFrequencyScale(currentScale == FrequencyScale::Linear ? 
-                     FrequencyScale::Logarithmic : 
-                     FrequencyScale::Linear);
+    // Solo permitir interacción con líneas si los filtros están activos
+    if (filtersEnabled.load())
+    {
+        const float clickX = event.position.x;
+        const float width = getWidth();
+        const float tolerance = 5.0f; // Tolerancia en pixels para detectar click en línea
+        
+        // Obtener posiciones actuales de las líneas
+        float xLowFreq = crossoverLowFreq.load();
+        float xHighFreq = crossoverHighFreq.load();
+        float xLowPixel = mapFrequencyToX(xLowFreq, width);
+        float xHighPixel = mapFrequencyToX(xHighFreq, width);
+        
+        // Verificar si el click está cerca de la línea XLow
+        if (std::abs(clickX - xLowPixel) <= tolerance)
+        {
+            // Iniciar arrastre de frecuencia baja
+            if (auto* param = valueTreeState.getParameter("j_HPF"))
+            {
+                isDraggingLowFreq.store(true);
+                currentDragParameter = param;
+                dragStartValue = param->getValue();
+                param->beginChangeGesture();
+                setMouseCursor(juce::MouseCursor::LeftRightResizeCursor);
+                return; // No procesar toggle de escala si estamos arrastrando
+            }
+        }
+        // Verificar si el click está cerca de la línea XHigh
+        else if (std::abs(clickX - xHighPixel) <= tolerance)
+        {
+            // Iniciar arrastre de frecuencia alta
+            if (auto* param = valueTreeState.getParameter("k_LPF"))
+            {
+                isDraggingHighFreq.store(true);
+                currentDragParameter = param;
+                dragStartValue = param->getValue();
+                param->beginChangeGesture();
+                setMouseCursor(juce::MouseCursor::LeftRightResizeCursor);
+                return; // No procesar toggle de escala si estamos arrastrando
+            }
+        }
+    }
+    
+    // Si no clickeó en línea, verificar click en banda para cambiar selector BAND
+    if (!isDraggingLowFreq.load() && !isDraggingHighFreq.load() && filtersEnabled.load())
+    {
+        const float clickX = event.position.x;
+        const float width = getWidth();
+        
+        // Obtener posiciones de las líneas para determinar zonas de banda
+        float xLowFreq = crossoverLowFreq.load();
+        float xHighFreq = crossoverHighFreq.load();
+        float xLowPixel = mapFrequencyToX(xLowFreq, width);
+        float xHighPixel = mapFrequencyToX(xHighFreq, width);
+        
+        // Determinar en qué banda se hizo click
+        int clickedBand = -1;
+        if (clickX < xLowPixel)
+        {
+            clickedBand = 0; // Banda Low
+        }
+        else if (clickX < xHighPixel)
+        {
+            clickedBand = 1; // Banda Mid
+        }
+        else
+        {
+            clickedBand = 2; // Banda High
+        }
+        
+        // Establecer el parámetro BAND
+        if (clickedBand >= 0)
+        {
+            if (auto* param = valueTreeState.getParameter("o_BAND"))
+            {
+                param->beginChangeGesture();
+                auto range = param->getNormalisableRange();
+                float normalizedValue = range.convertTo0to1(static_cast<float>(clickedBand));
+                param->setValueNotifyingHost(normalizedValue);
+                param->endChangeGesture();
+                return; // No procesar toggle de escala después de cambiar banda
+            }
+        }
+    }
+    
+    // Si no estamos interactuando con filtros, alternar escala de frecuencia
+    if (!isDraggingLowFreq.load() && !isDraggingHighFreq.load() && !filtersEnabled.load())
+    {
+        setFrequencyScale(currentScale == FrequencyScale::Linear ? 
+                         FrequencyScale::Logarithmic : 
+                         FrequencyScale::Linear);
+    }
+}
+
+void SpectrumAnalyzerComponent::mouseDrag(const juce::MouseEvent& event)
+{
+    // Solo procesar si estamos arrastrando una línea
+    if (currentDragParameter && (isDraggingLowFreq.load() || isDraggingHighFreq.load()))
+    {
+        const float dragX = event.position.x;
+        const float width = getWidth();
+        
+        // Convertir posición X a frecuencia
+        float newFreq = mapXToFrequency(dragX, width);
+        
+        // Aplicar límites según el parámetro
+        if (isDraggingLowFreq.load())
+        {
+            // XLow: limitar entre 20Hz y 1000Hz
+            newFreq = juce::jlimit(20.0f, 1000.0f, newFreq);
+        }
+        else if (isDraggingHighFreq.load())
+        {
+            // XHigh: limitar entre 1000Hz y 20000Hz
+            newFreq = juce::jlimit(1000.0f, 20000.0f, newFreq);
+        }
+        
+        // Convertir frecuencia a valor normalizado y actualizar parámetro
+        auto range = currentDragParameter->getNormalisableRange();
+        float normalizedValue = range.convertTo0to1(newFreq);
+        currentDragParameter->setValueNotifyingHost(normalizedValue);
+    }
+}
+
+void SpectrumAnalyzerComponent::mouseUp(const juce::MouseEvent& event)
+{
+    // Completar gesto de arrastre si estaba activo
+    if (currentDragParameter && (isDraggingLowFreq.load() || isDraggingHighFreq.load()))
+    {
+        currentDragParameter->endChangeGesture();
+        
+        // TODO: Registrar cambio en UndoManager si está disponible
+        // Por ahora solo limpiar estado
+        
+        // Limpiar flags y restaurar cursor
+        isDraggingLowFreq.store(false);
+        isDraggingHighFreq.store(false);
+        currentDragParameter = nullptr;
+        setMouseCursor(juce::MouseCursor::NormalCursor);
+    }
 }
 
 void SpectrumAnalyzerComponent::mouseDoubleClick(const juce::MouseEvent& event)
 {
-    // Reiniciar o funcionalidad especial
+    // Doble-click en líneas de crossover para resetear a valores por defecto
+    if (filtersEnabled.load())
+    {
+        const float clickX = event.position.x;
+        const float width = getWidth();
+        const float tolerance = 5.0f; // Misma tolerancia que para arrastre
+        
+        // Obtener posiciones actuales de las líneas
+        float xLowFreq = crossoverLowFreq.load();
+        float xHighFreq = crossoverHighFreq.load();
+        float xLowPixel = mapFrequencyToX(xLowFreq, width);
+        float xHighPixel = mapFrequencyToX(xHighFreq, width);
+        
+        // Verificar si el doble-click está sobre la línea XLow
+        if (std::abs(clickX - xLowPixel) <= tolerance)
+        {
+            // Resetear XLow a 250 Hz (valor por defecto)
+            if (auto* param = valueTreeState.getParameter("j_HPF"))
+            {
+                param->beginChangeGesture();
+                auto range = param->getNormalisableRange();
+                float normalizedValue = range.convertTo0to1(250.0f); // 250 Hz por defecto
+                param->setValueNotifyingHost(normalizedValue);
+                param->endChangeGesture();
+                return;
+            }
+        }
+        // Verificar si el doble-click está sobre la línea XHigh
+        else if (std::abs(clickX - xHighPixel) <= tolerance)
+        {
+            // Resetear XHigh a 5000 Hz (valor por defecto)
+            if (auto* param = valueTreeState.getParameter("k_LPF"))
+            {
+                param->beginChangeGesture();
+                auto range = param->getNormalisableRange();
+                float normalizedValue = range.convertTo0to1(5000.0f); // 5000 Hz por defecto
+                param->setValueNotifyingHost(normalizedValue);
+                param->endChangeGesture();
+                return;
+            }
+        }
+    }
 }
 
 juce::String SpectrumAnalyzerComponent::getTooltip()

@@ -307,68 +307,48 @@ void JCBDistortionAudioProcessorEditor::paintOverChildren (juce::Graphics& g)
     }
     
     // Etiquetas para el slider BAND horizontal (Low - Mid - High) - DEBAJO del slider
-    if (sidechainControls.bandSlider.isVisible()) {
+    // Solo dibujar si DIAGRAM no está visible para evitar superposición
+    if (sidechainControls.bandSlider.isVisible() && 
+        (!diagramOverlay || !diagramOverlay->isVisible())) {
+        
+        // Guardar estado del Graphics context para evitar interferencias
+        g.saveState();
+        
+        // Obtener estado de FILTERS para aplicar alpha correcto
+        bool filtersActive = sidechainControls.scButton.getToggleState();
+        
         auto bandBounds = sidechainControls.bandSlider.getBounds();
-        g.setColour(juce::Colours::white.withAlpha(0.85f));  // Más opaco para mejor visibilidad
+        // Color con alpha según estado de FILTERS (0.85 activo, 0.425 inactivo - mismo ratio que sliders)
+        auto textColour = juce::Colours::white.withAlpha(filtersActive ? 0.85f : 0.425f);
         g.setFont(juce::Font(juce::FontOptions(11.0f)));  // Fuente más grande
         
         const int labelY = bandBounds.getBottom() + 1;  // Posición Y debajo del slider
         const int labelHeight = 14;  // Altura aumentada para las etiquetas
         
         // Etiqueta "Low" alineada a la izquierda del slider
+        g.setColour(textColour);  // Establecer color antes de cada drawText
         g.drawText("Low", 
                    bandBounds.getX(), labelY, 
                    20, labelHeight, 
                    juce::Justification::centredLeft);
         
         // Etiqueta "Mid" centrada con el slider
+        g.setColour(textColour);  // Re-establecer color para evitar interferencias
         g.drawText("Mid", 
                    bandBounds.getX() + bandBounds.getWidth()/2 - 15, labelY,
                    30, labelHeight,
                    juce::Justification::centred);
         
         // Etiqueta "High" alineada a la derecha del slider
+        g.setColour(textColour);  // Re-establecer color para evitar interferencias
         g.drawText("High",
                    bandBounds.getRight() - 25, labelY,
                    25, labelHeight,
                    juce::Justification::centredRight);
+        
+        // Restaurar estado del Graphics context
+        g.restoreState();
     }
-    
-    
-    /*
-    // Texto SOLO SIDECHAIN con info de filtros (cuando está activo)
-    // if (sidechainControls.soloScButton.getToggleState()) {
-        // g.setColour(juce::Colours::transparentWhite.withAlpha(0.85f));
-        
-        // Mostrar diferente texto según EXT KEY y estado de filtros
-        // juce::String soloText;
-        // bool filtersActive = sidechainControls.scButton.getToggleState();
-        
-        // if (sidechainControls.keyButton.getToggleState()) {
-            // soloText = "SOLO EXT SC";
-        // } else {
-            // soloText = "SOLO INT SC";
-        // }
-        
-        // Texto principal en tamaño más grande
-        g.setFont(juce::Font(juce::FontOptions(transferBounds.getHeight() * 0.25f))
-                  .withStyle(juce::Font::bold));
-        
-        // Dibujar texto principal en la parte superior
-        auto upperBounds = transferBounds;
-        upperBounds = upperBounds.removeFromTop(transferBounds.getHeight() * 0.6f);
-        g.drawText(soloText, upperBounds, juce::Justification::centred);
-        
-        // Texto de filtros en tamaño más pequeño
-        g.setFont(juce::Font(juce::FontOptions(transferBounds.getHeight() * 0.15f)));
-        g.setColour(juce::Colours::transparentWhite.withAlpha(0.7f));
-        
-        juce::String filterText = filtersActive ? "FILTERS ON" : "FILTERS OFF";
-        auto lowerBounds = transferBounds;
-        lowerBounds = lowerBounds.removeFromBottom(transferBounds.getHeight() * 0.4f);
-        g.drawText(filterText, lowerBounds, juce::Justification::centred);
-    }
-    */
 }
 
 void JCBDistortionAudioProcessorEditor::resized()
@@ -447,13 +427,13 @@ void JCBDistortionAudioProcessorEditor::resized()
     rightTopControls.tiltSlider.setBounds(getScaledBounds(170, 100, 48, 48));
 
     // NUEVO: BITS knob - centro de la parte derecha superior 
-    rightTopControls.bitsSlider.setBounds(getScaledBounds(478, 50, 53, 53));
+    rightTopControls.bitsSlider.setBounds(getScaledBounds(480, 52, 48, 48));
     
     // NUEVO: DOWNSAMPLE knob - área derecha superior, junto a BITS
-    rightTopControls.downsampleSlider.setBounds(getScaledBounds(555, 91, 53, 53));
+    rightTopControls.downsampleSlider.setBounds(getScaledBounds(557, 91, 48, 48));
     
     // NUEVO: DOWNSAMPLE button - debajo del slider correspondiente
-    rightTopControls.downsampleButton.setBounds(getScaledBounds(605, 108, 65, 15));
+    rightTopControls.downsampleButton.setBounds(getScaledBounds(605, 105, 65, 15));
 
     // Bottom row - Attack, Release, Hold
     rightBottomKnobs.driveSlider.setBounds(getScaledBounds(135, 47, 53, 53));
@@ -464,8 +444,8 @@ void JCBDistortionAudioProcessorEditor::resized()
 
     // === CONTROLES DE FILTRO (TOP CENTER) ===
     // HPF and LPF sliders para filtrado de entrada con crossover
-    sidechainControls.hpfSlider.setBounds(getScaledBounds(285, 5, 36, 36));
-    sidechainControls.lpfSlider.setBounds(getScaledBounds(388, 5, 36, 36));
+    sidechainControls.xLowSlider.setBounds(getScaledBounds(285, 5, 36, 36));
+    sidechainControls.xHighSlider.setBounds(getScaledBounds(388, 5, 36, 36));
 
     // BAND slider horizontal debajo del botón FILTERS
     const int bandCenterX = 353;  // Mismo centro que el botón FILTERS
@@ -1297,37 +1277,37 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     
     // === FILTROS DE ENTRADA ===
     // Slider HPF - copia EXACTA de ExpansorGate
-    sidechainControls.hpfSlider.setName("hpf");
-    sidechainControls.hpfSlider.setComponentID("hpf");
-    sidechainControls.hpfSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    sidechainControls.hpfSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 60, 16);
-    sidechainControls.hpfSlider.setLookAndFeel(&sliderLAFBig);  // Usar LAF grande como ExpansorGate
-    sidechainControls.hpfSlider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::white);  // Blanco fijo
-    sidechainControls.hpfSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);  // Blanco fijo
-    sidechainControls.hpfSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-    sidechainControls.hpfSlider.setTextBoxIsEditable(true);
-    sidechainControls.hpfSlider.setEnabled(true);  // Inicialmente habilitado
-    sidechainControls.hpfSlider.setAlpha(1.0f);  // Inicialmente visible
-    sidechainControls.hpfSlider.setDoubleClickReturnValue(true, 250.0f);  // Nuevo default 250Hz
-    sidechainControls.hpfSlider.setPopupDisplayEnabled(false, false, this);
-    sidechainControls.hpfSlider.setNumDecimalPlacesToDisplay(0);
+    sidechainControls.xLowSlider.setName("hpf");
+    sidechainControls.xLowSlider.setComponentID("hpf");
+    sidechainControls.xLowSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    sidechainControls.xLowSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 60, 16);
+    sidechainControls.xLowSlider.setLookAndFeel(&sliderLAFBig);  // Usar LAF grande como ExpansorGate
+    sidechainControls.xLowSlider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::white);  // Blanco fijo
+    sidechainControls.xLowSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);  // Blanco fijo
+    sidechainControls.xLowSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+    sidechainControls.xLowSlider.setTextBoxIsEditable(true);
+    sidechainControls.xLowSlider.setEnabled(true);  // Inicialmente habilitado
+    sidechainControls.xLowSlider.setAlpha(1.0f);  // Inicialmente visible
+    sidechainControls.xLowSlider.setDoubleClickReturnValue(true, 250.0f);  // Nuevo default 250Hz
+    sidechainControls.xLowSlider.setPopupDisplayEnabled(false, false, this);
+    sidechainControls.xLowSlider.setNumDecimalPlacesToDisplay(0);
     // Formato de texto personalizado para frecuencia
-    sidechainControls.hpfSlider.textFromValueFunction = [](double value) {
+    sidechainControls.xLowSlider.textFromValueFunction = [](double value) {
         if (value < 1000.0)
             return juce::String(static_cast<int>(value));
         else
             return juce::String(value / 1000.0, 1) + "k";
     };
-    sidechainControls.hpfSlider.setTextValueSuffix(" Hz");
+    sidechainControls.xLowSlider.setTextValueSuffix(" Hz");
     // Configurar rango para XOver Low (20-1000 Hz)
-    sidechainControls.hpfSlider.setRange(20.0, 1000.0, 1.0);
-    sidechainControls.hpfSlider.setSkewFactorFromMidPoint(250.0);  // 250Hz en el centro
-    addAndMakeVisible(sidechainControls.hpfSlider);
+    sidechainControls.xLowSlider.setRange(20.0, 1000.0, 1.0);
+    sidechainControls.xLowSlider.setSkewFactorFromMidPoint(250.0);  // 250Hz en el centro
+    addAndMakeVisible(sidechainControls.xLowSlider);
     if (auto* param = processor.apvts.getParameter("j_HPF"))
     {
-        sidechainControls.hpfAttachment = std::make_unique<CustomSliderAttachment>(
-            *param, sidechainControls.hpfSlider, &undoManager);
-        sidechainControls.hpfAttachment->onParameterChange = [this]() { handleParameterChange(); };
+        sidechainControls.xLowAttachment = std::make_unique<CustomSliderAttachment>(
+            *param, sidechainControls.xLowSlider, &undoManager);
+        sidechainControls.xLowAttachment->onParameterChange = [this]() { handleParameterChange(); };
     }
     
     // Slider BAND - selector de banda del crossover (0=low, 1=mid, 2=high) - HORIZONTAL
@@ -1357,37 +1337,37 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     }
     
     // Slider LPF - copia EXACTA de ExpansorGate
-    sidechainControls.lpfSlider.setName("lpf");
-    sidechainControls.lpfSlider.setComponentID("lpf");
-    sidechainControls.lpfSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    sidechainControls.lpfSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 60, 16);
-    sidechainControls.lpfSlider.setLookAndFeel(&sliderLAFBig);  // Usar LAF grande como ExpansorGate
-    sidechainControls.lpfSlider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::white);  // Blanco fijo
-    sidechainControls.lpfSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);  // Blanco fijo
-    sidechainControls.lpfSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-    sidechainControls.lpfSlider.setTextBoxIsEditable(true);
-    sidechainControls.lpfSlider.setEnabled(true);  // Inicialmente habilitado
-    sidechainControls.lpfSlider.setAlpha(1.0f);  // Inicialmente visible
-    sidechainControls.lpfSlider.setDoubleClickReturnValue(true, 5000.0f);  // Nuevo default 5kHz
-    sidechainControls.lpfSlider.setPopupDisplayEnabled(false, false, this);
-    sidechainControls.lpfSlider.setNumDecimalPlacesToDisplay(0);
+    sidechainControls.xHighSlider.setName("lpf");
+    sidechainControls.xHighSlider.setComponentID("lpf");
+    sidechainControls.xHighSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    sidechainControls.xHighSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 60, 16);
+    sidechainControls.xHighSlider.setLookAndFeel(&sliderLAFBig);  // Usar LAF grande como ExpansorGate
+    sidechainControls.xHighSlider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colours::white);  // Blanco fijo
+    sidechainControls.xHighSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colours::white);  // Blanco fijo
+    sidechainControls.xHighSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+    sidechainControls.xHighSlider.setTextBoxIsEditable(true);
+    sidechainControls.xHighSlider.setEnabled(true);  // Inicialmente habilitado
+    sidechainControls.xHighSlider.setAlpha(1.0f);  // Inicialmente visible
+    sidechainControls.xHighSlider.setDoubleClickReturnValue(true, 5000.0f);  // Nuevo default 5kHz
+    sidechainControls.xHighSlider.setPopupDisplayEnabled(false, false, this);
+    sidechainControls.xHighSlider.setNumDecimalPlacesToDisplay(0);
     // Formato de texto personalizado para frecuencia
-    sidechainControls.lpfSlider.textFromValueFunction = [](double value) {
+    sidechainControls.xHighSlider.textFromValueFunction = [](double value) {
         if (value < 1000.0)
             return juce::String(static_cast<int>(value));
         else
             return juce::String(value / 1000.0, 1) + "k";
     };
-    sidechainControls.lpfSlider.setTextValueSuffix(" Hz");
+    sidechainControls.xHighSlider.setTextValueSuffix(" Hz");
     // Configurar rango para XOver High (1000-20000 Hz)
-    sidechainControls.lpfSlider.setRange(1000.0, 20000.0, 1.0);
-    sidechainControls.lpfSlider.setSkewFactorFromMidPoint(5000.0);  // 5kHz en el centro
-    addAndMakeVisible(sidechainControls.lpfSlider);
+    sidechainControls.xHighSlider.setRange(1000.0, 20000.0, 1.0);
+    sidechainControls.xHighSlider.setSkewFactorFromMidPoint(5000.0);  // 5kHz en el centro
+    addAndMakeVisible(sidechainControls.xHighSlider);
     if (auto* param = processor.apvts.getParameter("k_LPF"))
     {
-        sidechainControls.lpfAttachment = std::make_unique<CustomSliderAttachment>(
-            *param, sidechainControls.lpfSlider, &undoManager);
-        sidechainControls.lpfAttachment->onParameterChange = [this]() { handleParameterChange(); };
+        sidechainControls.xHighAttachment = std::make_unique<CustomSliderAttachment>(
+            *param, sidechainControls.xHighSlider, &undoManager);
+        sidechainControls.xHighAttachment->onParameterChange = [this]() { handleParameterChange(); };
     }
 
     // Botón FILTERS (antes SC) - VISIBLE para activar/desactivar filtros
@@ -1568,7 +1548,7 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
                 trimSlider.setValue(realValue, juce::sendNotificationSync);
             }
-            if (auto* param = processor.apvts.getParameter("o_DRYWET")) {
+            if (auto* param = processor.apvts.getParameter("a_DRYWET")) {
                 float defaultValue = param->getDefaultValue();
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
                 leftBottomKnobs.drywetSlider.setValue(realValue, juce::sendNotificationSync);
@@ -1632,27 +1612,26 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
                 makeupSlider.setValue(realValue, juce::sendNotificationSync);
             }
-            /*
             if (auto* param = processor.apvts.getParameter("j_HPF")) {
                 float defaultValue = param->getDefaultValue();
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
-                sidechainControls.hpfSlider.setValue(realValue, juce::sendNotificationSync);
+                sidechainControls.xLowSlider.setValue(realValue, juce::sendNotificationSync);
             }
-            */
-            /*
             if (auto* param = processor.apvts.getParameter("k_LPF")) {
                 float defaultValue = param->getDefaultValue();
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
-                sidechainControls.lpfSlider.setValue(realValue, juce::sendNotificationSync);
+                sidechainControls.xHighSlider.setValue(realValue, juce::sendNotificationSync);
             }
-            */
-            /*
             if (auto* param = processor.apvts.getParameter("l_SC")) {
                 float defaultValue = param->getDefaultValue();
                 bool toggleState = defaultValue >= 0.5f;
                 sidechainControls.scButton.setToggleState(toggleState, juce::sendNotificationSync);
             }
-            */
+            if (auto* param = processor.apvts.getParameter("o_BAND")) {
+                float defaultValue = param->getDefaultValue();
+                float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
+                sidechainControls.bandSlider.setValue(realValue, juce::sendNotificationSync);
+            }
             /*
             if (auto* param = processor.apvts.getParameter("m_SOLOSC")) {
                 float defaultValue = param->getDefaultValue();
@@ -2060,20 +2039,20 @@ void JCBDistortionAudioProcessorEditor::updateSidechainComponentStates()
     const bool filtersActive = sidechainControls.scButton.getToggleState();
     
     // Los filtros HPF/BAND/LPF activos solo cuando FILTERS está ON
-    sidechainControls.hpfSlider.setVisible(true);  // Siempre visibles
+    sidechainControls.xLowSlider.setVisible(true);  // Siempre visibles
     sidechainControls.bandSlider.setVisible(true);  // Siempre visible
-    sidechainControls.lpfSlider.setVisible(true);  // Siempre visibles
-    sidechainControls.hpfSlider.setEnabled(filtersActive);  // Activos solo si FILTERS ON
+    sidechainControls.xHighSlider.setVisible(true);  // Siempre visibles
+    sidechainControls.xLowSlider.setEnabled(filtersActive);  // Activos solo si FILTERS ON
     sidechainControls.bandSlider.setEnabled(filtersActive);  // Activo solo si FILTERS ON
-    sidechainControls.lpfSlider.setEnabled(filtersActive);   // Activos solo si FILTERS ON
-    sidechainControls.hpfSlider.setAlpha(filtersActive ? 1.0f : 0.5f);  // Alpha indica estado
+    sidechainControls.xHighSlider.setEnabled(filtersActive);   // Activos solo si FILTERS ON
+    sidechainControls.xLowSlider.setAlpha(filtersActive ? 1.0f : 0.5f);  // Alpha indica estado
     sidechainControls.bandSlider.setAlpha(filtersActive ? 1.0f : 0.5f);  // Alpha indica estado
-    sidechainControls.lpfSlider.setAlpha(filtersActive ? 1.0f : 0.5f);   // Alpha indica estado
+    sidechainControls.xHighSlider.setAlpha(filtersActive ? 1.0f : 0.5f);   // Alpha indica estado
     
     // Forzar repaint para actualizar colores
-    sidechainControls.hpfSlider.repaint();
+    sidechainControls.xLowSlider.repaint();
     sidechainControls.bandSlider.repaint();
-    sidechainControls.lpfSlider.repaint();
+    sidechainControls.xHighSlider.repaint();
 }
 
 void JCBDistortionAudioProcessorEditor::updateBackgroundState()
@@ -2286,14 +2265,15 @@ void JCBDistortionAudioProcessorEditor::updateSliderValues()
     // if (auto* param = processor.apvts.getRawParameterValue("z_SMOOTH"))
     //     rightTopControls.smoothSlider.setValue(param->load(), juce::dontSendNotification);
     
-    /*
     // Controles de sidechain - Todos usan CustomSliderAttachment
     if (auto* param = processor.apvts.getRawParameterValue("j_HPF"))
-        sidechainControls.hpfSlider.setValue(param->load(), juce::dontSendNotification);
+        sidechainControls.xLowSlider.setValue(param->load(), juce::dontSendNotification);
         
     if (auto* param = processor.apvts.getRawParameterValue("k_LPF"))
-        sidechainControls.lpfSlider.setValue(param->load(), juce::dontSendNotification);
-    */
+        sidechainControls.xHighSlider.setValue(param->load(), juce::dontSendNotification);
+    
+    if (auto* param = processor.apvts.getRawParameterValue("o_BAND"))
+        sidechainControls.bandSlider.setValue(param->load(), juce::dontSendNotification);
     
 
     // Slider de trims (both linked to the same parameter)
@@ -2857,9 +2837,9 @@ void JCBDistortionAudioProcessorEditor::updateAllTooltips()
     
     // Controles de filtro de entrada
     sidechainControls.scButton.setTooltip(getTooltipText("sc"));
-    sidechainControls.hpfSlider.setTooltip(getTooltipText("hpf"));
+    sidechainControls.xLowSlider.setTooltip(getTooltipText("hpf"));
     sidechainControls.bandSlider.setTooltip(getTooltipText("band"));
-    sidechainControls.lpfSlider.setTooltip(getTooltipText("lpf"));
+    sidechainControls.xHighSlider.setTooltip(getTooltipText("lpf"));
     // sidechainControls.keyButton.setTooltip(getTooltipText("extkey"));
     // sidechainControls.soloScButton.setTooltip(getTooltipText("solosc"));
     
@@ -3284,9 +3264,9 @@ int JCBDistortionAudioProcessorEditor::getControlParameterIndex(juce::Component&
     // else if (&control == &rightBottomKnobs.holdSlider) parameterID = "f_HOLD";
     
     // Controles de filtro de entrada
-    else if (&control == &sidechainControls.hpfSlider) parameterID = "j_HPF";
+    else if (&control == &sidechainControls.xLowSlider) parameterID = "j_HPF";
     else if (&control == &sidechainControls.bandSlider) parameterID = "o_BAND";
-    else if (&control == &sidechainControls.lpfSlider) parameterID = "k_LPF";
+    else if (&control == &sidechainControls.xHighSlider) parameterID = "k_LPF";
     // else if (&control == &sidechainControls.keyButton) parameterID = "r_KEY";
     
     // Sliders de Trim

@@ -345,9 +345,9 @@ private:
     
     // Controles de filtro para procesamiento de entrada
     struct SidechainControls {
-        CustomSlider hpfSlider{"hpf"};
+        CustomSlider xLowSlider{"xlow"};
         CustomSlider bandSlider{"band"};  // NUEVO - selector de banda del crossover
-        CustomSlider lpfSlider{"lpf"};
+        CustomSlider xHighSlider{"xhigh"};
         juce::TextButton scButton{"FILTERS"};
         // Componentes no utilizados comentados para mantener compatibilidad
         // juce::TextButton keyButton{"EXT KEY"};
@@ -355,9 +355,9 @@ private:
         // juce::TextButton hpfOrderButton{"12"};
         // juce::TextButton lpfOrderButton{"12"};
         
-        std::unique_ptr<CustomSliderAttachment> hpfAttachment;
+        std::unique_ptr<CustomSliderAttachment> xLowAttachment;
         std::unique_ptr<CustomSliderAttachment> bandAttachment;  // NUEVO - attachment para o_BAND
-        std::unique_ptr<CustomSliderAttachment> lpfAttachment;
+        std::unique_ptr<CustomSliderAttachment> xHighAttachment;
         std::unique_ptr<UndoableButtonAttachment> scAttachment;
         // Attachments no utilizados comentados para mantener compatibilidad
         // std::unique_ptr<UndoableButtonAttachment> keyAttachment;
