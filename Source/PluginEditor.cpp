@@ -306,6 +306,34 @@ void JCBDistortionAudioProcessorEditor::paintOverChildren (juce::Graphics& g)
         g.drawText("BYPASS", transferBounds, juce::Justification::centred);
     }
     
+    // Etiquetas para el slider BAND horizontal (Low - Mid - High) - DEBAJO del slider
+    if (sidechainControls.bandSlider.isVisible()) {
+        auto bandBounds = sidechainControls.bandSlider.getBounds();
+        g.setColour(juce::Colours::white.withAlpha(0.85f));  // Más opaco para mejor visibilidad
+        g.setFont(juce::Font(juce::FontOptions(11.0f)));  // Fuente más grande
+        
+        const int labelY = bandBounds.getBottom() + 1;  // Posición Y debajo del slider
+        const int labelHeight = 14;  // Altura aumentada para las etiquetas
+        
+        // Etiqueta "Low" alineada a la izquierda del slider
+        g.drawText("Low", 
+                   bandBounds.getX(), labelY, 
+                   20, labelHeight, 
+                   juce::Justification::centredLeft);
+        
+        // Etiqueta "Mid" centrada con el slider
+        g.drawText("Mid", 
+                   bandBounds.getX() + bandBounds.getWidth()/2 - 15, labelY,
+                   30, labelHeight,
+                   juce::Justification::centred);
+        
+        // Etiqueta "High" alineada a la derecha del slider
+        g.drawText("High",
+                   bandBounds.getRight() - 25, labelY,
+                   25, labelHeight,
+                   juce::Justification::centredRight);
+    }
+    
     
     /*
     // Texto SOLO SIDECHAIN con info de filtros (cuando está activo)
@@ -435,9 +463,13 @@ void JCBDistortionAudioProcessorEditor::resized()
     rightBottomKnobs.dcSlider.setBounds(getScaledBounds(100, 100, 43, 43));
 
     // === CONTROLES DE FILTRO (TOP CENTER) ===
-    // HPF and LPF sliders para filtrado de entrada
-    sidechainControls.hpfSlider.setBounds(getScaledBounds(280, 5, 36, 36));
+    // HPF and LPF sliders para filtrado de entrada con crossover
+    sidechainControls.hpfSlider.setBounds(getScaledBounds(285, 5, 36, 36));
     sidechainControls.lpfSlider.setBounds(getScaledBounds(388, 5, 36, 36));
+    
+    // BAND slider horizontal debajo del botón FILTERS
+    const int bandCenterX = 353;  // Mismo centro que el botón FILTERS
+    sidechainControls.bandSlider.setBounds(getScaledBounds(bandCenterX - 35, 24, 70, 10));  // Slider horizontal delgado, bajado 4px
     // sidechainControls.hpfOrderButton.setBounds(getScaledBounds(265, 14, 24, 12));
     // sidechainControls.lpfOrderButton.setBounds(getScaledBounds(415, 14, 24, 12));
     
@@ -449,8 +481,8 @@ void JCBDistortionAudioProcessorEditor::resized()
     // Botón FILTERS en el medio - centrado entre los sliders HPF y LPF
     const int buttonWidth = 44;
     const int centerX = 353;
-    // Posicionamiento del botón FILTERS (SC)
-    sidechainControls.scButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 15, buttonWidth, 12));
+    // Posicionamiento del botón FILTERS (SC) - subido 10 píxeles
+    sidechainControls.scButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 8, buttonWidth, 12));
     // sidechainControls.keyButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 17, buttonWidth, 12));
     // sidechainControls.soloScButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 29, buttonWidth, 12));
     
@@ -1276,7 +1308,7 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     sidechainControls.hpfSlider.setTextBoxIsEditable(true);
     sidechainControls.hpfSlider.setEnabled(true);  // Inicialmente habilitado
     sidechainControls.hpfSlider.setAlpha(1.0f);  // Inicialmente visible
-    sidechainControls.hpfSlider.setDoubleClickReturnValue(true, 20.0f);
+    sidechainControls.hpfSlider.setDoubleClickReturnValue(true, 250.0f);  // Nuevo default 250Hz
     sidechainControls.hpfSlider.setPopupDisplayEnabled(false, false, this);
     sidechainControls.hpfSlider.setNumDecimalPlacesToDisplay(0);
     // Formato de texto personalizado para frecuencia
@@ -1287,15 +1319,41 @@ rightTopControls.tiltSlider.setComponentID("tilt");
             return juce::String(value / 1000.0, 1) + "k";
     };
     sidechainControls.hpfSlider.setTextValueSuffix(" Hz");
-    // Configurar rango y sesgo para poner 1kHz en el centro
-    sidechainControls.hpfSlider.setRange(20.0, 20000.0, 1.0);
-    sidechainControls.hpfSlider.setSkewFactorFromMidPoint(1000.0);  // 1kHz en el centro
+    // Configurar rango para XOver Low (20-1000 Hz)
+    sidechainControls.hpfSlider.setRange(20.0, 1000.0, 1.0);
+    sidechainControls.hpfSlider.setSkewFactorFromMidPoint(250.0);  // 250Hz en el centro
     addAndMakeVisible(sidechainControls.hpfSlider);
     if (auto* param = processor.apvts.getParameter("j_HPF"))
     {
         sidechainControls.hpfAttachment = std::make_unique<CustomSliderAttachment>(
             *param, sidechainControls.hpfSlider, &undoManager);
         sidechainControls.hpfAttachment->onParameterChange = [this]() { handleParameterChange(); };
+    }
+    
+    // Slider BAND - selector de banda del crossover (0=low, 1=mid, 2=high) - HORIZONTAL
+    sidechainControls.bandSlider.setName("band");
+    sidechainControls.bandSlider.setComponentID("band");
+    sidechainControls.bandSlider.setSliderStyle(juce::Slider::LinearHorizontal);  // Slider horizontal
+    sidechainControls.bandSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);  // Sin text box
+    sidechainControls.bandSlider.setLookAndFeel(&sliderLAFBig);  // Usar el LAF disponible
+    sidechainControls.bandSlider.setColour(juce::Slider::backgroundColourId, juce::Colours::white.withAlpha(0.12f));  // Fondo blanco muy sutil
+    sidechainControls.bandSlider.setColour(juce::Slider::trackColourId, juce::Colours::transparentBlack);  // Sin track de progreso
+    sidechainControls.bandSlider.setColour(juce::Slider::thumbColourId, juce::Colours::white);  // Punto blanco visible
+    sidechainControls.bandSlider.setTextBoxIsEditable(true);
+    sidechainControls.bandSlider.setEnabled(true);  // Inicialmente habilitado
+    sidechainControls.bandSlider.setAlpha(1.0f);  // Inicialmente visible
+    sidechainControls.bandSlider.setDoubleClickReturnValue(true, 1.0f);  // Default = mid
+    sidechainControls.bandSlider.setPopupDisplayEnabled(false, false, this);
+    sidechainControls.bandSlider.setNumDecimalPlacesToDisplay(2);
+    // Sin formato de texto ya que no hay text box
+    // Configurar rango 0-2 para interpolar entre las 3 bandas
+    sidechainControls.bandSlider.setRange(0.0, 2.0, 0.01);
+    addAndMakeVisible(sidechainControls.bandSlider);
+    if (auto* param = processor.apvts.getParameter("o_BAND"))
+    {
+        sidechainControls.bandAttachment = std::make_unique<CustomSliderAttachment>(
+            *param, sidechainControls.bandSlider, &undoManager);
+        sidechainControls.bandAttachment->onParameterChange = [this]() { handleParameterChange(); };
     }
     
     // Slider LPF - copia EXACTA de ExpansorGate
@@ -1310,7 +1368,7 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     sidechainControls.lpfSlider.setTextBoxIsEditable(true);
     sidechainControls.lpfSlider.setEnabled(true);  // Inicialmente habilitado
     sidechainControls.lpfSlider.setAlpha(1.0f);  // Inicialmente visible
-    sidechainControls.lpfSlider.setDoubleClickReturnValue(true, 20000.0f);
+    sidechainControls.lpfSlider.setDoubleClickReturnValue(true, 5000.0f);  // Nuevo default 5kHz
     sidechainControls.lpfSlider.setPopupDisplayEnabled(false, false, this);
     sidechainControls.lpfSlider.setNumDecimalPlacesToDisplay(0);
     // Formato de texto personalizado para frecuencia
@@ -1321,9 +1379,9 @@ rightTopControls.tiltSlider.setComponentID("tilt");
             return juce::String(value / 1000.0, 1) + "k";
     };
     sidechainControls.lpfSlider.setTextValueSuffix(" Hz");
-    // Configurar rango y sesgo para poner 1kHz en el centro
-    sidechainControls.lpfSlider.setRange(20.0, 20000.0, 1.0);
-    sidechainControls.lpfSlider.setSkewFactorFromMidPoint(1000.0);  // 1kHz en el centro
+    // Configurar rango para XOver High (1000-20000 Hz)
+    sidechainControls.lpfSlider.setRange(1000.0, 20000.0, 1.0);
+    sidechainControls.lpfSlider.setSkewFactorFromMidPoint(5000.0);  // 5kHz en el centro
     addAndMakeVisible(sidechainControls.lpfSlider);
     if (auto* param = processor.apvts.getParameter("k_LPF"))
     {
@@ -2001,16 +2059,20 @@ void JCBDistortionAudioProcessorEditor::updateSidechainComponentStates()
     // Obtener estado del botón FILTERS
     const bool filtersActive = sidechainControls.scButton.getToggleState();
     
-    // Los filtros HPF/LPF activos solo cuando FILTERS está ON
+    // Los filtros HPF/BAND/LPF activos solo cuando FILTERS está ON
     sidechainControls.hpfSlider.setVisible(true);  // Siempre visibles
+    sidechainControls.bandSlider.setVisible(true);  // Siempre visible
     sidechainControls.lpfSlider.setVisible(true);  // Siempre visibles
     sidechainControls.hpfSlider.setEnabled(filtersActive);  // Activos solo si FILTERS ON
+    sidechainControls.bandSlider.setEnabled(filtersActive);  // Activo solo si FILTERS ON
     sidechainControls.lpfSlider.setEnabled(filtersActive);   // Activos solo si FILTERS ON
     sidechainControls.hpfSlider.setAlpha(filtersActive ? 1.0f : 0.5f);  // Alpha indica estado
+    sidechainControls.bandSlider.setAlpha(filtersActive ? 1.0f : 0.5f);  // Alpha indica estado
     sidechainControls.lpfSlider.setAlpha(filtersActive ? 1.0f : 0.5f);   // Alpha indica estado
     
     // Forzar repaint para actualizar colores
     sidechainControls.hpfSlider.repaint();
+    sidechainControls.bandSlider.repaint();
     sidechainControls.lpfSlider.repaint();
 }
 
@@ -2796,6 +2858,7 @@ void JCBDistortionAudioProcessorEditor::updateAllTooltips()
     // Controles de filtro de entrada
     sidechainControls.scButton.setTooltip(getTooltipText("sc"));
     sidechainControls.hpfSlider.setTooltip(getTooltipText("hpf"));
+    sidechainControls.bandSlider.setTooltip(getTooltipText("band"));
     sidechainControls.lpfSlider.setTooltip(getTooltipText("lpf"));
     // sidechainControls.keyButton.setTooltip(getTooltipText("extkey"));
     // sidechainControls.soloScButton.setTooltip(getTooltipText("solosc"));
@@ -2855,10 +2918,11 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "mode") return JUCE_UTF8("MODE: algoritmo de distorsión\n8 tipos diferentes: Soft Clip, Sigmoid, Rectifier, etc.\nRango: 1 a 8 (mostrado) | Por defecto: 1");
         if (key == "trim") return JUCE_UTF8("TRIM: ganancia de entrada al distorsionador\nAjusta el nivel antes del procesamiento\nRango: -12 a +12 dB | Por defecto: 0 dB");
         if (key == "makeup") return JUCE_UTF8("MAKEUP: ganancia de salida POST procesador\nAjusta el nivel final después de la distorsión\nRango: -12 a +12 dB | Por defecto: 0 dB");
-        if (key == "sc") return JUCE_UTF8("FILTERS: activa los filtros de entrada.\nPermite filtrar la señal antes del procesamiento de distorsión.\nValor por defecto: OFF");
+        if (key == "sc") return JUCE_UTF8("FILTERS: activa el crossover de 3 bandas.\nDivide la señal en Low/Mid/High para procesamiento selectivo.\nValor por defecto: OFF");
         //if (key == "solosc") return JUCE_UTF8("SOLO SC: escucha filtros sidechain int/ext\nParámetro global, no automatizable\nRango: OFF/ON | Por defecto: OFF");
-        if (key == "hpf") return JUCE_UTF8("HPF: filtro pasa altos de entrada\nFiltra frecuencias graves antes de la distorsión\nRango: 20 a 20k Hz | Por defecto: 20 Hz");
-        if (key == "lpf") return JUCE_UTF8("LPF: filtro pasa bajos de entrada\nElimina frecuencias agudas antes de la distorsión\nRango: 20 Hz a 20 kHz | Por defecto: 20 kHz");
+        if (key == "hpf") return JUCE_UTF8("XLow: punto de cruce bajo del crossover\nDefine la frecuencia de separación entre bandas Low y Mid\nRango: 20 a 1000 Hz | Por defecto: 250 Hz");
+        if (key == "band") return JUCE_UTF8("BAND: selector de banda del crossover\nElige qué banda de frecuencia procesar (Low/Mid/High)\nRango: Low-Mid-High (interpolable) | Por defecto: Mid");
+        if (key == "lpf") return JUCE_UTF8("XHigh: punto de cruce alto del crossover\nDefine la frecuencia de separación entre bandas Mid y High\nRango: 1000 Hz a 20 kHz | Por defecto: 5 kHz");
         if (key == "save") return JUCE_UTF8("SAVE: guarda el preset actual\nSobrescribe el preset seleccionado con valores actuales\nNo funciona con DEFAULT");
         if (key == "saveas") return JUCE_UTF8("SAVE AS: guarda como nuevo preset\nCrea un nuevo archivo de preset con los valores actuales\nPermite crear presets personalizados");
         if (key == "delete") return JUCE_UTF8("BORRAR: elimina el preset seleccionado\nRequiere confirmación antes de borrar");
@@ -2901,10 +2965,11 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "mode") return "MODE: distortion algorithm\n8 different types: Soft Clip, Sigmoid, Rectifier, etc.\nRange: 1 to 8 (displayed) | Default: 1";
         if (key == "trim") return "TRIM: distortion input gain\nAdjusts level before processing\nRange: -12 to +12 dB | Default: 0 dB";
         if (key == "makeup") return "MAKEUP: output gain POST processor\nAdjusts final level after distortion\nRange: -12 to +12 dB | Default: 0 dB";
-        if (key == "sc") return "FILTERS: activates input filters.\nAllows filtering the signal before distortion processing.\nDefault: OFF";
+        if (key == "sc") return "FILTERS: activates the 3-band crossover.\nSplits signal into Low/Mid/High for selective processing.\nDefault: OFF";
         //if (key == "solosc") return "SOLO SC: listen to int/ext sidechain filters\nGlobal parameter, non-automatable\nRange: OFF/ON | Default: OFF";
-        if (key == "hpf") return "HPF: input high-pass filter\nFilters bass frequencies before distortion\nRange: 20 to 20k Hz | Default: 20 Hz";
-        if (key == "lpf") return "LPF: input low-pass filter\nRemoves treble frequencies before distortion\nRange: 20 Hz to 20 kHz | Default: 20 kHz";
+        if (key == "hpf") return "XLow: crossover low frequency point\nDefines the separation frequency between Low and Mid bands\nRange: 20 to 1000 Hz | Default: 250 Hz";
+        if (key == "band") return "BAND: crossover band selector\nChoose which frequency band to process (Low/Mid/High)\nRange: Low-Mid-High (interpolatable) | Default: Mid";
+        if (key == "lpf") return "XHigh: crossover high frequency point\nDefines the separation frequency between Mid and High bands\nRange: 1000 Hz to 20 kHz | Default: 5 kHz";
         if (key == "save") return "SAVE: save or overwrite preset\nSave new or update current preset";
         if (key == "saveas") return "SAVE AS: save as new preset.\nCreates new preset file with current values.\nAllows creating custom presets";
         if (key == "delete") return "DELETE: remove selected preset\nRequires confirmation before deleting";
@@ -3220,6 +3285,7 @@ int JCBDistortionAudioProcessorEditor::getControlParameterIndex(juce::Component&
     
     // Controles de filtro de entrada
     else if (&control == &sidechainControls.hpfSlider) parameterID = "j_HPF";
+    else if (&control == &sidechainControls.bandSlider) parameterID = "o_BAND";
     else if (&control == &sidechainControls.lpfSlider) parameterID = "k_LPF";
     // else if (&control == &sidechainControls.keyButton) parameterID = "r_KEY";
     

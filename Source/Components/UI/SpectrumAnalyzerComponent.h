@@ -48,6 +48,9 @@ public:
     bool getZoomEnabled() const noexcept { return zoomEnabled; }
     
 private:
+    // Referencia a APVTS para gestión de parámetros
+    juce::AudioProcessorValueTreeState& valueTreeState;
+    
     // Configuración FFT - Alta resolución para análisis profesional
     static constexpr auto fftOrder = 11;  // 2048 puntos (resolución aumentada)
     static constexpr auto fftSize = 1 << fftOrder;
@@ -80,6 +83,12 @@ private:
     std::atomic<double> currentSampleRate{44100.0};
     std::atomic<int> peakHoldCounter{0};
     static constexpr int peakHoldFrames = 60;  // Mantener picos por ~2 segundos a 30 FPS
+    
+    // Variables para visualización del crossover
+    std::atomic<float> crossoverLowFreq{250.0f};   // Frecuencia XLow (j_HPF)
+    std::atomic<float> crossoverHighFreq{5000.0f}; // Frecuencia XHigh (k_LPF)
+    std::atomic<float> selectedBand{1.0f};         // Banda seleccionada (o_BAND: 0=low, 1=mid, 2=high)
+    std::atomic<bool> filtersEnabled{false};       // Estado del botón FILTERS (l_SC)
     
     // Flags de seguridad de threads (sin mutex en thread de audio)
     std::atomic<bool> scopeDataReady{false};

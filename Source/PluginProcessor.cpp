@@ -87,10 +87,10 @@ JCBDistortionAudioProcessor::JCBDistortionAudioProcessor()
                 value = juce::jlimit(-6.0f, 6.0f, value);
             }
             else if (paramName == "j_HPF") {
-                value = juce::jlimit(20.0f, 20000.0f, value);
+                value = juce::jlimit(20.0f, 1000.0f, value);
             }
             else if (paramName == "k_LPF") {
-                value = juce::jlimit(20.0f, 20000.0f, value);
+                value = juce::jlimit(1000.0f, 20000.0f, value);
             }
             else if (paramName == "l_SC") {
                 value = juce::jlimit(0.0f, 1.0f, value);
@@ -106,6 +106,9 @@ JCBDistortionAudioProcessor::JCBDistortionAudioProcessor()
             }
             else if (paramName == "n_DOWNSAMPLEON") {
                 value = juce::jlimit(0.0f, 1.0f, value);
+            }
+            else if (paramName == "o_BAND") {
+                value = juce::jlimit(0.0f, 2.0f, value);
             }
             
             JCBDistortion::setparameter(m_PluginState, i, value, nullptr);
@@ -694,11 +697,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
                                                             juce::NormalisableRange<float>(-6.f, 6.f, 0.1f, 1.0f),
                                                             0.f);
 
-   // j_HPF @min 20 @max 20000 @default 20 (Input HPF frequency Hz)
+   // j_HPF @min 20 @max 1000 @default 250 (XOver low frequency Hz)
    auto hpf = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("j_HPF", versionHint),
-                                                          juce::CharPointer_UTF8("HPF"),
-                                                          juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.3f),
-                                                          20.f,
+                                                          juce::CharPointer_UTF8("XLow"),
+                                                          juce::NormalisableRange<float>(20.f, 1000.f, 1.f, 0.3f),
+                                                          250.f,
                                                           juce::String(),
                                                           juce::AudioParameterFloat::genericParameter,
                                                           [](float value, int){
@@ -711,11 +714,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
                                                           },
                                                           nullptr);
 
-   // k_LPF @min 20 @max 20000 @default 20000 (Input LPF frequency Hz)
+   // k_LPF @min 1000 @max 20000 @default 5000 (XOver high frequency Hz)
    auto lpf = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("k_LPF", versionHint),
-                                                          juce::CharPointer_UTF8("LPF"),
-                                                          juce::NormalisableRange<float>(20.f, 20000.f, 1.f, 0.3f),
-                                                          20000.f,
+                                                          juce::CharPointer_UTF8("XHigh"),
+                                                          juce::NormalisableRange<float>(1000.f, 20000.f, 1.f, 0.3f),
+                                                          5000.f,
                                                           juce::String(),
                                                           juce::AudioParameterFloat::genericParameter,
                                                           [](float value, int){
@@ -755,6 +758,23 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
                                                                  juce::CharPointer_UTF8("Downsample On"),
                                                                  0, 1, 0);
 
+   // o_BAND @min 0 @max 2 @default 1 (Crossover band selector: 0=low, 1=mid, 2=high)
+   auto band = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("o_BAND", versionHint),
+                                                           juce::CharPointer_UTF8("Band"),
+                                                           juce::NormalisableRange<float>(0.f, 2.f, 0.01f, 1.0f),
+                                                           1.f,
+                                                           juce::String(),
+                                                           juce::AudioParameterFloat::genericParameter,
+                                                           [](float value, int) {
+                                                               if (value <= 0.5f)
+                                                                   return juce::String("Low");
+                                                               else if (value <= 1.5f)
+                                                                   return juce::String("Mid");
+                                                               else
+                                                                   return juce::String("High");
+                                                           },
+                                                           nullptr);
+
 
 
 
@@ -779,7 +799,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
    params.push_back(std::move(inputTrim));      // k_INPUT
    params.push_back(std::move(outputGain));     // l_OUTPUT
    params.push_back(std::move(downsample));     // m_DOWNSAMPLE
-   params.push_back(std::move(downsampleOn));  // n_DOWNSAMPLEON
+   params.push_back(std::move(downsampleOn));   // n_DOWNSAMPLEON
+   params.push_back(std::move(band));           // o_BAND
 
    // DISTORTION: No requiere parámetros especiales AAX de gain reduction
 
@@ -822,10 +843,10 @@ void JCBDistortionAudioProcessor::parameterChanged(const juce::String& parameter
         newValue = juce::jlimit(-6.0f, 6.0f, newValue);
     }
     else if (parameterID == "j_HPF") {
-        newValue = juce::jlimit(20.0f, 20000.0f, newValue);
+        newValue = juce::jlimit(20.0f, 1000.0f, newValue);
     }
     else if (parameterID == "k_LPF") {
-        newValue = juce::jlimit(20.0f, 20000.0f, newValue);
+        newValue = juce::jlimit(1000.0f, 20000.0f, newValue);
     }
     else if (parameterID == "l_SC") {
         newValue = juce::jlimit(0.0f, 1.0f, newValue);
@@ -841,6 +862,9 @@ void JCBDistortionAudioProcessor::parameterChanged(const juce::String& parameter
     }
     else if (parameterID == "n_DOWNSAMPLEON") {
         newValue = juce::jlimit(0.0f, 1.0f, newValue);
+    }
+    else if (parameterID == "o_BAND") {
+        newValue = juce::jlimit(0.0f, 2.0f, newValue);
     }
     else if (parameterID == "p_DISPLAYMODE") {
         newValue = juce::jlimit(0.0f, 1.0f, newValue);

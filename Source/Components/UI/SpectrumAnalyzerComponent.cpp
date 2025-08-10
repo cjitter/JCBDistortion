@@ -1,7 +1,8 @@
 #include "SpectrumAnalyzerComponent.h"
 
 SpectrumAnalyzerComponent::SpectrumAnalyzerComponent(juce::AudioProcessorValueTreeState& apvts)
-    : forwardFFT(fftOrder),
+    : valueTreeState(apvts),
+      forwardFFT(fftOrder),
       window(fftSize, juce::dsp::WindowingFunction<float>::hann)
 {
     // Inicializar buffers (diseño lock-free)
@@ -11,6 +12,22 @@ SpectrumAnalyzerComponent::SpectrumAnalyzerComponent(juce::AudioProcessorValueTr
     scopeData.fill(0.0f);
     copyScopeData.fill(0.0f);
     peakHoldData.fill(0.0f);
+    
+    // Añadir listeners para parámetros del crossover
+    apvts.addParameterListener("j_HPF", this);      // XLow frequency
+    apvts.addParameterListener("k_LPF", this);      // XHigh frequency
+    apvts.addParameterListener("o_BAND", this);     // Band selector
+    apvts.addParameterListener("l_SC", this);       // Filters enable
+    
+    // Inicializar valores desde APVTS
+    if (auto* param = apvts.getRawParameterValue("j_HPF"))
+        crossoverLowFreq.store(param->load());
+    if (auto* param = apvts.getRawParameterValue("k_LPF"))
+        crossoverHighFreq.store(param->load());
+    if (auto* param = apvts.getRawParameterValue("o_BAND"))
+        selectedBand.store(param->load());
+    if (auto* param = apvts.getRawParameterValue("l_SC"))
+        filtersEnabled.store(param->load() > 0.5f);
     
     // Iniciar timer para actualizaciones de display (30 FPS estable)
     startTimerHz(30);
@@ -25,6 +42,12 @@ SpectrumAnalyzerComponent::~SpectrumAnalyzerComponent()
     
     // Detener timer ANTES de destruir cualquier dato
     stopTimer();
+    
+    // Remover listeners de parámetros
+    valueTreeState.removeParameterListener("j_HPF", this);
+    valueTreeState.removeParameterListener("k_LPF", this);
+    valueTreeState.removeParameterListener("o_BAND", this);
+    valueTreeState.removeParameterListener("l_SC", this);
     
     // Pequeña demora para asegurar que callbacks de audio en curso terminen
     std::this_thread::sleep_for(std::chrono::milliseconds(10));
@@ -114,13 +137,26 @@ void SpectrumAnalyzerComponent::drawNextFrameOfSpectrum()
     for (int i = 0; i < scopeSize; ++i)
     {
         
-        // Mapeo de frecuencia logarítmico VERDADERO: 20Hz a 20kHz
-        // 1kHz aparece exactamente al 50% del display (centro logarítmico)
+        // Mapeo de frecuencia de 3 segmentos con mejor simetría visual
+        // 250Hz al 17.5%, 1kHz al 50%, mejor distribución visual
         float normalizedPosition = (float)i / (float)scopeSize;
         
-        auto logMin = std::log10(20.0f);      // 20Hz
-        auto logMax = std::log10(20000.0f);   // 20kHz
-        auto logFreq = logMin + normalizedPosition * (logMax - logMin);
+        const float log20 = std::log10(20.0f);
+        const float log250 = std::log10(250.0f);
+        const float log1k = std::log10(1000.0f);
+        const float log20k = std::log10(20000.0f);
+        
+        float logFreq;
+        if (normalizedPosition <= 0.25f) {
+            // Primer segmento: 0-25% mapea a 20Hz-250Hz
+            logFreq = log20 + (normalizedPosition / 0.25f) * (log250 - log20);
+        } else if (normalizedPosition <= 0.5f) {
+            // Segundo segmento: 25%-50% mapea a 250Hz-1kHz
+            logFreq = log250 + ((normalizedPosition - 0.25f) / 0.25f) * (log1k - log250);
+        } else {
+            // Tercer segmento: 50%-100% mapea a 1kHz-20kHz
+            logFreq = log1k + ((normalizedPosition - 0.5f) / 0.5f) * (log20k - log1k);
+        }
         float freq = std::pow(10.0f, logFreq);
         
         // Convertir frecuencia a índice de bin FFT usando sample rate dinámico
@@ -254,9 +290,20 @@ void SpectrumAnalyzerComponent::drawNextFrameOfSpectrum()
         {
             {
                 // Calcular frecuencia para este punto de display para tasa de decaimiento
-                auto logMin = std::log10(20.0f);      // 20Hz
-                auto logMax = std::log10(20000.0f);   // 20kHz
-                auto logFreq = logMin + ((float)i / (float)scopeSize) * (logMax - logMin);
+                float normalizedPosition = (float)i / (float)scopeSize;
+                const float log20 = std::log10(20.0f);
+                const float log250 = std::log10(250.0f);
+                const float log1k = std::log10(1000.0f);
+                const float log20k = std::log10(20000.0f);
+                
+                float logFreq;
+                if (normalizedPosition <= 0.25f) {
+                    logFreq = log20 + (normalizedPosition / 0.25f) * (log250 - log20);
+                } else if (normalizedPosition <= 0.5f) {
+                    logFreq = log250 + ((normalizedPosition - 0.25f) / 0.25f) * (log1k - log250);
+                } else {
+                    logFreq = log1k + ((normalizedPosition - 0.5f) / 0.5f) * (log20k - log1k);
+                }
                 auto freq = std::pow(10.0f, logFreq);
                 
                 // Tasa de decaimiento dependiente de frecuencia: agudos se mantienen más, graves decaen más rápido
@@ -287,8 +334,78 @@ void SpectrumAnalyzerComponent::paint(juce::Graphics& g)
 
 void SpectrumAnalyzerComponent::drawFrame(juce::Graphics& g, const juce::Rectangle<int>& bounds)
 {
+    // Helper functions para mapeo de 3 segmentos con mejor simetría visual
+    // Mantiene el rango 20Hz-20kHz, centra 1kHz al 50%, y posiciona 250Hz al 17.5%
+    auto mapFrequencyToX = [](float freq, float width) -> float {
+        const float log20 = std::log10(20.0f);
+        const float log250 = std::log10(250.0f);
+        const float log1k = std::log10(1000.0f);
+        const float log20k = std::log10(20000.0f);
+        
+        float position;
+        if (freq <= 250.0f) {
+            // Primer segmento: 20Hz-250Hz mapea a 0-0.25 (25%)
+            position = (std::log10(freq) - log20) / (log250 - log20) * 0.25f;
+        } else if (freq <= 1000.0f) {
+            // Segundo segmento: 250Hz-1kHz mapea a 0.25-0.5 (25%)
+            position = 0.25f + (std::log10(freq) - log250) / (log1k - log250) * 0.25f;
+        } else {
+            // Tercer segmento: 1kHz-20kHz mapea a 0.5-1.0 (50%)
+            position = 0.5f + (std::log10(freq) - log1k) / (log20k - log1k) * 0.5f;
+        }
+        return width * position;
+    };
+    
     // Fondo oscuro
     g.fillAll(juce::Colour(0x001a1a1a));
+    
+    // === COLORES DE FONDO DEL CROSSOVER ===
+    // Dibujar antes del espectro para que quede de fondo
+    if (filtersEnabled.load())
+    {
+        // Obtener frecuencias y banda seleccionada
+        float xLowFreq = crossoverLowFreq.load();
+        float xHighFreq = crossoverHighFreq.load();
+        float bandValue = selectedBand.load();
+        
+        // Calcular posiciones X usando mapeo bilineal
+        auto xLowPixel = mapFrequencyToX(xLowFreq, bounds.getWidth());
+        auto xHighPixel = mapFrequencyToX(xHighFreq, bounds.getWidth());
+        
+        // Colores base para cada banda (muy sutiles)
+        const float baseAlpha = 0.03f;
+        const float glowAlpha = 0.08f;  // Alpha adicional para banda seleccionada
+        
+        // Calcular intensidad de glow para cada banda basado en interpolación
+        float lowGlow = 0.0f;
+        float midGlow = 0.0f;
+        float highGlow = 0.0f;
+        
+        if (bandValue <= 1.0f) {
+            // Interpolación entre Low (0) y Mid (1)
+            lowGlow = 1.0f - bandValue;
+            midGlow = bandValue;
+        } else {
+            // Interpolación entre Mid (1) y High (2)
+            midGlow = 2.0f - bandValue;
+            highGlow = bandValue - 1.0f;
+        }
+        
+        // Banda Low (púrpura - graves)
+        juce::Colour lowColour = juce::Colour(0xFF9C27B0).withAlpha(baseAlpha + (lowGlow * glowAlpha));
+        g.setColour(lowColour);
+        g.fillRect(0.0f, 0.0f, xLowPixel, (float)bounds.getHeight());
+        
+        // Banda Mid (intermedio púrpura-azul)
+        juce::Colour midColour = juce::Colour(0xFF9C27B0).interpolatedWith(juce::Colour(0xFF2196F3), 0.5f).withAlpha(baseAlpha + (midGlow * glowAlpha));
+        g.setColour(midColour);
+        g.fillRect(xLowPixel, 0.0f, xHighPixel - xLowPixel, (float)bounds.getHeight());
+        
+        // Banda High (azul - agudos)
+        juce::Colour highColour = juce::Colour(0xFF2196F3).withAlpha(baseAlpha + (highGlow * glowAlpha));
+        g.setColour(highColour);
+        g.fillRect(xHighPixel, 0.0f, (float)bounds.getWidth() - xHighPixel, (float)bounds.getHeight());
+    }
     
     // Dibujar línea de espectro con codificación de color basada en frecuencia
     if (!bypassMode.load())
@@ -357,17 +474,12 @@ void SpectrumAnalyzerComponent::drawFrame(juce::Graphics& g, const juce::Rectang
     g.setColour(juce::Colours::white.withAlpha(0.1f));
     
     // Grilla logarítmica con espaciado correcto
-    std::vector<float> gridFrequencies = {50.0f, 100.0f, 200.0f, 500.0f, 1000.0f, 2000.0f, 5000.0f, 10000.0f};
+    std::vector<float> gridFrequencies = {50.0f, 100.0f, 250.0f, 500.0f, 1000.0f, 2000.0f, 5000.0f, 10000.0f};
     
     for (float freq : gridFrequencies)
     {
-        // Calcular posición usando mapeo logarítmico VERDADERO (igual que datos del espectro)
-        auto logMin = std::log10(20.0f);      // 20Hz
-        auto logMax = std::log10(20000.0f);   // 20kHz
-        auto logFreq = std::log10(freq);
-        auto position = (logFreq - logMin) / (logMax - logMin);
-        
-        auto x = bounds.getWidth() * position;
+        // Calcular posición usando mapeo bilineal (igual que datos del espectro)
+        auto x = mapFrequencyToX(freq, bounds.getWidth());
         g.drawVerticalLine(x, 0.0f, (float)bounds.getHeight());
     }
     
@@ -408,6 +520,7 @@ void SpectrumAnalyzerComponent::drawFrame(juce::Graphics& g, const juce::Rectang
     // Etiquetas de frecuencia en líneas clave de grilla (espaciado logarítmico)
     std::vector<std::pair<float, juce::String>> frequencyLabels = {
         {100.0f, "100"},
+        {250.0f, "250"},
         {500.0f, "500"},
         {1000.0f, "1k"},
         {2000.0f, "2k"},
@@ -420,19 +533,14 @@ void SpectrumAnalyzerComponent::drawFrame(juce::Graphics& g, const juce::Rectang
         float freq = label.first;
         juce::String text = label.second;
         
-        // Calcular posición usando mapeo logarítmico VERDADERO (igual que datos del espectro)
-        auto logMin = std::log10(20.0f);      // 20Hz
-        auto logMax = std::log10(20000.0f);   // 20kHz
-        auto logFreq = std::log10(freq);
-        auto position = (logFreq - logMin) / (logMax - logMin);
-        
-        auto x = bounds.getWidth() * position;
+        // Calcular posición usando mapeo bilineal (igual que datos del espectro)
+        auto x = mapFrequencyToX(freq, bounds.getWidth());
         g.drawText(text, x - 15, bounds.getBottom() - 15, 30, 12, juce::Justification::centred);
     }
     
     // Etiquetas de rango (esquinas)
     g.setFont(8.0f);
-    g.drawText("20Hz", bounds.getX() + 22, bounds.getBottom() - 15, 25, 12, juce::Justification::left);
+    g.drawText("50Hz", bounds.getX() + 22, bounds.getBottom() - 15, 25, 12, juce::Justification::left);
     g.drawText("20kHz", bounds.getRight() - 27, bounds.getBottom() - 15, 25, 12, juce::Justification::right);
     
     // Etiquetas de amplitud dinámicas basadas en estado de zoom actual
@@ -458,6 +566,69 @@ void SpectrumAnalyzerComponent::drawFrame(juce::Graphics& g, const juce::Rectang
     g.drawText(juce::String((int)currentMaxDB), bounds.getX() + 2, bounds.getY() + 2, 20, 12, juce::Justification::right);
     g.drawText(juce::String((int)currentMinDB), bounds.getX() + 2, bounds.getBottom() - 25, 20, 12, juce::Justification::right);
     
+    // Etiquetas de amplitud en el lado derecho (simetría visual)
+    for (float ampDB : gridAmplitudes)
+    {
+        float position = (ampDB - currentMinDB) / (currentMaxDB - currentMinDB);
+        auto y = bounds.getHeight() * (1.0f - position);
+        
+        if (ampDB >= currentMinDB && ampDB <= currentMaxDB && 
+            y >= 12.0f && y <= bounds.getHeight() - 12.0f)
+        {
+            juce::String dbText = juce::String((int)ampDB);
+            int xOffset = dbText.length() <= 2 ? 18 : 22; // Menos offset para números cortos
+            g.drawText(dbText, bounds.getRight() - xOffset, y - 6, 20, 12, juce::Justification::left);
+        }
+    }
+    
+    // Etiquetas superior e inferior en el lado derecho
+    juce::String topText = juce::String((int)currentMaxDB);
+    juce::String bottomText = juce::String((int)currentMinDB);
+    int topOffset = topText.length() <= 2 ? 18 : 22;
+    int bottomOffset = bottomText.length() <= 2 ? 18 : 22;
+    g.drawText(topText, bounds.getRight() - topOffset, bounds.getY() + 2, 20, 12, juce::Justification::left);
+    g.drawText(bottomText, bounds.getRight() - bottomOffset, bounds.getBottom() - 25, 20, 12, juce::Justification::left);
+    
+    // === VISUALIZACIÓN DEL CROSSOVER ===
+    // Solo dibujar si los filtros están activos
+    if (filtersEnabled.load())
+    {
+        // Obtener frecuencias del crossover
+        float xLowFreq = crossoverLowFreq.load();
+        float xHighFreq = crossoverHighFreq.load();
+        
+        // Calcular posiciones X usando el mismo mapeo bilineal que el espectro
+        auto xLowPixel = mapFrequencyToX(xLowFreq, bounds.getWidth());
+        auto xHighPixel = mapFrequencyToX(xHighFreq, bounds.getWidth());
+        
+        // Dibujar líneas verticales punteadas
+        g.setColour(juce::Colours::white.withAlpha(0.4f));
+        
+        // Línea XLow
+        float dashPattern[] = {4.0f, 4.0f};
+        g.drawDashedLine(juce::Line<float>(xLowPixel, 0, xLowPixel, bounds.getHeight()),
+                         dashPattern, 2, 1.0f);
+        
+        // Línea XHigh
+        g.drawDashedLine(juce::Line<float>(xHighPixel, 0, xHighPixel, bounds.getHeight()),
+                         dashPattern, 2, 1.0f);
+        
+        // Etiquetas de frecuencia en las líneas
+        g.setFont(8.0f);
+        g.setColour(juce::Colours::white.withAlpha(0.7f));
+        
+        // Etiqueta XLow
+        juce::String xLowText = xLowFreq < 1000.0f ? 
+            juce::String((int)xLowFreq) + "Hz" : 
+            juce::String(xLowFreq/1000.0f, 1) + "kHz";
+        g.drawText(xLowText, xLowPixel - 20, 2, 40, 12, juce::Justification::centred);
+        
+        // Etiqueta XHigh
+        juce::String xHighText = xHighFreq < 1000.0f ? 
+            juce::String((int)xHighFreq) + "Hz" : 
+            juce::String(xHighFreq/1000.0f, 1) + "kHz";
+        g.drawText(xHighText, xHighPixel - 20, 2, 40, 12, juce::Justification::centred);
+    }
 }
 
 void SpectrumAnalyzerComponent::setBypassMode(bool enabled) noexcept
@@ -483,6 +654,29 @@ void SpectrumAnalyzerComponent::parameterChanged(const juce::String& parameterID
     if (parameterID == "f_BYPASS")
     {
         setBypassMode(newValue > 0.5f);
+    }
+    // Actualizar frecuencias del crossover
+    else if (parameterID == "j_HPF")
+    {
+        crossoverLowFreq.store(newValue);
+        repaint();
+    }
+    else if (parameterID == "k_LPF")
+    {
+        crossoverHighFreq.store(newValue);
+        repaint();
+    }
+    // Actualizar banda seleccionada
+    else if (parameterID == "o_BAND")
+    {
+        selectedBand.store(newValue);
+        repaint();
+    }
+    // Actualizar estado de filtros
+    else if (parameterID == "l_SC")
+    {
+        filtersEnabled.store(newValue > 0.5f);
+        repaint();
     }
 }
 

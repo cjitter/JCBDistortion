@@ -265,8 +265,9 @@ public:
             if (name == "release" || id == "release") return "REL";
             if (name == "hold" || id == "hold") return "HOLD";
             if (name == "react" || id == "react") return "REACT";
-            if (name == "hpf" || id == "hpf") return "HPF";
-            if (name == "lpf" || id == "lpf") return "LPF";
+            if (name == "hpf" || id == "hpf") return "XLow";  // Crossover Low
+            if (name == "band" || id == "band") return "BAND";  // Crossover Band selector
+            if (name == "lpf" || id == "lpf") return "XHigh";  // Crossover High
             if (name == "thd" || id == "thd") return "GAIN";
             if (name == "ratio" || id == "ratio") return "RATIO";
             if (name == "range" || id == "range") return "RANGE";
