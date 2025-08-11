@@ -42,6 +42,9 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
       // scMeterL([&p](){ return p.getSCValue(0); }), // SC meter L
       // scMeterR([&p](){ return p.getSCValue(1); }) // SC meter R
 {
+    // Inicializar LookAndFeel personalizado para el botón FILTERS
+    filtersButtonLAF = std::make_unique<FiltersButtonLookAndFeel>(processor.apvts);
+    
     // Configurar todos los componentes
     setupBackground();
     setupKnobs();
@@ -73,9 +76,9 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     // Verificar si el host es Logic Pro
     juce::PluginHostType hostInfo;
     if (hostInfo.isLogic()) {
-        titleText = "v0.9.0 beta";  // Solo versión para Logic Pro
+        titleText = "v0.9.1 beta";  // Solo versión para Logic Pro
     } else {
-        titleText = "JCBDistortion v0.9.0 beta";  // Nombre completo para otros DAWs
+        titleText = "JCBDistortion v0.9.1 beta";  // Nombre completo para otros DAWs
     }
     
     titleLink.setButtonText(titleText);
@@ -256,6 +259,219 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     startTimerHz(TIMER_HZ);
 }
 
+//==============================================================================
+// IMPLEMENTACIÓN DE BANDSLIDER LOOKANDFEEL
+//==============================================================================
+
+void JCBDistortionAudioProcessorEditor::BandSliderLookAndFeel::drawLinearSlider(
+    juce::Graphics& g,
+    int x, int y, int width, int height,
+    float sliderPos,
+    float minSliderPos,
+    float maxSliderPos,
+    const juce::Slider::SliderStyle style,
+    juce::Slider& slider)
+{
+    if (style == juce::Slider::LinearHorizontal)
+    {
+        // Dibujar el track de fondo (línea horizontal)
+        const float trackHeight = 2.0f;
+        const float trackY = y + height * 0.5f - trackHeight * 0.5f;
+        
+        g.setColour(juce::Colours::white.withAlpha(0.12f));
+        g.fillRoundedRectangle(x, trackY, width, trackHeight, trackHeight * 0.5f);
+        
+        // Dibujar el thumb con gradiente basado en el valor actual
+        const float thumbDiameter = juce::jmin(width, height) * 0.7f;
+        const float thumbX = sliderPos - thumbDiameter * 0.5f;
+        const float thumbY = y + height * 0.5f - thumbDiameter * 0.5f;
+        
+        // Obtener el valor actual del slider (0=Low, 1=Mid, 2=High)
+        float bandValue = static_cast<float>(slider.getValue());
+        
+        // Calcular colores para el gradiente del thumb
+        juce::Colour thumbColour = getInterpolatedBandColour(bandValue);
+        
+        // Dibujar sombra del thumb
+        g.setColour(juce::Colours::black.withAlpha(0.3f));
+        g.fillEllipse(thumbX + 1.0f, thumbY + 1.0f, thumbDiameter, thumbDiameter);
+        
+        // Dibujar el thumb con gradiente
+        if (bandValue <= 1.0f)
+        {
+            // Gradiente entre Low (púrpura) y Mid (mezcla)
+            float t = bandValue;  // 0 a 1
+            juce::ColourGradient gradient(
+                lowBandColour,
+                thumbX, thumbY + thumbDiameter * 0.5f,
+                lowBandColour.interpolatedWith(highBandColour, 0.5f),
+                thumbX + thumbDiameter, thumbY + thumbDiameter * 0.5f,
+                false
+            );
+            gradient.addColour(0.5, lowBandColour.interpolatedWith(highBandColour, t * 0.5f));
+            g.setGradientFill(gradient);
+        }
+        else
+        {
+            // Gradiente entre Mid (mezcla) y High (azul)
+            float t = bandValue - 1.0f;  // 0 a 1
+            juce::ColourGradient gradient(
+                lowBandColour.interpolatedWith(highBandColour, 0.5f),
+                thumbX, thumbY + thumbDiameter * 0.5f,
+                highBandColour,
+                thumbX + thumbDiameter, thumbY + thumbDiameter * 0.5f,
+                false
+            );
+            gradient.addColour(0.5, lowBandColour.interpolatedWith(highBandColour, 0.5f + t * 0.5f));
+            g.setGradientFill(gradient);
+        }
+        
+        g.fillEllipse(thumbX, thumbY, thumbDiameter, thumbDiameter);
+        
+        // Añadir un borde sutil al thumb
+        g.setColour(thumbColour.brighter(0.3f).withAlpha(0.8f));
+        g.drawEllipse(thumbX, thumbY, thumbDiameter, thumbDiameter, 1.0f);
+        
+        // Añadir punto central brillante
+        const float centerDotSize = thumbDiameter * 0.2f;
+        g.setColour(juce::Colours::white.withAlpha(0.9f));
+        g.fillEllipse(
+            thumbX + thumbDiameter * 0.5f - centerDotSize * 0.5f,
+            thumbY + thumbDiameter * 0.5f - centerDotSize * 0.5f,
+            centerDotSize,
+            centerDotSize
+        );
+    }
+    else
+    {
+        // Delegar a la implementación por defecto para otros estilos
+        juce::LookAndFeel_V4::drawLinearSlider(g, x, y, width, height, 
+                                              sliderPos, minSliderPos, maxSliderPos, 
+                                              style, slider);
+    }
+}
+
+juce::Colour JCBDistortionAudioProcessorEditor::BandSliderLookAndFeel::getInterpolatedBandColour(float bandValue) const
+{
+    // bandValue: 0=Low, 1=Mid, 2=High
+    if (bandValue <= 1.0f)
+    {
+        // Interpolar entre Low (púrpura) y Mid (mezcla púrpura-azul)
+        return lowBandColour.interpolatedWith(
+            lowBandColour.interpolatedWith(highBandColour, 0.5f),
+            bandValue
+        );
+    }
+    else
+    {
+        // Interpolar entre Mid (mezcla) y High (azul)
+        float t = bandValue - 1.0f;
+        return lowBandColour.interpolatedWith(highBandColour, 0.5f)
+            .interpolatedWith(highBandColour, t);
+    }
+}
+
+//==============================================================================
+// IMPLEMENTACIÓN DE FILTERSBUTTONLOOKANDFEEL
+//==============================================================================
+
+void JCBDistortionAudioProcessorEditor::FiltersButtonLookAndFeel::drawButtonBackground(
+    juce::Graphics& g, juce::Button& button,
+    const juce::Colour& backgroundColour,
+    bool shouldDrawButtonAsHighlighted,
+    bool shouldDrawButtonAsDown)
+{
+    auto bounds = button.getLocalBounds().toFloat();
+    
+    // Si el botón está activado (toggle ON), dibujar gradiente basado en banda seleccionada
+    if (auto* toggleButton = dynamic_cast<juce::TextButton*>(&button))
+    {
+        if (toggleButton->getToggleState())
+        {
+            // Obtener el valor actual de la banda seleccionada
+            float bandValue = 1.0f;  // Default: Mid
+            if (auto* param = valueTreeState.getRawParameterValue("o_BAND"))
+            {
+                bandValue = param->load();
+            }
+            
+            // Crear gradiente basado en la banda seleccionada
+            juce::ColourGradient gradient;
+            
+            if (bandValue <= 1.0f)
+            {
+                // Gradiente entre Low (púrpura) y Mid (mezcla)
+                float t = bandValue;  // 0 a 1
+                gradient = juce::ColourGradient(
+                    lowBandColour.withAlpha(0.35f),
+                    bounds.getX(), bounds.getCentreY(),
+                    lowBandColour.interpolatedWith(highBandColour, 0.5f).withAlpha(0.25f),
+                    bounds.getRight(), bounds.getCentreY(),
+                    false
+                );
+                // Añadir punto intermedio para transición más suave
+                gradient.addColour(0.5, lowBandColour.interpolatedWith(highBandColour, t * 0.5f).withAlpha(0.3f));
+            }
+            else
+            {
+                // Gradiente entre Mid (mezcla) y High (azul)
+                float t = bandValue - 1.0f;  // 0 a 1
+                gradient = juce::ColourGradient(
+                    lowBandColour.interpolatedWith(highBandColour, 0.5f).withAlpha(0.25f),
+                    bounds.getX(), bounds.getCentreY(),
+                    highBandColour.withAlpha(0.35f),
+                    bounds.getRight(), bounds.getCentreY(),
+                    false
+                );
+                // Añadir punto intermedio para transición más suave
+                gradient.addColour(0.5, lowBandColour.interpolatedWith(highBandColour, 0.5f + t * 0.5f).withAlpha(0.3f));
+            }
+            
+            // Dibujar fondo con gradiente
+            g.setGradientFill(gradient);
+            g.fillRoundedRectangle(bounds, 3.0f);
+            
+            // Añadir un borde sutil con el color interpolado
+            juce::Colour borderColour = getInterpolatedBandColour(bandValue);
+            g.setColour(borderColour.withAlpha(0.3f));
+            g.drawRoundedRectangle(bounds.reduced(0.5f), 3.0f, 1.0f);
+        }
+        else
+        {
+            // Botón desactivado: fondo transparente (comportamiento por defecto)
+            g.setColour(backgroundColour);
+            g.fillRoundedRectangle(bounds, 3.0f);
+        }
+    }
+    else
+    {
+        // Fallback para otros tipos de botones
+        g.setColour(backgroundColour);
+        g.fillRoundedRectangle(bounds, 3.0f);
+    }
+}
+
+juce::Colour JCBDistortionAudioProcessorEditor::FiltersButtonLookAndFeel::getInterpolatedBandColour(float bandValue) const
+{
+    // bandValue: 0=Low, 1=Mid, 2=High
+    // Misma lógica que BandSliderLookAndFeel para consistencia
+    if (bandValue <= 1.0f)
+    {
+        // Interpolar entre Low (púrpura) y Mid (mezcla púrpura-azul)
+        return lowBandColour.interpolatedWith(
+            lowBandColour.interpolatedWith(highBandColour, 0.5f),
+            bandValue
+        );
+    }
+    else
+    {
+        // Interpolar entre Mid (mezcla) y High (azul)
+        float t = bandValue - 1.0f;
+        return lowBandColour.interpolatedWith(highBandColour, 0.5f)
+            .interpolatedWith(highBandColour, t);
+    }
+}
+
 JCBDistortionAudioProcessorEditor::~JCBDistortionAudioProcessorEditor()
 {
     // CRÍTICO: Detener timer PRIMERO para prevenir crashes durante destrucción
@@ -306,49 +522,7 @@ void JCBDistortionAudioProcessorEditor::paintOverChildren (juce::Graphics& g)
         g.drawText("BYPASS", transferBounds, juce::Justification::centred);
     }
     
-    // Etiquetas para el slider BAND horizontal (Low - Mid - High) - DEBAJO del slider
-    // Solo dibujar si DIAGRAM no está visible para evitar superposición
-    if (sidechainControls.bandSlider.isVisible() && 
-        (!diagramOverlay || !diagramOverlay->isVisible())) {
-        
-        // Guardar estado del Graphics context para evitar interferencias
-        g.saveState();
-        
-        // Obtener estado de FILTERS para aplicar alpha correcto
-        bool filtersActive = sidechainControls.scButton.getToggleState();
-        
-        auto bandBounds = sidechainControls.bandSlider.getBounds();
-        // Color con alpha según estado de FILTERS (0.85 activo, 0.425 inactivo - mismo ratio que sliders)
-        auto textColour = juce::Colours::white.withAlpha(filtersActive ? 0.85f : 0.425f);
-        g.setFont(juce::Font(juce::FontOptions(11.0f)));  // Fuente más grande
-        
-        const int labelY = bandBounds.getBottom() + 1;  // Posición Y debajo del slider
-        const int labelHeight = 14;  // Altura aumentada para las etiquetas
-        
-        // Etiqueta "Low" alineada a la izquierda del slider
-        g.setColour(textColour);  // Establecer color antes de cada drawText
-        g.drawText("Low", 
-                   bandBounds.getX(), labelY, 
-                   20, labelHeight, 
-                   juce::Justification::centredLeft);
-        
-        // Etiqueta "Mid" centrada con el slider
-        g.setColour(textColour);  // Re-establecer color para evitar interferencias
-        g.drawText("Mid", 
-                   bandBounds.getX() + bandBounds.getWidth()/2 - 15, labelY,
-                   30, labelHeight,
-                   juce::Justification::centred);
-        
-        // Etiqueta "High" alineada a la derecha del slider
-        g.setColour(textColour);  // Re-establecer color para evitar interferencias
-        g.drawText("High",
-                   bandBounds.getRight() - 25, labelY,
-                   25, labelHeight,
-                   juce::Justification::centredRight);
-        
-        // Restaurar estado del Graphics context
-        g.restoreState();
-    }
+    // Las etiquetas de BAND ahora se manejan con componentes Label separados
 }
 
 void JCBDistortionAudioProcessorEditor::resized()
@@ -449,7 +623,24 @@ void JCBDistortionAudioProcessorEditor::resized()
 
     // BAND slider horizontal debajo del botón FILTERS
     const int bandCenterX = 353;  // Mismo centro que el botón FILTERS
-    sidechainControls.bandSlider.setBounds(getScaledBounds(bandCenterX - 35, 24, 70, 10));  // Slider horizontal delgado, bajado 4px
+    auto bandBounds = getScaledBounds(bandCenterX - 35, 24, 70, 10);  // Slider horizontal delgado, bajado 4px
+    sidechainControls.bandSlider.setBounds(bandBounds);
+    
+    // Posicionar las labels debajo del slider BAND
+    const int labelY = bandBounds.getBottom() + 1;
+    const int labelHeight = 14;
+    
+    // Label "Low" alineada a la izquierda del slider
+    sidechainControls.bandLowLabel.setBounds(
+        bandBounds.getX(), labelY, 30, labelHeight);
+    
+    // Label "Mid" centrada con el slider
+    sidechainControls.bandMidLabel.setBounds(
+        bandBounds.getX() + bandBounds.getWidth()/2 - 15, labelY, 30, labelHeight);
+    
+    // Label "High" alineada a la derecha del slider
+    sidechainControls.bandHighLabel.setBounds(
+        bandBounds.getRight() - 25, labelY, 25, labelHeight);
     // sidechainControls.hpfOrderButton.setBounds(getScaledBounds(265, 14, 24, 12));
     // sidechainControls.lpfOrderButton.setBounds(getScaledBounds(415, 14, 24, 12));
     
@@ -1315,10 +1506,10 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     sidechainControls.bandSlider.setComponentID("band");
     sidechainControls.bandSlider.setSliderStyle(juce::Slider::LinearHorizontal);  // Slider horizontal
     sidechainControls.bandSlider.setTextBoxStyle(juce::Slider::NoTextBox, false, 0, 0);  // Sin text box
-    sidechainControls.bandSlider.setLookAndFeel(&sliderLAFBig);  // Usar el LAF disponible
+    sidechainControls.bandSlider.setLookAndFeel(&bandSliderLAF);  // Usar el LAF personalizado con gradiente
     sidechainControls.bandSlider.setColour(juce::Slider::backgroundColourId, juce::Colours::white.withAlpha(0.12f));  // Fondo blanco muy sutil
     sidechainControls.bandSlider.setColour(juce::Slider::trackColourId, juce::Colours::transparentBlack);  // Sin track de progreso
-    sidechainControls.bandSlider.setColour(juce::Slider::thumbColourId, juce::Colours::white);  // Punto blanco visible
+    sidechainControls.bandSlider.setColour(juce::Slider::thumbColourId, juce::Colours::white);  // Color base (será sobrescrito por LAF)
     sidechainControls.bandSlider.setTextBoxIsEditable(true);
     sidechainControls.bandSlider.setEnabled(true);  // Inicialmente habilitado
     sidechainControls.bandSlider.setAlpha(1.0f);  // Inicialmente visible
@@ -1333,8 +1524,39 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     {
         sidechainControls.bandAttachment = std::make_unique<CustomSliderAttachment>(
             *param, sidechainControls.bandSlider, &undoManager);
-        sidechainControls.bandAttachment->onParameterChange = [this]() { handleParameterChange(); };
+        sidechainControls.bandAttachment->onParameterChange = [this]() { 
+            handleParameterChange(); 
+            // Repintar el botón FILTERS para actualizar gradiente con nuevo valor de banda
+            sidechainControls.scButton.repaint();
+        };
     }
+    
+    // Configurar las labels para BAND (Low, Mid, High) con colores que coinciden con el analizador
+    // Colores tomados de SpectrumAnalyzerComponent para consistencia visual
+    const juce::Colour lowBandColour = juce::Colour(0xFF9C27B0);  // Púrpura (graves)
+    const juce::Colour highBandColour = juce::Colour(0xFF2196F3);  // Azul (agudos)
+    const juce::Colour midBandColour = lowBandColour.interpolatedWith(highBandColour, 0.5f);  // Mezcla púrpura-azul
+    
+    sidechainControls.bandLowLabel.setText("Low", juce::dontSendNotification);
+    sidechainControls.bandLowLabel.setFont(juce::Font(juce::FontOptions(11.0f)));
+    sidechainControls.bandLowLabel.setColour(juce::Label::textColourId, lowBandColour);
+    sidechainControls.bandLowLabel.setJustificationType(juce::Justification::centredLeft);
+    sidechainControls.bandLowLabel.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(sidechainControls.bandLowLabel);
+    
+    sidechainControls.bandMidLabel.setText("Mid", juce::dontSendNotification);
+    sidechainControls.bandMidLabel.setFont(juce::Font(juce::FontOptions(11.0f)));
+    sidechainControls.bandMidLabel.setColour(juce::Label::textColourId, midBandColour);
+    sidechainControls.bandMidLabel.setJustificationType(juce::Justification::centred);
+    sidechainControls.bandMidLabel.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(sidechainControls.bandMidLabel);
+    
+    sidechainControls.bandHighLabel.setText("High", juce::dontSendNotification);
+    sidechainControls.bandHighLabel.setFont(juce::Font(juce::FontOptions(11.0f)));
+    sidechainControls.bandHighLabel.setColour(juce::Label::textColourId, highBandColour);
+    sidechainControls.bandHighLabel.setJustificationType(juce::Justification::centredRight);
+    sidechainControls.bandHighLabel.setInterceptsMouseClicks(false, false);
+    addAndMakeVisible(sidechainControls.bandHighLabel);
     
     // Slider LPF - copia EXACTA de ExpansorGate
     sidechainControls.xHighSlider.setName("lpf");
@@ -1372,8 +1594,9 @@ rightTopControls.tiltSlider.setComponentID("tilt");
 
     // Botón FILTERS (antes SC) - VISIBLE para activar/desactivar filtros
     sidechainControls.scButton.setClickingTogglesState(true);
+    sidechainControls.scButton.setLookAndFeel(filtersButtonLAF.get());  // Aplicar LAF con gradiente
     sidechainControls.scButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
-    sidechainControls.scButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::darkviolet.withAlpha(0.3f));
+    sidechainControls.scButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);  // Ahora manejado por LAF
     sidechainControls.scButton.setColour(juce::TextButton::textColourOffId, DarkTheme::textSecondary.withAlpha(0.7f));
     sidechainControls.scButton.setColour(juce::TextButton::textColourOnId, DarkTheme::textPrimary);
     sidechainControls.scButton.addListener(this);
@@ -1526,7 +1749,18 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
         
         // NOTA: El historial de undo se borrará al final para evitar grabar cambios de parámetros
         
-        juce::String presetName = presetArea.presetMenu.getItemText(selectedId - 1);
+        // Buscar el nombre real del preset usando el mapeo
+        juce::String presetName;
+        if (presetIdToNameMap.find(selectedId) != presetIdToNameMap.end()) {
+            presetName = presetIdToNameMap[selectedId];
+        } else {
+            // Si no está en el mapeo, intentar obtenerlo del texto del menú (fallback)
+            presetName = presetArea.presetMenu.getText();
+            if (presetName.isEmpty()) {
+                presetArea.presetMenu.setSelectedId(0);
+                return;
+            }
+        }
         
         // Ignorar separadores
         if (presetName.startsWith("---")) {
@@ -1558,13 +1792,6 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
                 leftTopKnobs.ceilingSlider.setValue(realValue, juce::sendNotificationSync);
             }
-            /*
-            if (auto* param = processor.apvts.getParameter("c_RATIO")) {
-                float defaultValue = param->getDefaultValue();
-                float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
-                leftTopKnobs.ratioSlider.setValue(realValue, juce::sendNotificationSync);
-            }
-            */
             if (auto* param = processor.apvts.getParameter("b_DRIVE")) {
                 float defaultValue = param->getDefaultValue();
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
@@ -1575,38 +1802,6 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
                 rightBottomKnobs.modeSlider.setValue(realValue, juce::sendNotificationSync);
             }
-            // MAXIMIZER: f_HOLD no existe - comentado según CONTEXTO.txt
-            /*
-            if (auto* param = processor.apvts.getParameter("f_HOLD")) {
-                float defaultValue = param->getDefaultValue();
-                float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
-                rightBottomKnobs.holdSlider.setValue(realValue, juce::sendNotificationSync);
-            }
-            */
-            // MAXIMIZER: g_REACT no existe - comentado según CONTEXTO.txt
-            /*
-            if (auto* param = processor.apvts.getParameter("g_REACT")) {
-                float defaultValue = param->getDefaultValue();
-                float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
-                rightTopControls.reactSlider.setValue(realValue, juce::sendNotificationSync);
-            }
-            */
-            // MAXIMIZER: h_RANGE no existe - comentado según CONTEXTO.txt
-            /*
-            if (auto* param = processor.apvts.getParameter("h_RANGE")) {
-                float defaultValue = param->getDefaultValue();
-                float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
-                rightTopControls.rangeSlider.setValue(realValue, juce::sendNotificationSync);
-            }
-            */
-            // MAXIMIZER: q_KNEE no existe - comentado según CONTEXTO.txt
-            /*
-            if (auto* param = processor.apvts.getParameter("q_KNEE")) {
-                float defaultValue = param->getDefaultValue();
-                float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
-                leftTopKnobs.kneeSlider.setValue(realValue, juce::sendNotificationSync);
-            }
-            */
             if (auto* param = processor.apvts.getParameter("l_OUTPUT")) {
                 float defaultValue = param->getDefaultValue();
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
@@ -1632,32 +1827,11 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
                 sidechainControls.bandSlider.setValue(realValue, juce::sendNotificationSync);
             }
-            /*
-            if (auto* param = processor.apvts.getParameter("m_SOLOSC")) {
-                float defaultValue = param->getDefaultValue();
-                bool toggleState = defaultValue >= 0.5f;
-                sidechainControls.soloScButton.setToggleState(toggleState, juce::sendNotificationSync);
-            }
-            */
-            // MAXIMIZER: o_DRYWET no existe - comentado según CONTEXTO.txt
-            /*
-            if (auto* param = processor.apvts.getParameter("o_DRYWET")) {
-                float defaultValue = param->getDefaultValue();
-                float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
-                        }
-            */
             if (auto* param = processor.apvts.getParameter("f_BYPASS")) {
                 float defaultValue = param->getDefaultValue();
                 bool toggleState = defaultValue >= 0.5f;
                 parameterButtons.bypassButton.setToggleState(toggleState, juce::sendNotificationSync);
             }
-            /*
-            if (auto* param = processor.apvts.getParameter("r_KEY")) {
-                float defaultValue = param->getDefaultValue();
-                bool toggleState = defaultValue >= 0.5f;
-                sidechainControls.keyButton.setToggleState(toggleState, juce::sendNotificationSync);
-            }
-            */
             if (auto* param = processor.apvts.getParameter("h_BITSON")) {
                 float defaultValue = param->getDefaultValue();
                 bool toggleState = defaultValue >= 0.5f;
@@ -1688,23 +1862,7 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
                 rightTopControls.downsampleSlider.setValue(realValue, juce::sendNotificationSync);
             }
-            /*
-            if (auto* param = processor.apvts.getParameter("y_SCTRIM")) {
-                float defaultValue = param->getDefaultValue();
-                float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
-                scTrimSlider.setValue(realValue, juce::sendNotificationSync);
-            }
-            */
-            // MAXIMIZER: z_SMOOTH no existe - comentado según CONTEXTO.txt
-            /*
-            if (auto* param = processor.apvts.getParameter("z_SMOOTH")) {
-                float defaultValue = param->getDefaultValue();
-                float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
-                rightTopControls.smoothSlider.setValue(realValue, juce::sendNotificationSync);
-            }
-            */
-            // Los botones de orden de filtro se actualizan automáticamente a través de sus attachments
-            
+
             // Reactivar undo después carga de preset
             isLoadingPreset = false;
             
@@ -1727,12 +1885,11 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 }
             }
         } 
-        else if (presetName.startsWith("[F] ")) {
-            // Es un factory preset - cargar desde BinaryData
-            juce::String factoryPresetName = presetName.substring(4); // Quitar "[F] "
-            
-            // Convertir el nombre a formato de recurso BinaryData
-            juce::String resourceName = factoryPresetName.replace(" ", "_") + "_preset";
+        else if (presetName.startsWith("Drums_") || presetName.startsWith("Voces_") || 
+                 presetName.startsWith("Fx_") || presetName.startsWith("Synth_") || 
+                 presetName.startsWith("General_")) {
+            // Es un factory preset con prefijo de categoría - cargar desde BinaryData
+            juce::String resourceName = presetName + "_preset";
             
             // Buscar el recurso en BinaryData
             for (int i = 0; i < BinaryData::namedResourceListSize; ++i) {
@@ -1778,7 +1935,22 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
         
         // Actualizar estado en processor
         processor.setLastPreset(selectedId);
-        processor.setPresetDisplayText(presetName);
+        
+        // Para mostrar en el menú, usar nombre limpio sin prefijos
+        juce::String displayName = presetName;
+        if (presetName.startsWith("Drums_")) {
+            displayName = "[F] " + presetName.substring(6).replace("_", " ");
+        } else if (presetName.startsWith("Voces_")) {
+            displayName = "[F] " + presetName.substring(6).replace("_", " ");
+        } else if (presetName.startsWith("Fx_")) {
+            displayName = "[F] " + presetName.substring(3).replace("_", " ");
+        } else if (presetName.startsWith("Synth_")) {
+            displayName = "[F] " + presetName.substring(6).replace("_", " ");
+        } else if (presetName.startsWith("General_")) {
+            displayName = "[F] " + presetName.substring(8).replace("_", " ");
+        }
+        
+        processor.setPresetDisplayText(displayName);
         processor.setPresetTextItalic(false);
         presetArea.presetMenu.setTextItalic(false);
         
@@ -1790,8 +1962,7 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
         // Borrar el historial de undos DESPUÉS de haber establecido todos los valores.
         // Esto previene que los cambios de parámetros se registren en el historial de undo
         undoManager.clearUndoHistory();
-        
-        
+
         // Nota: el flag isLoadingPreset se resetea automáticamente por el destructor LoadingGuard
     };
     
@@ -2049,10 +2220,25 @@ void JCBDistortionAudioProcessorEditor::updateSidechainComponentStates()
     sidechainControls.bandSlider.setAlpha(filtersActive ? 1.0f : 0.5f);  // Alpha indica estado
     sidechainControls.xHighSlider.setAlpha(filtersActive ? 1.0f : 0.5f);   // Alpha indica estado
     
+    // Actualizar alpha de las labels de BAND
+    float labelAlpha = filtersActive ? 0.85f : 0.425f;  // Mismo ratio que en paintOverChildren
+    sidechainControls.bandLowLabel.setAlpha(labelAlpha);
+    sidechainControls.bandMidLabel.setAlpha(labelAlpha);
+    sidechainControls.bandHighLabel.setAlpha(labelAlpha);
+    
     // Forzar repaint para actualizar colores
     sidechainControls.xLowSlider.repaint();
     sidechainControls.bandSlider.repaint();
     sidechainControls.xHighSlider.repaint();
+    sidechainControls.bandLowLabel.repaint();
+    sidechainControls.bandMidLabel.repaint();
+    sidechainControls.bandHighLabel.repaint();
+    
+    // Repintar botón FILTERS para actualizar gradiente cuando cambia la banda
+    if (filtersActive)
+    {
+        sidechainControls.scButton.repaint();
+    }
 }
 
 void JCBDistortionAudioProcessorEditor::updateBackgroundState()
@@ -2358,55 +2544,110 @@ juce::Array<juce::File> JCBDistortionAudioProcessorEditor::populatePresetFolder(
 void JCBDistortionAudioProcessorEditor::refreshPresetMenu()
 {
     presetArea.presetMenu.clear();
-    juce::StringArray presetNames;
+    presetIdToNameMap.clear();  // Limpiar mapeo anterior
     
     // Añadir DEFAULT como primer preset siempre
-    presetNames.add("DEFAULT");
+    presetArea.presetMenu.addItem("DEFAULT", 1);
+    presetIdToNameMap[1] = "DEFAULT";
     
-    // Añadir separador para factory presets
-    presetNames.add("--- Factory Presets ---");
+    // Añadir separador
+    presetArea.presetMenu.addItem("---", 2);
     
-    // Añadir factory presets desde BinaryData
-    juce::StringArray factoryPresetNames;
+    // Organizar factory presets por categoría
+    std::map<juce::String, juce::StringArray> categorizedPresets;
+    std::map<juce::String, juce::StringArray> categorizedFullNames;  // Nombres completos con prefijos
+    int nextId = 100;
+    
+    // Procesar factory presets desde BinaryData
     for (int i = 0; i < BinaryData::namedResourceListSize; ++i)
     {
         juce::String resourceName(BinaryData::namedResourceList[i]);
         
-        // Buscar archivos que terminen en "_preset" (los .preset se convierten a _preset en BinaryData)
+        // Buscar archivos que terminen en "_preset"
         if (resourceName.endsWith("_preset"))
         {
-            // Limpiar el nombre para mostrar
-            juce::String cleanName = resourceName.replace("_preset", "")
-                                               .replace("_", " ");
-            factoryPresetNames.add(cleanName);
+            juce::String cleanName = resourceName.replace("_preset", "");
+            
+            // Detectar categoría del prefijo
+            juce::String category = "General";
+            juce::String presetName = cleanName;
+            
+            if (cleanName.startsWith("Drums_"))
+            {
+                category = "Drums";
+                presetName = cleanName.substring(6).replace("_", " ");
+            }
+            else if (cleanName.startsWith("Voces_"))
+            {
+                category = "Voces";
+                presetName = cleanName.substring(6).replace("_", " ");
+            }
+            else if (cleanName.startsWith("Fx_"))
+            {
+                category = "Fx";
+                presetName = cleanName.substring(3).replace("_", " ");
+            }
+            else if (cleanName.startsWith("Synth_"))
+            {
+                category = "Synth";
+                presetName = cleanName.substring(6).replace("_", " ");
+            }
+            else if (cleanName.startsWith("General_"))
+            {
+                category = "General";
+                presetName = cleanName.substring(8).replace("_", " ");
+            }
+            
+            categorizedPresets[category].add("[F] " + presetName);
+            categorizedFullNames[category].add(cleanName);  // Guardar nombre completo con prefijo
         }
     }
     
-    // Ordenar factory presets alfabéticamente
-    factoryPresetNames.sort(true);
-    for (const auto& name : factoryPresetNames)
+    // Añadir categorías al menú
+    juce::StringArray categoryOrder = {"Drums", "Voces", "Fx", "Synth", "General"};
+    
+    for (const auto& category : categoryOrder)
     {
-        presetNames.add("[F] " + name);  // [F] indica Factory preset
+        if (categorizedPresets.find(category) != categorizedPresets.end())
+        {
+            auto& presets = categorizedPresets[category];
+            auto& fullNames = categorizedFullNames[category];
+            presets.sort(true);
+            fullNames.sort(true);
+            
+            // Añadir categoría con sus subitems
+            presetArea.presetMenu.addCategoryItem(category, presets, nextId);
+            
+            // Mapear IDs a nombres de presets
+            for (int j = 0; j < presets.size(); ++j)
+            {
+                int presetId = nextId + j + 1;  // +1 porque el ID de la categoría es nextId
+                presetIdToNameMap[presetId] = fullNames[j];  // Usar nombre completo con prefijo
+            }
+            
+            nextId += static_cast<int>(presets.size()) + 1;
+        }
     }
     
-    // Añadir separador para user presets
-    presetNames.add("--- User Presets ---");
+    // Añadir separador
+    presetArea.presetMenu.addItem("---", nextId++);
     
-    // Añadir los presets del disco (user presets)
+    // Añadir user presets
     juce::StringArray userPresets;
     for (int i = 0; i < getUpdatedNumPresets(); i++) {
         userPresets.add(populatePresetFolder()[i].getFileNameWithoutExtension());
     }
     
-    // Ordenar user presets alfabéticamente
     userPresets.sort(true);
-    presetNames.addArray(userPresets);
+    for (const auto& preset : userPresets)
+    {
+        presetArea.presetMenu.addItem(preset, nextId);
+        presetIdToNameMap[nextId] = preset;  // Mapear user presets también
+        nextId++;
+    }
     
-    // Añadir todos los items al menú
-    presetArea.presetMenu.addItemList(presetNames, 1);
-    
-    // Si había un preset seleccionado previamente, intentar restaurarlo
-    if (processor.getLastPreset() > 0 && processor.getLastPreset() <= presetNames.size()) {
+    // Restaurar selección previa si existe
+    if (processor.getLastPreset() > 0) {
         presetArea.presetMenu.setSelectedId(processor.getLastPreset());
     }
 }
@@ -2884,7 +3125,7 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
     if (currentLanguage == TooltipLanguage::Spanish)
     {
         // Spanish tooltips
-        if (key == "title") return JUCE_UTF8("JCBDistortion: distorsionador multimodal v0.9.0\nPlugin de audio open source\nClick para créditos");
+        if (key == "title") return JUCE_UTF8("JCBDistortion: distorsionador multimodal v0.9.1\nPlugin de audio open source\nClick para créditos");
         if (key == "drywet") return JUCE_UTF8("DRY/WET: mezcla entre señal original y procesada\nControla el balance final de salida\nRango: 0 a 100% | Por defecto: 100%");
         if (key == "lookahead") return JUCE_UTF8("LOOKAHEAD: anticipación para evitar distorsión\nEvita overshooting en transitorios rápidos\nRango: 0 a 5 ms | Por defecto: 0 ms");
         if (key == "drive") return JUCE_UTF8("DRIVE: intensidad de distorsión\nControla la ganancia antes de la saturación\nRango: 1 a 50 | Por defecto: 1");
@@ -2931,7 +3172,7 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
     else
     {
         // English tooltips
-        if (key == "title") return "JCBDistortion: multimodal distortion v0.9.0\nOpen source audio plugin\nClick for credits";
+        if (key == "title") return "JCBDistortion: multimodal distortion v0.9.1\nOpen source audio plugin\nClick for credits";
         if (key == "drywet") return "DRY/WET: mix between original and processed signal\nControls final output balance\nRange: 0 to 100% | Default: 100%";
         if (key == "lookahead") return "LOOKAHEAD: anticipation to prevent distortion\nPrevents overshooting on fast transients\nRange: 0 to 5 ms | Default: 0 ms";
         if (key == "drive") return "DRIVE: distortion intensity\nControls gain before saturation\nRange: 1 to 50 | Default: 1";

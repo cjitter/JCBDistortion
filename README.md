@@ -125,4 +125,4 @@ Los tests validan los formatos VST3 y AU del plugin.
 
 ---
 
-*© 2025 Juan Carlos Blancas – JCBDistortion v0.9.0 beta*
+*© 2025 Juan Carlos Blancas – JCBDistortion v0.9.1 beta*

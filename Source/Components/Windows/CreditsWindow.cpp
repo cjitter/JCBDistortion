@@ -118,7 +118,7 @@ void CreditsWindow::paint(juce::Graphics& g)
         const auto& line = lines[lineIndex];
         
         // Configurar fuente más grande para el título (segunda línea después de la línea vacía)
-        bool isTitle = (lineIndex == 1);  // "JCBCompressor v0.9.91 beta" es la segunda línea
+        bool isTitle = (lineIndex == 1);  // "JCBDistortion v0.9.1 beta" es la segunda línea
         if (isTitle)
         {
             float titleSize = fontSize * 1.5f;  // 50% más grande
@@ -317,7 +317,7 @@ void CreditsWindow::buildFullCreditsTextSpanish()
     links.clear();
     
     // Generar texto formateado con saltos de línea para llenar el diálogo
-    fullText = "\nJCBDistortion v0.9.0 beta";
+    fullText = "\nJCBDistortion v0.9.1 beta";
     if (pluginFormat.isNotEmpty())
         fullText += " (" + pluginFormat + ")";
     fullText += "\n";

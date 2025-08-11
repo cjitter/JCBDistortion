@@ -19,7 +19,7 @@
 
 cmake_minimum_required(VERSION 3.20)
 
-project(JCBDistortion VERSION 0.9.0)
+project(JCBDistortion VERSION 0.9.1)
 
 # Configuración C++
 set(CMAKE_CXX_STANDARD 20)
@@ -69,7 +69,7 @@ juce_add_plugin(JCBDistortion
         # Información básica del plugin
         PLUGIN_NAME "JCBDistortion"
         PRODUCT_NAME "JCBDistortion"
-        VERSION 0.9.0
+        VERSION 0.9.1
         DESCRIPTION "Stereo multimodal distortion plugin"
 
         # Información de la empresa
@@ -130,12 +130,16 @@ juce_add_binary_data(JCBDistortion_BinaryData
         Assets/code/EffectsChain.txt
         Assets/code/InputStage.txt
         Assets/code/OutputStage.txt
-        # Presets de fábrica
-        Assets/FactoryPresets/Ali.preset
-        Assets/FactoryPresets/BrightLight.preset
-        Assets/FactoryPresets/Midy.preset
-        Assets/FactoryPresets/PlusSixAll.preset
-        Assets/FactoryPresets/Spark.preset
+        # Presets de fábrica con prefijos de categoría
+        Assets/FactoryPresets/Drums_PlusSixAll.preset
+        Assets/FactoryPresets/Drums_Kick.preset
+        Assets/FactoryPresets/Drums_Snare.preset
+        Assets/FactoryPresets/Voces_Ali.preset
+        Assets/FactoryPresets/Voces_Warm.preset
+        Assets/FactoryPresets/Fx_Spark.preset
+        Assets/FactoryPresets/Fx_Crush.preset
+        Assets/FactoryPresets/Synth_BrightLight.preset
+        Assets/FactoryPresets/General_Midy.preset
 )
 
 # Linkear binary data al plugin

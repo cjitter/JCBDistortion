@@ -178,6 +178,49 @@ private:
         }
     };
     
+    // LookAndFeel personalizado para el slider BAND con gradiente en el thumb
+    class BandSliderLookAndFeel : public juce::LookAndFeel_V4
+    {
+    public:
+        BandSliderLookAndFeel() {}
+        
+        void drawLinearSlider(juce::Graphics& g,
+                            int x, int y, int width, int height,
+                            float sliderPos,
+                            float minSliderPos,
+                            float maxSliderPos,
+                            const juce::Slider::SliderStyle style,
+                            juce::Slider& slider) override;
+        
+    private:
+        // Colores de las bandas (consistentes con SpectrumAnalyzerComponent)
+        const juce::Colour lowBandColour{0xFF9C27B0};   // Púrpura (graves)
+        const juce::Colour highBandColour{0xFF2196F3};  // Azul (agudos)
+        
+        juce::Colour getInterpolatedBandColour(float bandValue) const;
+    };
+    
+    // LookAndFeel personalizado para el botón FILTERS con gradiente basado en banda seleccionada
+    class FiltersButtonLookAndFeel : public juce::LookAndFeel_V4
+    {
+    public:
+        FiltersButtonLookAndFeel(juce::AudioProcessorValueTreeState& apvts) : valueTreeState(apvts) {}
+        
+        void drawButtonBackground(juce::Graphics& g, juce::Button& button,
+                                const juce::Colour& backgroundColour,
+                                bool shouldDrawButtonAsHighlighted,
+                                bool shouldDrawButtonAsDown) override;
+        
+    private:
+        juce::AudioProcessorValueTreeState& valueTreeState;
+        
+        // Colores de las bandas (consistentes con SpectrumAnalyzerComponent y BandSliderLookAndFeel)
+        const juce::Colour lowBandColour{0xFF9C27B0};   // Púrpura (graves)
+        const juce::Colour highBandColour{0xFF2196F3};  // Azul (agudos)
+        
+        juce::Colour getInterpolatedBandColour(float bandValue) const;
+    };
+    
     //==========================================================================
     // LISTENERS ESPECIALIZADOS
     //==========================================================================
@@ -348,6 +391,9 @@ private:
         CustomSlider xLowSlider{"xlow"};
         CustomSlider bandSlider{"band"};  // NUEVO - selector de banda del crossover
         CustomSlider xHighSlider{"xhigh"};
+        juce::Label bandLowLabel;     // Label para "Low"
+        juce::Label bandMidLabel;     // Label para "Mid"
+        juce::Label bandHighLabel;    // Label para "High"
         juce::TextButton scButton{"FILTERS"};
         // Componentes no utilizados comentados para mantener compatibilidad
         // juce::TextButton keyButton{"EXT KEY"};
@@ -421,7 +467,7 @@ private:
     //==========================================================================
     
     // Título y versión en la parte inferior (combinado como ExpansorGate)
-    juce::TextButton titleLink{"JCBComp v0.9.992 beta"};
+    juce::TextButton titleLink{"JCBDistortion v0.9.1 beta"};
     
     // Imágenes de fondo
     juce::ImageComponent backgroundImage;
@@ -950,6 +996,8 @@ private:
     // Instancias de Look and Feel
     CustomSlider::LookAndFeel sliderLAFBig;
     SmallButtonLAF smallButtonLAF;
+    BandSliderLookAndFeel bandSliderLAF;
+    std::unique_ptr<FiltersButtonLookAndFeel> filtersButtonLAF;  // Unique_ptr porque necesita APVTS en constructor
     
     // Banderas de estado principales
     bool isLoadingPreset = false;
@@ -984,6 +1032,9 @@ private:
     
     // Presets de fábrica
     juce::StringArray factoryPresetNames;
+    
+    // Mapeo de IDs de menú a nombres de presets
+    std::map<int, juce::String> presetIdToNameMap;
     
     // Operaciones de archivo
     std::unique_ptr<juce::FileChooser> fileChooser;
