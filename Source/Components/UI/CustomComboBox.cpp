@@ -224,7 +224,7 @@ juce::String CustomComboBox::getText() const
         // Si es una categoría, buscar en sus subitems
         if (item.isCategory)
         {
-            for (int i = 0; i < item.subItemIds.size(); ++i)
+            for (int i = 0; i < static_cast<int>(item.subItemIds.size()); ++i)
             {
                 if (item.subItemIds[i] == selectedId)
                 {
@@ -269,6 +269,36 @@ void CustomComboBox::setTextItalic(bool shouldBeItalic)
 juce::String CustomComboBox::getTextWhenNothingSelected() const
 {
     return textWhenNothingSelected;
+}
+
+std::vector<int> CustomComboBox::getAllSelectableIds() const
+{
+    std::vector<int> selectableIds;
+    
+    // Recorrer todos los items
+    for (const auto& item : items)
+    {
+        // Si es un separador, saltarlo
+        if (item.isSeparator || item.text.startsWith("---"))
+            continue;
+            
+        // Si es una categoría, añadir sus sub-items
+        if (item.isCategory && !item.subItemIds.empty())
+        {
+            // Añadir todos los IDs de los sub-items
+            for (int subId : item.subItemIds)
+            {
+                selectableIds.push_back(subId);
+            }
+        }
+        // Si es un item normal (no categoría, no separador), añadir su ID
+        else if (!item.isCategory)
+        {
+            selectableIds.push_back(item.id);
+        }
+    }
+    
+    return selectableIds;
 }
 
 //==============================================================================

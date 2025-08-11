@@ -2885,59 +2885,59 @@ void JCBDistortionAudioProcessorEditor::deletePresetFile()
 
 void JCBDistortionAudioProcessorEditor::selectNextPreset()
 {
-    int currentId = presetArea.presetMenu.getSelectedId();
-    int numItems = presetArea.presetMenu.getNumItems();
+    // Obtener todos los IDs seleccionables (excluyendo separadores y categorías)
+    auto selectableIds = presetArea.presetMenu.getAllSelectableIds();
     
-    if (numItems > 1) {
-        int nextId = currentId;
-        
-        // Buscar el siguiente preset válido (no separador)
-        do {
-            nextId = (nextId % numItems) + 1;
-            juce::String itemText = presetArea.presetMenu.getItemText(nextId - 1);
-            
-            // Si no es un separador, es un preset válido
-            if (!itemText.startsWith("---")) {
-                break;
-            }
-        } while (nextId != currentId); // Evitar bucle infinito
-        
-        presetArea.presetMenu.setSelectedId(nextId);
-        
-        // Trigger onChange para cargar el preset
-        if (presetArea.presetMenu.onChange) {
-            presetArea.presetMenu.onChange();
-        }
+    if (selectableIds.empty()) return;
+    
+    int currentId = presetArea.presetMenu.getSelectedId();
+    
+    // Encontrar el índice actual en la lista de IDs seleccionables
+    auto currentIt = std::find(selectableIds.begin(), selectableIds.end(), currentId);
+    
+    int nextId;
+    if (currentIt == selectableIds.end() || currentIt == selectableIds.end() - 1) {
+        // Si no se encuentra o es el último, ir al primero
+        nextId = selectableIds.front();
+    } else {
+        // Ir al siguiente
+        nextId = *(++currentIt);
+    }
+    
+    presetArea.presetMenu.setSelectedId(nextId);
+    
+    // Trigger onChange para cargar el preset
+    if (presetArea.presetMenu.onChange) {
+        presetArea.presetMenu.onChange();
     }
 }
 
 void JCBDistortionAudioProcessorEditor::selectPreviousPreset()
 {
-    int currentId = presetArea.presetMenu.getSelectedId();
-    int numItems = presetArea.presetMenu.getNumItems();
+    // Obtener todos los IDs seleccionables (excluyendo separadores y categorías)
+    auto selectableIds = presetArea.presetMenu.getAllSelectableIds();
     
-    if (numItems > 1) {
-        int prevId = currentId;
-        
-        // Buscar el anterior preset válido (no separador)
-        do {
-            prevId = prevId - 1;
-            if (prevId < 1) prevId = numItems;
-            
-            juce::String itemText = presetArea.presetMenu.getItemText(prevId - 1);
-            
-            // Si no es un separador, es un preset válido
-            if (!itemText.startsWith("---")) {
-                break;
-            }
-        } while (prevId != currentId); // Evitar bucle infinito
-        
-        presetArea.presetMenu.setSelectedId(prevId);
-        
-        // Trigger onChange para cargar el preset
-        if (presetArea.presetMenu.onChange) {
-            presetArea.presetMenu.onChange();
-        }
+    if (selectableIds.empty()) return;
+    
+    int currentId = presetArea.presetMenu.getSelectedId();
+    
+    // Encontrar el índice actual en la lista de IDs seleccionables
+    auto currentIt = std::find(selectableIds.begin(), selectableIds.end(), currentId);
+    
+    int prevId;
+    if (currentIt == selectableIds.end() || currentIt == selectableIds.begin()) {
+        // Si no se encuentra o es el primero, ir al último
+        prevId = selectableIds.back();
+    } else {
+        // Ir al anterior
+        prevId = *(--currentIt);
+    }
+    
+    presetArea.presetMenu.setSelectedId(prevId);
+    
+    // Trigger onChange para cargar el preset
+    if (presetArea.presetMenu.onChange) {
+        presetArea.presetMenu.onChange();
     }
 }
 
