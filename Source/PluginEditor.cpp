@@ -141,9 +141,6 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     // Solo se mantiene para visualización básica si es necesario en el futuro
     transferFunctionListener = std::make_unique<TransferFunctionParameterListener>(this);
     
-    // Crear y registrar parameter listener para alpha del REL slider CORREGIR ESTÁ MAL NO HAY PARAM AHORA
-    autorelParameterListener = std::make_unique<AutorelParameterListener>(this);
-    processor.apvts.addParameterListener("m_AUTOREL", autorelParameterListener.get());
     
     // Crear y registrar parameter listener para estado visual de filtros HPF/LPF
     sidechainParameterListener = std::make_unique<SidechainParameterListener>(this);
@@ -484,10 +481,6 @@ JCBDistortionAudioProcessorEditor::~JCBDistortionAudioProcessorEditor()
     // DISTORTION: Transfer function listener sin parameter listeners activos
     // if (transferFunctionListener) - sin listeners que remover
     
-    if (autorelParameterListener)
-    {
-        processor.apvts.removeParameterListener("m_AUTOREL", autorelParameterListener.get());
-    }
     
     if (sidechainParameterListener)
     {
@@ -1192,7 +1185,6 @@ void JCBDistortionAudioProcessorEditor::handleParameterChange()
     */
     
     // NUEVO: Actualizar alpha del REL slider basado en estado de AUTOREL
-    updateRelSliderAlpha();
 }
 
 
@@ -2482,7 +2474,6 @@ void JCBDistortionAudioProcessorEditor::updateSliderValues()
     */
     
     // NUEVO: Actualizar alpha del REL slider basado en estado inicial de AUTOREL
-    updateRelSliderAlpha();
 }
 
 void JCBDistortionAudioProcessorEditor::resetGuiSize()
@@ -3412,6 +3403,9 @@ void JCBDistortionAudioProcessorEditor::initializeCodeContentCache()
         //{"GEN EXPR", BinaryData::GenExpr_txt, BinaryData::GenExpr_txtSize},
         //{"GEN EXPR (FILTERS)", BinaryData::GenExpr_with_filters_txt, BinaryData::GenExpr_with_filters_txtSize},
         {"OUTPUT STAGE", BinaryData::OutputStage_txt, BinaryData::OutputStage_txtSize},
+        // Bloques de filtros LR4 (Linkwitz-Riley 4th order)
+        {"LR4", BinaryData::LR4_txt, BinaryData::LR4_txtSize},
+        {"LR4-DRY-AllpassCompensated", BinaryData::LR4DRYAllpassCompensated_txt, BinaryData::LR4DRYAllpassCompensated_txtSize},
     };
     
     // Cargar todo en cache
@@ -3436,22 +3430,8 @@ juce::String JCBDistortionAudioProcessorEditor::getBasicBlockDescription(const j
 {
     if (blockName == "TRIM IN") {
         return "// Input trim gain applied to main signal\ninput_trimmed = input * dbtoa(trim_db);";
-    } else if (blockName == "TRIM SC") {
-        return "// Sidechain trim gain applied to sidechain signal\nsc_trimmed = sidechain * dbtoa(sc_trim_db);";
-    } else if (blockName == "FILTERS") {
-        return "// HPF and LPF filters for sidechain processing\nfiltered_sc = lpf(hpf(sc_signal, hpf_freq), lpf_freq);";
-    } else if (blockName == "DETECTOR") {
-        return "// Level detector with react control\nlevel = detector(filtered_sc, react_param);";
-    } else if (blockName == "GAIN CALC") {
-        return "// Compressor gain calculation with ratio and knee\ngain_reduction = compressor_curve(level, threshold, ratio, knee);";
-    } else if (blockName == "APPLY") {
-        return "// Apply gain reduction to main signal\ncompressed = input_trimmed * gain_reduction;";
-    } else if (blockName == "MAKEUP") {
-        return "// Apply makeup gain to compressed signal\nwith_makeup = compressed * dbtoa(makeup_db);";
-    } else if (blockName == "PARALLEL") {
-        return "// Parallel compression mixing\noutput = mix(input_trimmed, with_makeup, parallel_amount);";
     } else if (blockName == "OUTPUT") {
-        return "// Final output with any additional processing\nfinal_output = output_stage(parallel_output);";
+        return "// Final output with any additional processing\nfinal_output = output_stage(processed_signal);";
     } else {
         return "// Generic Gen~ block processing\n// See Max patch for detailed implementation";
     }
@@ -3550,25 +3530,6 @@ void JCBDistortionAudioProcessorEditor::updateARButtonText()
     // El Maximizer tiene AUTOREL como botón toggle separado
 }
 
-void JCBDistortionAudioProcessorEditor::updateRelSliderAlpha()
-{
-    // Verificar si AUTOREL está activo
-    if (auto* param = processor.apvts.getRawParameterValue("m_AUTOREL"))
-    {
-        bool autorelActive = param->load() >= 0.5f;
-        
-        if (autorelActive)
-        {
-            // AUTOREL activo - reducir alpha del REL slider para indicar que está siendo controlado automáticamente
-            rightBottomKnobs.modeSlider.setAlpha(0.4f);
-        }
-        else
-        {
-            // AUTOREL inactivo - alpha normal para REL slider
-            rightBottomKnobs.modeSlider.setAlpha(1.0f);
-        }
-    }
-}
 
 //==============================================================================
 // SPECTRUM ANALYZER SUPPORT

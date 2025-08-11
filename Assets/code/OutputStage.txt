@@ -1,13 +1,18 @@
 // =============================================================================
-// OUTPUT STAGE BLOCK - Dry/Wet Mix, Output Gain & Bypass
+// OUTPUT STAGE BLOCK - Dry/Wet Mix, Output Gain, Band Recomposition & Bypass
 // =============================================================================
-// Procesamiento de salida con mezcla dry/wet, makeup gain y bypass
+// Procesamiento de salida con mezcla dry/wet, makeup gain,
+// recomposición de bandas no procesadas y bypass
 //
 // ENTRADAS:
 // - in1: Wet L (señal procesada con efectos)
 // - in2: Wet R (señal procesada con efectos)
-// - in3: Dry L (señal original sin procesar - pre-trim, pre-filtros)
-// - in4: Dry R (señal original sin procesar - pre-trim, pre-filtros)
+// - in3: Dry L compensado (desde input stage)
+// - in4: Dry R compensado (desde input stage)
+// - in5: L bandas no procesadas (desde input stage)
+// - in6: R bandas no procesadas (desde input stage)
+// - in7: L original sin procesar
+// - in8: R original sin procesar
 //
 // SALIDAS:
 // - out1: L final
@@ -32,10 +37,14 @@ smoothFactor = 0.999;
 // =============================================================================
 
 // Entradas
-wetL = in1;
-wetR = in2;
-dryL = in3;  // Señal original sin procesar
-dryR = in4;  // Señal original sin procesar
+wetL = in1;                // Señal procesada con efectos
+wetR = in2;                // Señal procesada con efectos
+dryCompL = in3;            // Dry compensado (con allpass si crossover activo)
+dryCompR = in4;            // Dry compensado
+bypassBandsL = in5;        // Bandas no procesadas del crossover
+bypassBandsR = in6;        // Bandas no procesadas del crossover
+lOriginal = in7;           // Señal original sin procesar
+rOriginal = in8;           // Señal original sin procesar
 
 // Smoothing de parámetros
 hDrywet = hDrywet * smoothFactor + a_DRYWET * (1 - smoothFactor);
@@ -49,18 +58,20 @@ outputMakeupDb = hOutput;
 outputMakeupLinear = dbtoa(outputMakeupDb);
 
 // -----------------------------------------------------------------------------
-// OUTPUT MAKEUP GAIN (SOLO A LA SEÑAL WET)
+// RECOMPOSICIÓN DE BANDAS Y OUTPUT MAKEUP
 // -----------------------------------------------------------------------------
-// Aplicar makeup gain ANTES del dry/wet para que solo afecte a la señal procesada
-wetWithMakeupL = wetL * outputMakeupLinear;
-wetWithMakeupR = wetR * outputMakeupLinear;
+// Aplicar makeup gain a la señal wet y añadir las bandas no procesadas
+wetWithMakeupL = (wetL * outputMakeupLinear) + bypassBandsL;
+wetWithMakeupR = (wetR * outputMakeupLinear) + bypassBandsR;
 
 // -----------------------------------------------------------------------------
 // MEZCLA DRY/WET
 // -----------------------------------------------------------------------------
-// Parámetro drywet: 0 = solo dry (original), 1 = solo wet (procesada con makeup)
-mixedL = mix(dryL, wetWithMakeupL, drywet);
-mixedR = mix(dryR, wetWithMakeupR, drywet);
+// Dry = señal compensada (con allpass si hay crossover)
+// Wet = señal procesada con makeup + bandas no procesadas
+// Parámetro drywet: 0 = solo dry, 1 = solo wet
+mixedL = mix(dryCompL, wetWithMakeupL, drywet);
+mixedR = mix(dryCompR, wetWithMakeupR, drywet);
 
 // -----------------------------------------------------------------------------
 // DC BLOCKER FINAL
@@ -71,6 +82,6 @@ finalDcBlockedR = dcblock(mixedR);
 // -----------------------------------------------------------------------------
 // BYPASS
 // -----------------------------------------------------------------------------
-// El bypass mezcla entre la señal original sin procesar y la señal procesada
-out1 = mix(dryL, finalDcBlockedL, bypass);
-out2 = mix(dryR, finalDcBlockedR, bypass);
+// El bypass usa la señal original sin procesar
+out1 = mix(lOriginal, finalDcBlockedL, bypass);
+out2 = mix(rOriginal, finalDcBlockedR, bypass);

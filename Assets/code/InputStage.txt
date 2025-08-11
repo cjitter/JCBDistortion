@@ -1,22 +1,27 @@
 // =============================================================================
-// INPUT STAGE BLOCK - Distortion Plugin
+// INPUT STAGE BLOCK - Crossover LR4 + Input Trim + Tilt
 // =============================================================================
-// Procesamiento de entrada con filtros HPF/LPF, Input Trim y Tilt Filter
+// Procesamiento de entrada con crossover LR4 de 3 bandas, Input Trim y Tilt Filter
 //
 // ENTRADAS:
 // - in1: Audio L
 // - in2: Audio R
 //
 // SALIDAS:
-// - out1: L procesado (filtrado + trim + tilt)
-// - out2: R procesado (filtrado + trim + tilt)
+// - out1: L procesado (banda seleccionada + tilt)
+// - out2: R procesado (banda seleccionada + tilt)
+// - out3: L bandas no procesadas (para recomponer en output)
+// - out4: R bandas no procesadas (para recomponer en output)
+// - out5: L dry compensado (para null test)
+// - out6: R dry compensado (para null test)
 // =============================================================================
 
 // PARÁMETROS
-// Filtros HPF/LPF
-Param j_HPF(20, min=20, default=20, max=20000);       // Input HPF frequency (Hz)
-Param k_LPF(20000, min=20, default=20000, max=20000); // Input LPF frequency (Hz)
-Param l_SC(0, min=0, default=0, max=1);               // Input filter enable
+// Crossover
+Param j_HPF(250, min=20, default=250, max=1000);      // XOver low frequency (Hz)
+Param k_LPF(5000, min=1000, default=5000, max=20000); // XOver high frequency (Hz)
+Param l_SC(0, min=0, default=0, max=1);               // Crossover enable
+Param o_BAND(1, min=0, default=1, max=2);             // 0=low,1=mid,2=high
 
 // Input Trim y Tilt
 Param k_INPUT(0, min=-12, default=0, max=12);         // Input trim gain (dB)
@@ -26,24 +31,70 @@ Param i_TILT(0, min=-6, default=0, max=6);            // Tilt filter (dB)
 // Smoothing principal
 History hInput(0);
 History hTilt(0);
-
-// Historiales para filtros de 1 polo (más simples)
-History hpfL_z1(0);
-History hpfR_z1(0);
-History lpfL_z1(0);
-History lpfR_z1(0);
+History hBand(1);
 
 // Historiales para smoothing de filtros
 History hpfFreqHistory(0);
 History lpfFreqHistory(0);
 History scEnableHistory(0);
 
-// Historiales para filtros Tilt
-History tiltL1(0), tiltL2(0), tiltL3(0), tiltL4(0);
-History tiltR1(0), tiltR2(0), tiltR3(0), tiltR4(0);
+// Historiales para filtros Tilt con RBJ
+History tiltLsL1(0), tiltLsL2(0), tiltLsL3(0), tiltLsL4(0);
+History tiltLsR1(0), tiltLsR2(0), tiltLsR3(0), tiltLsR4(0);
+History tiltHsL1(0), tiltHsL2(0), tiltHsL3(0), tiltHsL4(0);
+History tiltHsR1(0), tiltHsR2(0), tiltHsR3(0), tiltHsR4(0);
+
+// Historiales para crossover L
+History L_l1_x1(0), L_l1_x2(0), L_l1_y1(0), L_l1_y2(0);
+History L_l2_x1(0), L_l2_x2(0), L_l2_y1(0), L_l2_y2(0);
+History L_h1_x1(0), L_h1_x2(0), L_h1_y1(0), L_h1_y2(0);
+History L_h2_x1(0), L_h2_x2(0), L_h2_y1(0), L_h2_y2(0);
+History L_m1_x1(0), L_m1_x2(0), L_m1_y1(0), L_m1_y2(0);
+History L_m2_x1(0), L_m2_x2(0), L_m2_y1(0), L_m2_y2(0);
+History L_u1_x1(0), L_u1_x2(0), L_u1_y1(0), L_u1_y2(0);
+History L_u2_x1(0), L_u2_x2(0), L_u2_y1(0), L_u2_y2(0);
+History L_ap_low_lp1_x1(0), L_ap_low_lp1_x2(0), L_ap_low_lp1_y1(0), L_ap_low_lp1_y2(0);
+History L_ap_low_lp2_x1(0), L_ap_low_lp2_x2(0), L_ap_low_lp2_y1(0), L_ap_low_lp2_y2(0);
+History L_ap_low_hp1_x1(0), L_ap_low_hp1_x2(0), L_ap_low_hp1_y1(0), L_ap_low_hp1_y2(0);
+History L_ap_low_hp2_x1(0), L_ap_low_hp2_x2(0), L_ap_low_hp2_y1(0), L_ap_low_hp2_y2(0);
+
+// Historiales para crossover R
+History R_l1_x1(0), R_l1_x2(0), R_l1_y1(0), R_l1_y2(0);
+History R_l2_x1(0), R_l2_x2(0), R_l2_y1(0), R_l2_y2(0);
+History R_h1_x1(0), R_h1_x2(0), R_h1_y1(0), R_h1_y2(0);
+History R_h2_x1(0), R_h2_x2(0), R_h2_y1(0), R_h2_y2(0);
+History R_m1_x1(0), R_m1_x2(0), R_m1_y1(0), R_m1_y2(0);
+History R_m2_x1(0), R_m2_x2(0), R_m2_y1(0), R_m2_y2(0);
+History R_u1_x1(0), R_u1_x2(0), R_u1_y1(0), R_u1_y2(0);
+History R_u2_x1(0), R_u2_x2(0), R_u2_y1(0), R_u2_y2(0);
+History R_ap_low_lp1_x1(0), R_ap_low_lp1_x2(0), R_ap_low_lp1_y1(0), R_ap_low_lp1_y2(0);
+History R_ap_low_lp2_x1(0), R_ap_low_lp2_x2(0), R_ap_low_lp2_y1(0), R_ap_low_lp2_y2(0);
+History R_ap_low_hp1_x1(0), R_ap_low_hp1_x2(0), R_ap_low_hp1_y1(0), R_ap_low_hp1_y2(0);
+History R_ap_low_hp2_x1(0), R_ap_low_hp2_x2(0), R_ap_low_hp2_y1(0), R_ap_low_hp2_y2(0);
+
+// Historiales para allpass de compensación L
+History L_ap1_lp1_x1(0), L_ap1_lp1_x2(0), L_ap1_lp1_y1(0), L_ap1_lp1_y2(0);
+History L_ap1_lp2_x1(0), L_ap1_lp2_x2(0), L_ap1_lp2_y1(0), L_ap1_lp2_y2(0);
+History L_ap1_hp1_x1(0), L_ap1_hp1_x2(0), L_ap1_hp1_y1(0), L_ap1_hp1_y2(0);
+History L_ap1_hp2_x1(0), L_ap1_hp2_x2(0), L_ap1_hp2_y1(0), L_ap1_hp2_y2(0);
+History L_ap2_lp1_x1(0), L_ap2_lp1_x2(0), L_ap2_lp1_y1(0), L_ap2_lp1_y2(0);
+History L_ap2_lp2_x1(0), L_ap2_lp2_x2(0), L_ap2_lp2_y1(0), L_ap2_lp2_y2(0);
+History L_ap2_hp1_x1(0), L_ap2_hp1_x2(0), L_ap2_hp1_y1(0), L_ap2_hp1_y2(0);
+History L_ap2_hp2_x1(0), L_ap2_hp2_x2(0), L_ap2_hp2_y1(0), L_ap2_hp2_y2(0);
+
+// Historiales para allpass de compensación R
+History R_ap1_lp1_x1(0), R_ap1_lp1_x2(0), R_ap1_lp1_y1(0), R_ap1_lp1_y2(0);
+History R_ap1_lp2_x1(0), R_ap1_lp2_x2(0), R_ap1_lp2_y1(0), R_ap1_lp2_y2(0);
+History R_ap1_hp1_x1(0), R_ap1_hp1_x2(0), R_ap1_hp1_y1(0), R_ap1_hp1_y2(0);
+History R_ap1_hp2_x1(0), R_ap1_hp2_x2(0), R_ap1_hp2_y1(0), R_ap1_hp2_y2(0);
+History R_ap2_lp1_x1(0), R_ap2_lp1_x2(0), R_ap2_lp1_y1(0), R_ap2_lp1_y2(0);
+History R_ap2_lp2_x1(0), R_ap2_lp2_x2(0), R_ap2_lp2_y1(0), R_ap2_lp2_y2(0);
+History R_ap2_hp1_x1(0), R_ap2_hp1_x2(0), R_ap2_hp1_y1(0), R_ap2_hp1_y2(0);
+History R_ap2_hp2_x1(0), R_ap2_hp2_x2(0), R_ap2_hp2_y1(0), R_ap2_hp2_y2(0);
 
 // CONSTANTES
 smoothFactor = 0.999;
+twopi = 6.283185307179586;
 
 // =============================================================================
 // PROCESAMIENTO
@@ -61,7 +112,10 @@ inputTrimLinear = dbtoa(inputTrimDb);
 hTilt = hTilt * smoothFactor + i_TILT * (1 - smoothFactor);
 tiltDb = hTilt;
 
-// Suavizado de parámetros de filtros
+hBand = hBand * smoothFactor + o_BAND * (1 - smoothFactor);
+smoothedBand = hBand;
+
+// Suavizado de parámetros de crossover
 smoothHpfFreq = (hpfFreqHistory * smoothFactor) + (j_HPF * (1 - smoothFactor));
 hpfFreqHistory = fixdenorm(smoothHpfFreq);
 
@@ -70,6 +124,7 @@ lpfFreqHistory = fixdenorm(smoothLpfFreq);
 
 smoothScEnable = (scEnableHistory * smoothFactor) + (l_SC * (1 - smoothFactor));
 scEnableHistory = fixdenorm(smoothScEnable);
+scSm = smoothScEnable;
 
 // -----------------------------------------------------------------------------
 // INPUT TRIM
@@ -78,89 +133,595 @@ lTrimmed = lIn * inputTrimLinear;
 rTrimmed = rIn * inputTrimLinear;
 
 // -----------------------------------------------------------------------------
-// FILTROS DE 1 POLO SIMPLES (6 dB/oct)
+// CROSSOVER LR4 ESTÉREO DE 3 BANDAS
 // -----------------------------------------------------------------------------
-// Estos filtros son más simples y siempre funcionan
+// [El código del crossover es muy largo, aquí incluyo solo la estructura]
 
-// Coeficiente HPF (1 polo)
-hpf_freq = clip(smoothHpfFreq, 20, 20000);
-hpf_coeff = exp(-2 * pi * hpf_freq / samplerate);
+// === CANAL L ===
+L_x = lTrimmed;
+L_loF = smoothHpfFreq;
+L_hiF = smoothLpfFreq;
 
-// Procesamiento HPF
-hpfL_out = lTrimmed - hpfL_z1;
-hpfL_z1 = lTrimmed - (hpfL_out * hpf_coeff);
+// Proteger frecuencias
+L_sr = samplerate;
+L_loF = max(10, min(L_loF, 0.45 * L_sr));
+L_hiFr = max(10, min(L_hiF, 0.45 * L_sr));
+L_hiF = max(L_hiFr, L_loF + 1);
 
-hpfR_out = rTrimmed - hpfR_z1;
-hpfR_z1 = rTrimmed - (hpfR_out * hpf_coeff);
+// Constantes
+TWOPI = 6.283185307179586;
+L_QBW = 0.7071067811865476;
 
-// Coeficiente LPF (1 polo)
-lpf_freq = clip(smoothLpfFreq, 20, 20000);
-lpf_coeff = 2 * pi * lpf_freq / samplerate;
-lpf_coeff = clip(lpf_coeff, 0, 1);
+// Coeficientes Butterworth @ loF
+L_w0_lo = TWOPI * L_loF / L_sr;
+L_cos_lo = cos(L_w0_lo);
+L_sin_lo = sin(L_w0_lo);
+L_alpha_lo = L_sin_lo / (2 * L_QBW);
+L_a0_lo = 1 + L_alpha_lo;
+L_a1_lo = -2 * L_cos_lo;
+L_a2_lo = 1 - L_alpha_lo;
 
-// Procesamiento LPF (aplicado a la salida del HPF)
-lpfL_z1 = lpfL_z1 + lpf_coeff * (hpfL_out - lpfL_z1);
-lpfR_z1 = lpfR_z1 + lpf_coeff * (hpfR_out - lpfR_z1);
+// LP @ loF
+L_lp_b0_l = ((1 - L_cos_lo) * 0.5) / L_a0_lo;
+L_lp_b1_l = (1 - L_cos_lo) / L_a0_lo;
+L_lp_b2_l = L_lp_b0_l;
+L_lp_a1_l = L_a1_lo / L_a0_lo;
+L_lp_a2_l = L_a2_lo / L_a0_lo;
 
-// Señal filtrada
-filteredL = lpfL_z1;
-filteredR = lpfR_z1;
+// HP @ loF
+L_hp_b0_l = ((1 + L_cos_lo) * 0.5) / L_a0_lo;
+L_hp_b1_l = -(1 + L_cos_lo) / L_a0_lo;
+L_hp_b2_l = L_hp_b0_l;
+L_hp_a1_l = L_lp_a1_l;
+L_hp_a2_l = L_lp_a2_l;
 
-// Mezclar señal filtrada con original según filter enable
-lFiltered = mix(lTrimmed, filteredL, smoothScEnable);
-rFiltered = mix(rTrimmed, filteredR, smoothScEnable);
+// Coeficientes Butterworth @ hiF
+L_w0_hi = TWOPI * L_hiF / L_sr;
+L_cos_hi = cos(L_w0_hi);
+L_sin_hi = sin(L_w0_hi);
+L_alpha_hi = L_sin_hi / (2 * L_QBW);
+L_a0_hi = 1 + L_alpha_hi;
+L_a1_hi = -2 * L_cos_hi;
+L_a2_hi = 1 - L_alpha_hi;
+
+// LP @ hiF
+L_lp_b0_h = ((1 - L_cos_hi) * 0.5) / L_a0_hi;
+L_lp_b1_h = (1 - L_cos_hi) / L_a0_hi;
+L_lp_b2_h = L_lp_b0_h;
+L_lp_a1_h = L_a1_hi / L_a0_hi;
+L_lp_a2_h = L_a2_hi / L_a0_hi;
+
+// HP @ hiF
+L_hp_b0_h = ((1 + L_cos_hi) * 0.5) / L_a0_hi;
+L_hp_b1_h = -(1 + L_cos_hi) / L_a0_hi;
+L_hp_b2_h = L_hp_b0_h;
+L_hp_a1_h = L_lp_a1_h;
+L_hp_a2_h = L_lp_a2_h;
+
+// PRIMER CORTE @ loF: low (LP) y rest (HP)
+// LP Stage 1 para LOW
+L_l1_x1p = L_l1_x1; L_l1_x2p = L_l1_x2; L_l1_y1p = L_l1_y1; L_l1_y2p = L_l1_y2;
+L_low_s1 = L_lp_b0_l*L_x + L_lp_b1_l*L_l1_x1p + L_lp_b2_l*L_l1_x2p - L_lp_a1_l*L_l1_y1p - L_lp_a2_l*L_l1_y2p;
+L_l1_x2 = L_l1_x1p; L_l1_x1 = L_x; L_l1_y2 = L_l1_y1p; L_l1_y1 = L_low_s1;
+
+// LP Stage 2 para LOW
+L_l2_x1p = L_l2_x1; L_l2_x2p = L_l2_x2; L_l2_y1p = L_l2_y1; L_l2_y2p = L_l2_y2;
+L_low_raw = L_lp_b0_l*L_low_s1 + L_lp_b1_l*L_l2_x1p + L_lp_b2_l*L_l2_x2p - L_lp_a1_l*L_l2_y1p - L_lp_a2_l*L_l2_y2p;
+L_l2_x2 = L_l2_x1p; L_l2_x1 = L_low_s1; L_l2_y2 = L_l2_y1p; L_l2_y1 = L_low_raw;
+
+// HP Stage 1 para REST
+L_h1_x1p = L_h1_x1; L_h1_x2p = L_h1_x2; L_h1_y1p = L_h1_y1; L_h1_y2p = L_h1_y2;
+L_rest_s1 = L_hp_b0_l*L_x + L_hp_b1_l*L_h1_x1p + L_hp_b2_l*L_h1_x2p - L_hp_a1_l*L_h1_y1p - L_hp_a2_l*L_h1_y2p;
+L_h1_x2 = L_h1_x1p; L_h1_x1 = L_x; L_h1_y2 = L_h1_y1p; L_h1_y1 = L_rest_s1;
+
+// HP Stage 2 para REST
+L_h2_x1p = L_h2_x1; L_h2_x2p = L_h2_x2; L_h2_y1p = L_h2_y1; L_h2_y2p = L_h2_y2;
+L_rest = L_hp_b0_l*L_rest_s1 + L_hp_b1_l*L_h2_x1p + L_hp_b2_l*L_h2_x2p - L_hp_a1_l*L_h2_y1p - L_hp_a2_l*L_h2_y2p;
+L_h2_x2 = L_h2_x1p; L_h2_x1 = L_rest_s1; L_h2_y2 = L_h2_y1p; L_h2_y1 = L_rest;
+
+// COMPENSACIÓN ALL-PASS para LOW
+// All-pass LP stage 1 sobre low_raw
+L_ap_low_lp1_x1p = L_ap_low_lp1_x1; L_ap_low_lp1_x2p = L_ap_low_lp1_x2;
+L_ap_low_lp1_y1p = L_ap_low_lp1_y1; L_ap_low_lp1_y2p = L_ap_low_lp1_y2;
+L_ap_low_lp_s1 = L_lp_b0_h*L_low_raw + L_lp_b1_h*L_ap_low_lp1_x1p + L_lp_b2_h*L_ap_low_lp1_x2p
+               - L_lp_a1_h*L_ap_low_lp1_y1p - L_lp_a2_h*L_ap_low_lp1_y2p;
+L_ap_low_lp1_x2 = L_ap_low_lp1_x1p; L_ap_low_lp1_x1 = L_low_raw;
+L_ap_low_lp1_y2 = L_ap_low_lp1_y1p; L_ap_low_lp1_y1 = L_ap_low_lp_s1;
+
+// All-pass LP stage 2
+L_ap_low_lp2_x1p = L_ap_low_lp2_x1; L_ap_low_lp2_x2p = L_ap_low_lp2_x2;
+L_ap_low_lp2_y1p = L_ap_low_lp2_y1; L_ap_low_lp2_y2p = L_ap_low_lp2_y2;
+L_ap_low_lp = L_lp_b0_h*L_ap_low_lp_s1 + L_lp_b1_h*L_ap_low_lp2_x1p + L_lp_b2_h*L_ap_low_lp2_x2p
+            - L_lp_a1_h*L_ap_low_lp2_y1p - L_lp_a2_h*L_ap_low_lp2_y2p;
+L_ap_low_lp2_x2 = L_ap_low_lp2_x1p; L_ap_low_lp2_x1 = L_ap_low_lp_s1;
+L_ap_low_lp2_y2 = L_ap_low_lp2_y1p; L_ap_low_lp2_y1 = L_ap_low_lp;
+
+// All-pass HP stage 1 sobre low_raw
+L_ap_low_hp1_x1p = L_ap_low_hp1_x1; L_ap_low_hp1_x2p = L_ap_low_hp1_x2;
+L_ap_low_hp1_y1p = L_ap_low_hp1_y1; L_ap_low_hp1_y2p = L_ap_low_hp1_y2;
+L_ap_low_hp_s1 = L_hp_b0_h*L_low_raw + L_hp_b1_h*L_ap_low_hp1_x1p + L_hp_b2_h*L_ap_low_hp1_x2p
+               - L_hp_a1_h*L_ap_low_hp1_y1p - L_hp_a2_h*L_ap_low_hp1_y2p;
+L_ap_low_hp1_x2 = L_ap_low_hp1_x1p; L_ap_low_hp1_x1 = L_low_raw;
+L_ap_low_hp1_y2 = L_ap_low_hp1_y1p; L_ap_low_hp1_y1 = L_ap_low_hp_s1;
+
+// All-pass HP stage 2
+L_ap_low_hp2_x1p = L_ap_low_hp2_x1; L_ap_low_hp2_x2p = L_ap_low_hp2_x2;
+L_ap_low_hp2_y1p = L_ap_low_hp2_y1; L_ap_low_hp2_y2p = L_ap_low_hp2_y2;
+L_ap_low_hp = L_hp_b0_h*L_ap_low_hp_s1 + L_hp_b1_h*L_ap_low_hp2_x1p + L_hp_b2_h*L_ap_low_hp2_x2p
+            - L_hp_a1_h*L_ap_low_hp2_y1p - L_hp_a2_h*L_ap_low_hp2_y2p;
+L_ap_low_hp2_x2 = L_ap_low_hp2_x1p; L_ap_low_hp2_x1 = L_ap_low_hp_s1;
+L_ap_low_hp2_y2 = L_ap_low_hp2_y1p; L_ap_low_hp2_y1 = L_ap_low_hp;
+
+// LOW compensado
+L_low = L_ap_low_lp + L_ap_low_hp;
+
+// SEGUNDO CORTE @ hiF sobre REST: mid (LP) y high (HP)
+// LP Stage 1 para MID
+L_m1_x1p = L_m1_x1; L_m1_x2p = L_m1_x2; L_m1_y1p = L_m1_y1; L_m1_y2p = L_m1_y2;
+L_mid_s1 = L_lp_b0_h*L_rest + L_lp_b1_h*L_m1_x1p + L_lp_b2_h*L_m1_x2p - L_lp_a1_h*L_m1_y1p - L_lp_a2_h*L_m1_y2p;
+L_m1_x2 = L_m1_x1p; L_m1_x1 = L_rest; L_m1_y2 = L_m1_y1p; L_m1_y1 = L_mid_s1;
+
+// LP Stage 2 para MID
+L_m2_x1p = L_m2_x1; L_m2_x2p = L_m2_x2; L_m2_y1p = L_m2_y1; L_m2_y2p = L_m2_y2;
+L_mid = L_lp_b0_h*L_mid_s1 + L_lp_b1_h*L_m2_x1p + L_lp_b2_h*L_m2_x2p - L_lp_a1_h*L_m2_y1p - L_lp_a2_h*L_m2_y2p;
+L_m2_x2 = L_m2_x1p; L_m2_x1 = L_mid_s1; L_m2_y2 = L_m2_y1p; L_m2_y1 = L_mid;
+
+// HP Stage 1 para HIGH
+L_u1_x1p = L_u1_x1; L_u1_x2p = L_u1_x2; L_u1_y1p = L_u1_y1; L_u1_y2p = L_u1_y2;
+L_high_s1 = L_hp_b0_h*L_rest + L_hp_b1_h*L_u1_x1p + L_hp_b2_h*L_u1_x2p - L_hp_a1_h*L_u1_y1p - L_hp_a2_h*L_u1_y2p;
+L_u1_x2 = L_u1_x1p; L_u1_x1 = L_rest; L_u1_y2 = L_u1_y1p; L_u1_y1 = L_high_s1;
+
+// HP Stage 2 para HIGH
+L_u2_x1p = L_u2_x1; L_u2_x2p = L_u2_x2; L_u2_y1p = L_u2_y1; L_u2_y2p = L_u2_y2;
+L_high = L_hp_b0_h*L_high_s1 + L_hp_b1_h*L_u2_x1p + L_hp_b2_h*L_u2_x2p - L_hp_a1_h*L_u2_y1p - L_hp_a2_h*L_u2_y2p;
+L_u2_x2 = L_u2_x1p; L_u2_x1 = L_high_s1; L_u2_y2 = L_u2_y1p; L_u2_y1 = L_high;
+
+lowL = L_low;
+midL = L_mid;
+highL = L_high;
+
+// === CANAL R === (mismo proceso que L)
+R_x = rTrimmed;
+R_loF = smoothHpfFreq;
+R_hiF = smoothLpfFreq;
+
+// Proteger frecuencias
+R_sr = samplerate;
+R_loF = max(10, min(R_loF, 0.45 * R_sr));
+R_hiFr = max(10, min(R_hiF, 0.45 * R_sr));
+R_hiF = max(R_hiFr, R_loF + 1);
+
+// Constantes
+R_QBW = 0.7071067811865476;
+
+// Coeficientes Butterworth @ loF
+R_w0_lo = TWOPI * R_loF / R_sr;
+R_cos_lo = cos(R_w0_lo);
+R_sin_lo = sin(R_w0_lo);
+R_alpha_lo = R_sin_lo / (2 * R_QBW);
+R_a0_lo = 1 + R_alpha_lo;
+R_a1_lo = -2 * R_cos_lo;
+R_a2_lo = 1 - R_alpha_lo;
+
+// LP @ loF
+R_lp_b0_l = ((1 - R_cos_lo) * 0.5) / R_a0_lo;
+R_lp_b1_l = (1 - R_cos_lo) / R_a0_lo;
+R_lp_b2_l = R_lp_b0_l;
+R_lp_a1_l = R_a1_lo / R_a0_lo;
+R_lp_a2_l = R_a2_lo / R_a0_lo;
+
+// HP @ loF
+R_hp_b0_l = ((1 + R_cos_lo) * 0.5) / R_a0_lo;
+R_hp_b1_l = -(1 + R_cos_lo) / R_a0_lo;
+R_hp_b2_l = R_hp_b0_l;
+R_hp_a1_l = R_lp_a1_l;
+R_hp_a2_l = R_lp_a2_l;
+
+// Coeficientes Butterworth @ hiF
+R_w0_hi = TWOPI * R_hiF / R_sr;
+R_cos_hi = cos(R_w0_hi);
+R_sin_hi = sin(R_w0_hi);
+R_alpha_hi = R_sin_hi / (2 * R_QBW);
+R_a0_hi = 1 + R_alpha_hi;
+R_a1_hi = -2 * R_cos_hi;
+R_a2_hi = 1 - R_alpha_hi;
+
+// LP @ hiF
+R_lp_b0_h = ((1 - R_cos_hi) * 0.5) / R_a0_hi;
+R_lp_b1_h = (1 - R_cos_hi) / R_a0_hi;
+R_lp_b2_h = R_lp_b0_h;
+R_lp_a1_h = R_a1_hi / R_a0_hi;
+R_lp_a2_h = R_a2_hi / R_a0_hi;
+
+// HP @ hiF
+R_hp_b0_h = ((1 + R_cos_hi) * 0.5) / R_a0_hi;
+R_hp_b1_h = -(1 + R_cos_hi) / R_a0_hi;
+R_hp_b2_h = R_hp_b0_h;
+R_hp_a1_h = R_lp_a1_h;
+R_hp_a2_h = R_lp_a2_h;
+
+// PRIMER CORTE @ loF: low (LP) y rest (HP)
+// LP Stage 1 para LOW
+R_l1_x1p = R_l1_x1; R_l1_x2p = R_l1_x2; R_l1_y1p = R_l1_y1; R_l1_y2p = R_l1_y2;
+R_low_s1 = R_lp_b0_l*R_x + R_lp_b1_l*R_l1_x1p + R_lp_b2_l*R_l1_x2p - R_lp_a1_l*R_l1_y1p - R_lp_a2_l*R_l1_y2p;
+R_l1_x2 = R_l1_x1p; R_l1_x1 = R_x; R_l1_y2 = R_l1_y1p; R_l1_y1 = R_low_s1;
+
+// LP Stage 2 para LOW
+R_l2_x1p = R_l2_x1; R_l2_x2p = R_l2_x2; R_l2_y1p = R_l2_y1; R_l2_y2p = R_l2_y2;
+R_low_raw = R_lp_b0_l*R_low_s1 + R_lp_b1_l*R_l2_x1p + R_lp_b2_l*R_l2_x2p - R_lp_a1_l*R_l2_y1p - R_lp_a2_l*R_l2_y2p;
+R_l2_x2 = R_l2_x1p; R_l2_x1 = R_low_s1; R_l2_y2 = R_l2_y1p; R_l2_y1 = R_low_raw;
+
+// HP Stage 1 para REST
+R_h1_x1p = R_h1_x1; R_h1_x2p = R_h1_x2; R_h1_y1p = R_h1_y1; R_h1_y2p = R_h1_y2;
+R_rest_s1 = R_hp_b0_l*R_x + R_hp_b1_l*R_h1_x1p + R_hp_b2_l*R_h1_x2p - R_hp_a1_l*R_h1_y1p - R_hp_a2_l*R_h1_y2p;
+R_h1_x2 = R_h1_x1p; R_h1_x1 = R_x; R_h1_y2 = R_h1_y1p; R_h1_y1 = R_rest_s1;
+
+// HP Stage 2 para REST
+R_h2_x1p = R_h2_x1; R_h2_x2p = R_h2_x2; R_h2_y1p = R_h2_y1; R_h2_y2p = R_h2_y2;
+R_rest = R_hp_b0_l*R_rest_s1 + R_hp_b1_l*R_h2_x1p + R_hp_b2_l*R_h2_x2p - R_hp_a1_l*R_h2_y1p - R_hp_a2_l*R_h2_y2p;
+R_h2_x2 = R_h2_x1p; R_h2_x1 = R_rest_s1; R_h2_y2 = R_h2_y1p; R_h2_y1 = R_rest;
+
+// COMPENSACIÓN ALL-PASS para LOW
+// All-pass LP stage 1 sobre low_raw
+R_ap_low_lp1_x1p = R_ap_low_lp1_x1; R_ap_low_lp1_x2p = R_ap_low_lp1_x2;
+R_ap_low_lp1_y1p = R_ap_low_lp1_y1; R_ap_low_lp1_y2p = R_ap_low_lp1_y2;
+R_ap_low_lp_s1 = R_lp_b0_h*R_low_raw + R_lp_b1_h*R_ap_low_lp1_x1p + R_lp_b2_h*R_ap_low_lp1_x2p
+               - R_lp_a1_h*R_ap_low_lp1_y1p - R_lp_a2_h*R_ap_low_lp1_y2p;
+R_ap_low_lp1_x2 = R_ap_low_lp1_x1p; R_ap_low_lp1_x1 = R_low_raw;
+R_ap_low_lp1_y2 = R_ap_low_lp1_y1p; R_ap_low_lp1_y1 = R_ap_low_lp_s1;
+
+// All-pass LP stage 2
+R_ap_low_lp2_x1p = R_ap_low_lp2_x1; R_ap_low_lp2_x2p = R_ap_low_lp2_x2;
+R_ap_low_lp2_y1p = R_ap_low_lp2_y1; R_ap_low_lp2_y2p = R_ap_low_lp2_y2;
+R_ap_low_lp = R_lp_b0_h*R_ap_low_lp_s1 + R_lp_b1_h*R_ap_low_lp2_x1p + R_lp_b2_h*R_ap_low_lp2_x2p
+            - R_lp_a1_h*R_ap_low_lp2_y1p - R_lp_a2_h*R_ap_low_lp2_y2p;
+R_ap_low_lp2_x2 = R_ap_low_lp2_x1p; R_ap_low_lp2_x1 = R_ap_low_lp_s1;
+R_ap_low_lp2_y2 = R_ap_low_lp2_y1p; R_ap_low_lp2_y1 = R_ap_low_lp;
+
+// All-pass HP stage 1 sobre low_raw
+R_ap_low_hp1_x1p = R_ap_low_hp1_x1; R_ap_low_hp1_x2p = R_ap_low_hp1_x2;
+R_ap_low_hp1_y1p = R_ap_low_hp1_y1; R_ap_low_hp1_y2p = R_ap_low_hp1_y2;
+R_ap_low_hp_s1 = R_hp_b0_h*R_low_raw + R_hp_b1_h*R_ap_low_hp1_x1p + R_hp_b2_h*R_ap_low_hp1_x2p
+               - R_hp_a1_h*R_ap_low_hp1_y1p - R_hp_a2_h*R_ap_low_hp1_y2p;
+R_ap_low_hp1_x2 = R_ap_low_hp1_x1p; R_ap_low_hp1_x1 = R_low_raw;
+R_ap_low_hp1_y2 = R_ap_low_hp1_y1p; R_ap_low_hp1_y1 = R_ap_low_hp_s1;
+
+// All-pass HP stage 2
+R_ap_low_hp2_x1p = R_ap_low_hp2_x1; R_ap_low_hp2_x2p = R_ap_low_hp2_x2;
+R_ap_low_hp2_y1p = R_ap_low_hp2_y1; R_ap_low_hp2_y2p = R_ap_low_hp2_y2;
+R_ap_low_hp = R_hp_b0_h*R_ap_low_hp_s1 + R_hp_b1_h*R_ap_low_hp2_x1p + R_hp_b2_h*R_ap_low_hp2_x2p
+            - R_hp_a1_h*R_ap_low_hp2_y1p - R_hp_a2_h*R_ap_low_hp2_y2p;
+R_ap_low_hp2_x2 = R_ap_low_hp2_x1p; R_ap_low_hp2_x1 = R_ap_low_hp_s1;
+R_ap_low_hp2_y2 = R_ap_low_hp2_y1p; R_ap_low_hp2_y1 = R_ap_low_hp;
+
+// LOW compensado
+R_low = R_ap_low_lp + R_ap_low_hp;
+
+// SEGUNDO CORTE @ hiF sobre REST: mid (LP) y high (HP)
+// LP Stage 1 para MID
+R_m1_x1p = R_m1_x1; R_m1_x2p = R_m1_x2; R_m1_y1p = R_m1_y1; R_m1_y2p = R_m1_y2;
+R_mid_s1 = R_lp_b0_h*R_rest + R_lp_b1_h*R_m1_x1p + R_lp_b2_h*R_m1_x2p - R_lp_a1_h*R_m1_y1p - R_lp_a2_h*R_m1_y2p;
+R_m1_x2 = R_m1_x1p; R_m1_x1 = R_rest; R_m1_y2 = R_m1_y1p; R_m1_y1 = R_mid_s1;
+
+// LP Stage 2 para MID
+R_m2_x1p = R_m2_x1; R_m2_x2p = R_m2_x2; R_m2_y1p = R_m2_y1; R_m2_y2p = R_m2_y2;
+R_mid = R_lp_b0_h*R_mid_s1 + R_lp_b1_h*R_m2_x1p + R_lp_b2_h*R_m2_x2p - R_lp_a1_h*R_m2_y1p - R_lp_a2_h*R_m2_y2p;
+R_m2_x2 = R_m2_x1p; R_m2_x1 = R_mid_s1; R_m2_y2 = R_m2_y1p; R_m2_y1 = R_mid;
+
+// HP Stage 1 para HIGH
+R_u1_x1p = R_u1_x1; R_u1_x2p = R_u1_x2; R_u1_y1p = R_u1_y1; R_u1_y2p = R_u1_y2;
+R_high_s1 = R_hp_b0_h*R_rest + R_hp_b1_h*R_u1_x1p + R_hp_b2_h*R_u1_x2p - R_hp_a1_h*R_u1_y1p - R_hp_a2_h*R_u1_y2p;
+R_u1_x2 = R_u1_x1p; R_u1_x1 = R_rest; R_u1_y2 = R_u1_y1p; R_u1_y1 = R_high_s1;
+
+// HP Stage 2 para HIGH
+R_u2_x1p = R_u2_x1; R_u2_x2p = R_u2_x2; R_u2_y1p = R_u2_y1; R_u2_y2p = R_u2_y2;
+R_high = R_hp_b0_h*R_high_s1 + R_hp_b1_h*R_u2_x1p + R_hp_b2_h*R_u2_x2p - R_hp_a1_h*R_u2_y1p - R_hp_a2_h*R_u2_y2p;
+R_u2_x2 = R_u2_x1p; R_u2_x1 = R_high_s1; R_u2_y2 = R_u2_y1p; R_u2_y1 = R_high;
+
+lowR = R_low;
+midR = R_mid;
+highR = R_high;
+
+// Selector de banda con suavizado
+wLow = max(0, 1 - abs(smoothedBand - 0));
+wMid = max(0, 1 - abs(smoothedBand - 1));
+wHigh = max(0, 1 - abs(smoothedBand - 2));
+wSum = max(1e-9, wLow + wMid + wHigh);
+wLow /= wSum; wMid /= wSum; wHigh /= wSum;
+
+// Banda a procesar y suma limpia para recomponer
+preBandL = wLow*lowL + wMid*midL + wHigh*highL;
+preBandR = wLow*lowR + wMid*midR + wHigh*highR;
+
+// Bandas no procesadas (para recomponer en output stage)
+sumBandsL = lowL + midL + highL;
+sumBandsR = lowR + midR + highR;
+bypassWhenActiveL = sumBandsL - preBandL;
+bypassWhenActiveR = sumBandsR - preBandR;
+
+// Conmutación por enable
+preDistInL = mix(lTrimmed, preBandL, scSm);
+preDistInR = mix(rTrimmed, preBandR, scSm);
 
 // -----------------------------------------------------------------------------
-// FILTRO TILT PRE-DISTORSIÓN
+// ALLPASS DE COMPENSACIÓN PARA DRY - CANAL L
 // -----------------------------------------------------------------------------
-fc = 800.0;
-q = 0.7071;
+L_ap_x = lTrimmed;
+L_ap_loF = smoothHpfFreq;
+L_ap_hiF = smoothLpfFreq;
 
-// Cálculo de coeficientes para Tilt (invertido para UI intuitiva)
-tiltGain = dbtoa(-tiltDb);
+// Proteger frecuencias (ya calculadas arriba, reusar)
+L_ap_sr = samplerate;
+L_ap_loF = max(10, min(L_ap_loF, 0.45 * L_ap_sr));
+L_ap_hiFr = max(10, min(L_ap_hiF, 0.45 * L_ap_sr));
+L_ap_hiF = max(L_ap_hiFr, L_ap_loF + 1);
+
+// Coeficientes ya calculados arriba, reusar L_lp_b0_l, etc.
+
+// PRIMER ALL-PASS @ loF
+// LP Stage 1
+L_ap1_lp1_x1p = L_ap1_lp1_x1; L_ap1_lp1_x2p = L_ap1_lp1_x2;
+L_ap1_lp1_y1p = L_ap1_lp1_y1; L_ap1_lp1_y2p = L_ap1_lp1_y2;
+L_ap1_lp_s1 = L_lp_b0_l*L_ap_x + L_lp_b1_l*L_ap1_lp1_x1p + L_lp_b2_l*L_ap1_lp1_x2p
+            - L_lp_a1_l*L_ap1_lp1_y1p - L_lp_a2_l*L_ap1_lp1_y2p;
+L_ap1_lp1_x2 = L_ap1_lp1_x1p; L_ap1_lp1_x1 = L_ap_x;
+L_ap1_lp1_y2 = L_ap1_lp1_y1p; L_ap1_lp1_y1 = L_ap1_lp_s1;
+
+// LP Stage 2
+L_ap1_lp2_x1p = L_ap1_lp2_x1; L_ap1_lp2_x2p = L_ap1_lp2_x2;
+L_ap1_lp2_y1p = L_ap1_lp2_y1; L_ap1_lp2_y2p = L_ap1_lp2_y2;
+L_ap1_lp = L_lp_b0_l*L_ap1_lp_s1 + L_lp_b1_l*L_ap1_lp2_x1p + L_lp_b2_l*L_ap1_lp2_x2p
+         - L_lp_a1_l*L_ap1_lp2_y1p - L_lp_a2_l*L_ap1_lp2_y2p;
+L_ap1_lp2_x2 = L_ap1_lp2_x1p; L_ap1_lp2_x1 = L_ap1_lp_s1;
+L_ap1_lp2_y2 = L_ap1_lp2_y1p; L_ap1_lp2_y1 = L_ap1_lp;
+
+// HP Stage 1
+L_ap1_hp1_x1p = L_ap1_hp1_x1; L_ap1_hp1_x2p = L_ap1_hp1_x2;
+L_ap1_hp1_y1p = L_ap1_hp1_y1; L_ap1_hp1_y2p = L_ap1_hp1_y2;
+L_ap1_hp_s1 = L_hp_b0_l*L_ap_x + L_hp_b1_l*L_ap1_hp1_x1p + L_hp_b2_l*L_ap1_hp1_x2p
+            - L_hp_a1_l*L_ap1_hp1_y1p - L_hp_a2_l*L_ap1_hp1_y2p;
+L_ap1_hp1_x2 = L_ap1_hp1_x1p; L_ap1_hp1_x1 = L_ap_x;
+L_ap1_hp1_y2 = L_ap1_hp1_y1p; L_ap1_hp1_y1 = L_ap1_hp_s1;
+
+// HP Stage 2
+L_ap1_hp2_x1p = L_ap1_hp2_x1; L_ap1_hp2_x2p = L_ap1_hp2_x2;
+L_ap1_hp2_y1p = L_ap1_hp2_y1; L_ap1_hp2_y2p = L_ap1_hp2_y2;
+L_ap1_hp = L_hp_b0_l*L_ap1_hp_s1 + L_hp_b1_l*L_ap1_hp2_x1p + L_hp_b2_l*L_ap1_hp2_x2p
+         - L_hp_a1_l*L_ap1_hp2_y1p - L_hp_a2_l*L_ap1_hp2_y2p;
+L_ap1_hp2_x2 = L_ap1_hp2_x1p; L_ap1_hp2_x1 = L_ap1_hp_s1;
+L_ap1_hp2_y2 = L_ap1_hp2_y1p; L_ap1_hp2_y1 = L_ap1_hp;
+
+// Reconstruir primer all-pass
+L_stage1_out = L_ap1_lp + L_ap1_hp;
+
+// SEGUNDO ALL-PASS @ hiF
+// LP Stage 1
+L_ap2_lp1_x1p = L_ap2_lp1_x1; L_ap2_lp1_x2p = L_ap2_lp1_x2;
+L_ap2_lp1_y1p = L_ap2_lp1_y1; L_ap2_lp1_y2p = L_ap2_lp1_y2;
+L_ap2_lp_s1 = L_lp_b0_h*L_stage1_out + L_lp_b1_h*L_ap2_lp1_x1p + L_lp_b2_h*L_ap2_lp1_x2p
+            - L_lp_a1_h*L_ap2_lp1_y1p - L_lp_a2_h*L_ap2_lp1_y2p;
+L_ap2_lp1_x2 = L_ap2_lp1_x1p; L_ap2_lp1_x1 = L_stage1_out;
+L_ap2_lp1_y2 = L_ap2_lp1_y1p; L_ap2_lp1_y1 = L_ap2_lp_s1;
+
+// LP Stage 2
+L_ap2_lp2_x1p = L_ap2_lp2_x1; L_ap2_lp2_x2p = L_ap2_lp2_x2;
+L_ap2_lp2_y1p = L_ap2_lp2_y1; L_ap2_lp2_y2p = L_ap2_lp2_y2;
+L_ap2_lp = L_lp_b0_h*L_ap2_lp_s1 + L_lp_b1_h*L_ap2_lp2_x1p + L_lp_b2_h*L_ap2_lp2_x2p
+         - L_lp_a1_h*L_ap2_lp2_y1p - L_lp_a2_h*L_ap2_lp2_y2p;
+L_ap2_lp2_x2 = L_ap2_lp2_x1p; L_ap2_lp2_x1 = L_ap2_lp_s1;
+L_ap2_lp2_y2 = L_ap2_lp2_y1p; L_ap2_lp2_y1 = L_ap2_lp;
+
+// HP Stage 1
+L_ap2_hp1_x1p = L_ap2_hp1_x1; L_ap2_hp1_x2p = L_ap2_hp1_x2;
+L_ap2_hp1_y1p = L_ap2_hp1_y1; L_ap2_hp1_y2p = L_ap2_hp1_y2;
+L_ap2_hp_s1 = L_hp_b0_h*L_stage1_out + L_hp_b1_h*L_ap2_hp1_x1p + L_hp_b2_h*L_ap2_hp1_x2p
+            - L_hp_a1_h*L_ap2_hp1_y1p - L_hp_a2_h*L_ap2_hp1_y2p;
+L_ap2_hp1_x2 = L_ap2_hp1_x1p; L_ap2_hp1_x1 = L_stage1_out;
+L_ap2_hp1_y2 = L_ap2_hp1_y1p; L_ap2_hp1_y1 = L_ap2_hp_s1;
+
+// HP Stage 2
+L_ap2_hp2_x1p = L_ap2_hp2_x1; L_ap2_hp2_x2p = L_ap2_hp2_x2;
+L_ap2_hp2_y1p = L_ap2_hp2_y1; L_ap2_hp2_y2p = L_ap2_hp2_y2;
+L_ap2_hp = L_hp_b0_h*L_ap2_hp_s1 + L_hp_b1_h*L_ap2_hp2_x1p + L_hp_b2_h*L_ap2_hp2_x2p
+         - L_hp_a1_h*L_ap2_hp2_y1p - L_hp_a2_h*L_ap2_hp2_y2p;
+L_ap2_hp2_x2 = L_ap2_hp2_x1p; L_ap2_hp2_x1 = L_ap2_hp_s1;
+L_ap2_hp2_y2 = L_ap2_hp2_y1p; L_ap2_hp2_y1 = L_ap2_hp;
+
+dryCompL = L_ap2_lp + L_ap2_hp;
+
+// -----------------------------------------------------------------------------
+// ALLPASS DE COMPENSACIÓN PARA DRY - CANAL R
+// -----------------------------------------------------------------------------
+R_ap_x = rTrimmed;
+
+// PRIMER ALL-PASS @ loF (usando coeficientes R ya calculados)
+// LP Stage 1
+R_ap1_lp1_x1p = R_ap1_lp1_x1; R_ap1_lp1_x2p = R_ap1_lp1_x2;
+R_ap1_lp1_y1p = R_ap1_lp1_y1; R_ap1_lp1_y2p = R_ap1_lp1_y2;
+R_ap1_lp_s1 = R_lp_b0_l*R_ap_x + R_lp_b1_l*R_ap1_lp1_x1p + R_lp_b2_l*R_ap1_lp1_x2p
+            - R_lp_a1_l*R_ap1_lp1_y1p - R_lp_a2_l*R_ap1_lp1_y2p;
+R_ap1_lp1_x2 = R_ap1_lp1_x1p; R_ap1_lp1_x1 = R_ap_x;
+R_ap1_lp1_y2 = R_ap1_lp1_y1p; R_ap1_lp1_y1 = R_ap1_lp_s1;
+
+// LP Stage 2
+R_ap1_lp2_x1p = R_ap1_lp2_x1; R_ap1_lp2_x2p = R_ap1_lp2_x2;
+R_ap1_lp2_y1p = R_ap1_lp2_y1; R_ap1_lp2_y2p = R_ap1_lp2_y2;
+R_ap1_lp = R_lp_b0_l*R_ap1_lp_s1 + R_lp_b1_l*R_ap1_lp2_x1p + R_lp_b2_l*R_ap1_lp2_x2p
+         - R_lp_a1_l*R_ap1_lp2_y1p - R_lp_a2_l*R_ap1_lp2_y2p;
+R_ap1_lp2_x2 = R_ap1_lp2_x1p; R_ap1_lp2_x1 = R_ap1_lp_s1;
+R_ap1_lp2_y2 = R_ap1_lp2_y1p; R_ap1_lp2_y1 = R_ap1_lp;
+
+// HP Stage 1
+R_ap1_hp1_x1p = R_ap1_hp1_x1; R_ap1_hp1_x2p = R_ap1_hp1_x2;
+R_ap1_hp1_y1p = R_ap1_hp1_y1; R_ap1_hp1_y2p = R_ap1_hp1_y2;
+R_ap1_hp_s1 = R_hp_b0_l*R_ap_x + R_hp_b1_l*R_ap1_hp1_x1p + R_hp_b2_l*R_ap1_hp1_x2p
+            - R_hp_a1_l*R_ap1_hp1_y1p - R_hp_a2_l*R_ap1_hp1_y2p;
+R_ap1_hp1_x2 = R_ap1_hp1_x1p; R_ap1_hp1_x1 = R_ap_x;
+R_ap1_hp1_y2 = R_ap1_hp1_y1p; R_ap1_hp1_y1 = R_ap1_hp_s1;
+
+// HP Stage 2
+R_ap1_hp2_x1p = R_ap1_hp2_x1; R_ap1_hp2_x2p = R_ap1_hp2_x2;
+R_ap1_hp2_y1p = R_ap1_hp2_y1; R_ap1_hp2_y2p = R_ap1_hp2_y2;
+R_ap1_hp = R_hp_b0_l*R_ap1_hp_s1 + R_hp_b1_l*R_ap1_hp2_x1p + R_hp_b2_l*R_ap1_hp2_x2p
+         - R_hp_a1_l*R_ap1_hp2_y1p - R_hp_a2_l*R_ap1_hp2_y2p;
+R_ap1_hp2_x2 = R_ap1_hp2_x1p; R_ap1_hp2_x1 = R_ap1_hp_s1;
+R_ap1_hp2_y2 = R_ap1_hp2_y1p; R_ap1_hp2_y1 = R_ap1_hp;
+
+// Reconstruir primer all-pass
+R_stage1_out = R_ap1_lp + R_ap1_hp;
+
+// SEGUNDO ALL-PASS @ hiF
+// LP Stage 1
+R_ap2_lp1_x1p = R_ap2_lp1_x1; R_ap2_lp1_x2p = R_ap2_lp1_x2;
+R_ap2_lp1_y1p = R_ap2_lp1_y1; R_ap2_lp1_y2p = R_ap2_lp1_y2;
+R_ap2_lp_s1 = R_lp_b0_h*R_stage1_out + R_lp_b1_h*R_ap2_lp1_x1p + R_lp_b2_h*R_ap2_lp1_x2p
+            - R_lp_a1_h*R_ap2_lp1_y1p - R_lp_a2_h*R_ap2_lp1_y2p;
+R_ap2_lp1_x2 = R_ap2_lp1_x1p; R_ap2_lp1_x1 = R_stage1_out;
+R_ap2_lp1_y2 = R_ap2_lp1_y1p; R_ap2_lp1_y1 = R_ap2_lp_s1;
+
+// LP Stage 2
+R_ap2_lp2_x1p = R_ap2_lp2_x1; R_ap2_lp2_x2p = R_ap2_lp2_x2;
+R_ap2_lp2_y1p = R_ap2_lp2_y1; R_ap2_lp2_y2p = R_ap2_lp2_y2;
+R_ap2_lp = R_lp_b0_h*R_ap2_lp_s1 + R_lp_b1_h*R_ap2_lp2_x1p + R_lp_b2_h*R_ap2_lp2_x2p
+         - R_lp_a1_h*R_ap2_lp2_y1p - R_lp_a2_h*R_ap2_lp2_y2p;
+R_ap2_lp2_x2 = R_ap2_lp2_x1p; R_ap2_lp2_x1 = R_ap2_lp_s1;
+R_ap2_lp2_y2 = R_ap2_lp2_y1p; R_ap2_lp2_y1 = R_ap2_lp;
+
+// HP Stage 1
+R_ap2_hp1_x1p = R_ap2_hp1_x1; R_ap2_hp1_x2p = R_ap2_hp1_x2;
+R_ap2_hp1_y1p = R_ap2_hp1_y1; R_ap2_hp1_y2p = R_ap2_hp1_y2;
+R_ap2_hp_s1 = R_hp_b0_h*R_stage1_out + R_hp_b1_h*R_ap2_hp1_x1p + R_hp_b2_h*R_ap2_hp1_x2p
+            - R_hp_a1_h*R_ap2_hp1_y1p - R_hp_a2_h*R_ap2_hp1_y2p;
+R_ap2_hp1_x2 = R_ap2_hp1_x1p; R_ap2_hp1_x1 = R_stage1_out;
+R_ap2_hp1_y2 = R_ap2_hp1_y1p; R_ap2_hp1_y1 = R_ap2_hp_s1;
+
+// HP Stage 2
+R_ap2_hp2_x1p = R_ap2_hp2_x1; R_ap2_hp2_x2p = R_ap2_hp2_x2;
+R_ap2_hp2_y1p = R_ap2_hp2_y1; R_ap2_hp2_y2p = R_ap2_hp2_y2;
+R_ap2_hp = R_hp_b0_h*R_ap2_hp_s1 + R_hp_b1_h*R_ap2_hp2_x1p + R_hp_b2_h*R_ap2_hp2_x2p
+         - R_hp_a1_h*R_ap2_hp2_y1p - R_hp_a2_h*R_ap2_hp2_y2p;
+R_ap2_hp2_x2 = R_ap2_hp2_x1p; R_ap2_hp2_x1 = R_ap2_hp_s1;
+R_ap2_hp2_y2 = R_ap2_hp2_y1p; R_ap2_hp2_y1 = R_ap2_hp;
+
+dryCompR = R_ap2_lp + R_ap2_hp;
+
+// -----------------------------------------------------------------------------
+// FILTRO TILT PRE-DISTORSIÓN (RBJ)
+// -----------------------------------------------------------------------------
+fc = 1000.0;
 omega = (fc * twopi) / samplerate;
 sn = sin(omega);
 cs = cos(omega);
-A = sqrt(tiltGain);
-beta = sqrt((A * A + 1) / q - (A - 1) * (A - 1));
 
-// Coeficientes Low Shelf
-b0Ls = 1 / ((A + 1) + (A - 1) * cs + beta * sn);
-a0Ls = A * ((A + 1) - (A - 1) * cs + beta * sn) * b0Ls;
-a1Ls = 2 * A * ((A - 1) - (A + 1) * cs) * b0Ls;
-a2Ls = A * ((A + 1) - (A - 1) * cs - beta * sn) * b0Ls;
-b1Ls = -2 * ((A - 1) + (A + 1) * cs) * b0Ls;
-b2Ls = ((A + 1) + (A - 1) * cs - beta * sn) * b0Ls;
+// Ganancias complementarias
+Gls = -tiltDb;  // Low-shelf: -G
+Ghs = tiltDb;   // High-shelf: +G
+
+Als = sqrt(dbtoa(Gls));
+Ahs = sqrt(dbtoa(Ghs));
+
+S = 1.0;  // Slope RBJ
+
+// Alpha para shelves
+alphaLs = 0.5 * sn * sqrt((Als + 1/Als) * (1/S - 1) + 2);
+alphaHs = 0.5 * sn * sqrt((Ahs + 1/Ahs) * (1/S - 1) + 2);
+
+sqrtAls = sqrt(Als);
+sqrtAhs = sqrt(Ahs);
+
+// Coeficientes Low Shelf RBJ
+b0_ls = Als * ((Als + 1) - (Als - 1) * cs + 2 * sqrtAls * alphaLs);
+b1_ls = 2*Als * ((Als - 1) - (Als + 1) * cs);
+b2_ls = Als * ((Als + 1) - (Als - 1) * cs - 2 * sqrtAls * alphaLs);
+a0_ls = (Als + 1) + (Als - 1) * cs + 2 * sqrtAls * alphaLs;
+a1_ls = -2 * ((Als - 1) + (Als + 1) * cs);
+a2_ls = (Als + 1) + (Als - 1) * cs - 2 * sqrtAls * alphaLs;
+
+// Normalización
+inv_a0_ls = 1 / a0_ls;
+a0Ls = b0_ls * inv_a0_ls;
+a1Ls = b1_ls * inv_a0_ls;
+a2Ls = b2_ls * inv_a0_ls;
+b1Ls = a1_ls * inv_a0_ls;
+b2Ls = a2_ls * inv_a0_ls;
 
 // Aplicar Low Shelf
-lLs = a0Ls * lFiltered + a1Ls * tiltL2 + a2Ls * tiltL1 - b1Ls * tiltL4 - b2Ls * tiltL3;
-tiltL1 = tiltL2;
-tiltL2 = lFiltered;
-tiltL3 = tiltL4;
-tiltL4 = lLs;
+lLs = a0Ls * preDistInL + a1Ls * tiltLsL2 + a2Ls * tiltLsL1 - b1Ls * tiltLsL4 - b2Ls * tiltLsL3;
+tiltLsL1 = tiltLsL2;
+tiltLsL2 = preDistInL;
+tiltLsL3 = tiltLsL4;
+tiltLsL4 = lLs;
 
-rLs = a0Ls * rFiltered + a1Ls * tiltR2 + a2Ls * tiltR1 - b1Ls * tiltR4 - b2Ls * tiltR3;
-tiltR1 = tiltR2;
-tiltR2 = rFiltered;
-tiltR3 = tiltR4;
-tiltR4 = rLs;
+rLs = a0Ls * preDistInR + a1Ls * tiltLsR2 + a2Ls * tiltLsR1 - b1Ls * tiltLsR4 - b2Ls * tiltLsR3;
+tiltLsR1 = tiltLsR2;
+tiltLsR2 = preDistInR;
+tiltLsR3 = tiltLsR4;
+tiltLsR4 = rLs;
 
-// Coeficientes High Shelf
-aInv = sqrt(1/tiltGain);
-betaHs = sqrt((aInv * aInv + 1) / q - (aInv - 1) * (aInv - 1));
+// Coeficientes High Shelf RBJ
+b0_hs = Ahs * ((Ahs + 1) + (Ahs - 1) * cs + 2 * sqrtAhs * alphaHs);
+b1_hs = -2*Ahs * ((Ahs - 1) + (Ahs + 1) * cs);
+b2_hs = Ahs * ((Ahs + 1) + (Ahs - 1) * cs - 2 * sqrtAhs * alphaHs);
+a0_hs = (Ahs + 1) - (Ahs - 1) * cs + 2 * sqrtAhs * alphaHs;
+a1_hs = 2 * ((Ahs - 1) - (Ahs + 1) * cs);
+a2_hs = (Ahs + 1) - (Ahs - 1) * cs - 2 * sqrtAhs * alphaHs;
 
-b0Hs = 1 / ((aInv + 1) - (aInv - 1) * cs + betaHs * sn);
-a0Hs = aInv * ((aInv + 1) + (aInv - 1) * cs + betaHs * sn) * b0Hs;
-a1Hs = -2 * aInv * ((aInv - 1) + (aInv + 1) * cs) * b0Hs;
-a2Hs = aInv * ((aInv + 1) + (aInv - 1) * cs - betaHs * sn) * b0Hs;
-b1Hs = 2 * ((aInv - 1) - (aInv + 1) * cs) * b0Hs;
-b2Hs = ((aInv + 1) - (aInv - 1) * cs - betaHs * sn) * b0Hs;
+// Normalización
+inv_a0_hs = 1 / a0_hs;
+a0Hs = b0_hs * inv_a0_hs;
+a1Hs = b1_hs * inv_a0_hs;
+a2Hs = b2_hs * inv_a0_hs;
+b1Hs = a1_hs * inv_a0_hs;
+b2Hs = a2_hs * inv_a0_hs;
 
-lTilt = a0Hs * lLs + a1Hs * tiltL2 + a2Hs * tiltL1 - b1Hs * tiltL4 - b2Hs * tiltL3;
-rTilt = a0Hs * rLs + a1Hs * tiltR2 + a2Hs * tiltR1 - b1Hs * tiltR4 - b2Hs * tiltR3;
+// Aplicar High Shelf
+lTiltRaw = a0Hs * lLs + a1Hs * tiltHsL2 + a2Hs * tiltHsL1 - b1Hs * tiltHsL4 - b2Hs * tiltHsL3;
+tiltHsL1 = tiltHsL2;
+tiltHsL2 = lLs;
+tiltHsL3 = tiltHsL4;
+tiltHsL4 = lTiltRaw;
+
+rTiltRaw = a0Hs * rLs + a1Hs * tiltHsR2 + a2Hs * tiltHsR1 - b1Hs * tiltHsR4 - b2Hs * tiltHsR3;
+tiltHsR1 = tiltHsR2;
+tiltHsR2 = rLs;
+tiltHsR3 = tiltHsR4;
+tiltHsR4 = rTiltRaw;
+
+// Normalización en el pivote
+cosw = cs;
+sinw = sn;
+cos2 = (cs*cs - sn*sn);
+sin2 = (2*sn*cs);
+
+// Magnitud LS en fc
+nr_ls = a0Ls + a1Ls*cosw + a2Ls*cos2;
+ni_ls = -(a1Ls*sinw + a2Ls*sin2);
+dr_ls = 1 + b1Ls*cosw + b2Ls*cos2;
+di_ls = -(b1Ls*sinw + b2Ls*sin2);
+mag2_ls = (nr_ls*nr_ls + ni_ls*ni_ls) / max(1e-12, (dr_ls*dr_ls + di_ls*di_ls));
+mag_ls = sqrt(mag2_ls);
+
+// Magnitud HS en fc
+nr_hs = a0Hs + a1Hs*cosw + a2Hs*cos2;
+ni_hs = -(a1Hs*sinw + a2Hs*sin2);
+dr_hs = 1 + b1Hs*cosw + b2Hs*cos2;
+di_hs = -(b1Hs*sinw + b2Hs*sin2);
+mag2_hs = (nr_hs*nr_hs + ni_hs*ni_hs) / max(1e-12, (dr_hs*dr_hs + di_hs*di_hs));
+mag_hs = sqrt(mag2_hs);
+
+// Ganancia de normalización
+gPivot = 1 / max(1e-9, mag_ls * mag_hs);
+
+// Salida normalizada
+lTilt = lTiltRaw * gPivot;
+rTilt = rTiltRaw * gPivot;
 
 // -----------------------------------------------------------------------------
 // SALIDAS
 // -----------------------------------------------------------------------------
-out1 = lTilt;      // L procesado completo (filtrado + trim + tilt)
-out2 = rTilt;      // R procesado completo
+out1 = lTilt;                    // L procesado (banda seleccionada + tilt)
+out2 = rTilt;                    // R procesado (banda seleccionada + tilt)
+out3 = bypassWhenActiveL * scSm; // L bandas no procesadas
+out4 = bypassWhenActiveR * scSm; // R bandas no procesadas
+out5 = mix(lIn, dryCompL, scSm); // L dry compensado
+out6 = mix(rIn, dryCompR, scSm); // R dry compensado

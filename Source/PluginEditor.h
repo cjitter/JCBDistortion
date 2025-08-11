@@ -238,27 +238,6 @@ private:
         JCBDistortionAudioProcessorEditor* editor;
     };
     
-    // Parameter listener para actualizar alpha del REL slider cuando AUTOREL cambia
-    struct AutorelParameterListener : public juce::AudioProcessorValueTreeState::Listener
-    {
-        AutorelParameterListener(JCBDistortionAudioProcessorEditor* e) : editor(e) {}
-        
-        void parameterChanged(const juce::String& parameterID, float /*newValue*/) override
-        {
-            if (parameterID == "m_AUTOREL")
-            {
-                // Usar SafePointer para thread safety
-                juce::Component::SafePointer<JCBDistortionAudioProcessorEditor> safeEditor(editor);
-                
-                juce::MessageManager::callAsync([safeEditor]() {
-                    if (safeEditor)
-                        safeEditor->updateRelSliderAlpha();
-                });
-            }
-        }
-        
-        JCBDistortionAudioProcessorEditor* editor;
-    };
     
     // Parameter listener para actualizar estado visual de sliders HPF/LPF cuando l_SC cambia
     struct SidechainParameterListener : public juce::AudioProcessorValueTreeState::Listener
@@ -308,11 +287,8 @@ private:
     
     // Medidores con posicionamiento exacto desde JCBExpansorGate
     GradientMeter inputMeterL, inputMeterR;
-    // DISTORTION: grMeter eliminado - no hay gain reduction
     GradientMeterOutput outputMeterL, outputMeterR;
     
-    // MAXIMIZER: Medidores sidechain comentados (no tiene sidechain externo)
-    // SidechainMeter scMeterL, scMeterR;
     
     //==========================================================================
     // SLIDERS DE TRIM (superpuestos a meters)
@@ -323,8 +299,6 @@ private:
     TrimSlider makeupSlider;    // RESTAURADO: i_MAKEUP - Makeup gain POST procesador
     std::unique_ptr<CustomSliderAttachment> trimAttachment;
     std::unique_ptr<CustomSliderAttachment> makeupAttachment;  // RESTAURADO: para i_MAKEUP
-    
-    // MAXIMIZER: No sidechain trim - removed scTrimSlider and scTrimAttachment
     
     //==========================================================================
     // DISPLAYS DE VALOR INDEPENDIENTES
@@ -395,21 +369,11 @@ private:
         juce::Label bandMidLabel;     // Label para "Mid"
         juce::Label bandHighLabel;    // Label para "High"
         juce::TextButton scButton{"FILTERS"};
-        // Componentes no utilizados comentados para mantener compatibilidad
-        // juce::TextButton keyButton{"EXT KEY"};
-        // juce::TextButton soloScButton{"SOLO SC"};
-        // juce::TextButton hpfOrderButton{"12"};
-        // juce::TextButton lpfOrderButton{"12"};
         
         std::unique_ptr<CustomSliderAttachment> xLowAttachment;
-        std::unique_ptr<CustomSliderAttachment> bandAttachment;  // NUEVO - attachment para o_BAND
+        std::unique_ptr<CustomSliderAttachment> bandAttachment;
         std::unique_ptr<CustomSliderAttachment> xHighAttachment;
         std::unique_ptr<UndoableButtonAttachment> scAttachment;
-        // Attachments no utilizados comentados para mantener compatibilidad
-        // std::unique_ptr<UndoableButtonAttachment> keyAttachment;
-        // std::unique_ptr<UndoableButtonAttachment> soloScAttachment;
-        // std::unique_ptr<UndoableButtonAttachment> hpfOrderAttachment;
-        // std::unique_ptr<UndoableButtonAttachment> lpfOrderAttachment;
     } sidechainControls;
     
     //==========================================================================
@@ -475,8 +439,6 @@ private:
     juce::Image bypassBackground;
     juce::Image diagramBackground;
     
-    // Iconos de filtro
-    // MAXIMIZER: No filter icons - removed hpfIcon, lpfIcon, hpfOffImage, lpfOffImage
     
     //==========================================================================
     // COMPONENTES DE OVERLAY Y DIALOG
@@ -587,30 +549,16 @@ private:
                 // Entradas
                 {"IN L", 0.025f, 0.238f, 0.041f, 0.071f},
                 {"IN R", 0.025f, 0.333f, 0.041f, 0.071f},
-                //{"SC L", 0.025f, 0.476f, 0.041f, 0.071f},
-                //{"SC R", 0.025f, 0.571f, 0.041f, 0.071f},
                 
                 // Bloques principales
                 {"TRIM IN", 0.106f, 0.262f, 0.049f, 0.142f},
-                //{"TRIM SC", 0.106f, 0.476f, 0.049f, 0.142f},
-                
-                // Procesamiento
-                //{"FILTERS", 0.335f, 0.762f, 0.065f, 0.238f},
-                {"DETECTOR", 0.417f, 0.661f, 0.090f, 0.434f},
-                //{"GAIN CALC", 0.531f, 0.750f, 0.100f, 0.262f},
-                {"APPLY", 0.534f, 0.357f, 0.094f, 0.214f},
                 
                 // Salida
-                //{"MAKEUP", 0.653f, 0.363f, 0.090f, 0.202f},
-                //{"PARALLEL", 0.767f, 0.363f, 0.090f, 0.202f},
                 {"OUTPUT", 0.873f, 0.369f, 0.090f, 0.190f},
                 
                 // Salidas finales
                 {"OUT L", 0.996f, 0.303f, 0.068f, 0.071f},
-                {"OUT R", 0.996f, 0.554f, 0.068f, 0.071f},
-                
-                // Medidores
-                {"GR METER", 0.669f, 0.810f, 0.082f, 0.143f}
+                {"OUT R", 0.996f, 0.554f, 0.068f, 0.071f}
             };
             
             // Dibujar cada etiqueta
@@ -813,10 +761,13 @@ private:
             // Distribución horizontal de los 4 bloques principales
             cachedClickableAreas = {
                 // Los 4 bloques del procesamiento de distorsión
-                {"INPUT STAGE", 75.f, 75.f, 55.f, 65.f},      // Entrada y trim
-                {"DISTORTION CORE", 163.f, 80.f, 125.f, 55.f}, // Motor de distorsión
-                {"EFFECTS CHAIN", 377.f, 89.f, 95.f, 40.f},   // Bit crusher, downsample, filtros
-                {"OUTPUT STAGE", 510.f, 82.f, 85.f, 50.f},    // Salida y makeup gain
+                {"INPUT STAGE", 75.f, 65.f, 55.f, 65.f},      // Entrada y trim
+                {"DISTORTION CORE", 163.f, 70.f, 120.f, 55.f}, // Motor de distorsión
+                {"EFFECTS CHAIN", 390.f, 35.f, 98.f, 37.f},   // Bit crusher, downsample, filtros
+                {"OUTPUT STAGE", 510.f, 72.f, 85.f, 50.f},    // Salida y makeup gain
+                // Bloques de filtros LR4 (Linkwitz-Riley 4th order)
+                {"LR4", 310.f, 26.f, 50.f, 50.f},             // Filtro LR4 básico
+                {"LR4-DRY-AllpassCompensated", 395.f, 120.f, 85.f, 37.f},  // LR4 con compensación allpass
             };
             
             clickableAreasCached = true;
@@ -958,7 +909,6 @@ private:
     //==========================================================================
     void handleParameterChange();
     void updateARButtonText();
-    void updateRelSliderAlpha();
     
     //==========================================================================
     // GESTIÓN DE TOOLTIPS
@@ -1041,7 +991,6 @@ private:
     
     // Listeners especializados
     std::unique_ptr<TransferFunctionParameterListener> transferFunctionListener;
-    std::unique_ptr<AutorelParameterListener> autorelParameterListener;
     std::unique_ptr<SidechainParameterListener> sidechainParameterListener;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (JCBDistortionAudioProcessorEditor)
