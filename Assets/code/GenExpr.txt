@@ -266,6 +266,10 @@ History lpfFreqHistory(0);
 History scEnableHistory(0);
 History dsPhasor(0);
 
+History dsPhase(0);
+History dsTrigPrev(0);
+History dsEnablePrev(0);
+
 //History tiltL1(0), tiltL2(0), tiltL3(0), tiltL4(0);
 //History tiltR1(0), tiltR2(0), tiltR3(0), tiltR4(0);
 History tiltLsL1(0), tiltLsL2(0), tiltLsL3(0), tiltLsL4(0);
@@ -345,7 +349,8 @@ smoothedMode = hMode;
 
 // Suavizado del downsampling
 hDownsample = hDownsample * smoothFactor + m_DOWNSAMPLE * (1 - smoothFactor);
-hDownsampleOn = hDownsampleOn * smoothFactor + n_DOWNSAMPLEON * (1 - smoothFactor);
+onSmooth = 0.9; // respuesta rápida (~10% por muestra)
+hDownsampleOn = hDownsampleOn * onSmooth + n_DOWNSAMPLEON * (1 - onSmooth);
 downsampleOn = hDownsampleOn;
 
 // Suavizado del bypass
@@ -1245,19 +1250,28 @@ withBitCrusherR = mix(processedR, bcR, bitson);
 
 // Downsampling con phasor y latch
 // Calcular frecuencia del decimador basada en el parámetro
-// Convertir el parámetro (0-99) a factor de decimación (1-100)
-deciFactor = hDownsample + 1;
-deciFreq = (samplerate * 0.5) / deciFactor;
+// Convertir el parámetro (0-99) a factor de decimación entero (1-100)
+deciFactor = max(1, floor(hDownsample + 1));
+deciFreq   = samplerate / deciFactor;   // 1 latch por cada N muestras
 
-// Generar phasor para el downsampling
-dsPhasor = phasor(deciFreq, 0);
+// Edge de activación (reset de fase al pasar de OFF→ON)
+enableNow  = downsampleOn > 0.5;
+enableEdge = enableNow > dsEnablePrev;   // flanco de subida
+dsEnablePrev = enableNow;
 
-// Crear trigger cuando el phasor cruza 0.5
-dsTrigger = dsPhasor > 0.5;
+// Phasor manual 0..1 con reset en el flanco de activación
+inc = 1 / deciFactor;                   // equivalente a deciFreq/samplerate, más claro
+dsPhase = enableEdge ? 0 : (dsPhase + inc);
+dsPhase = dsPhase - floor(dsPhase);
 
-// Usar latch para mantener las muestras
-dsHeldL = latch(withBitCrusherL, dsTrigger);
-dsHeldR = latch(withBitCrusherR, dsTrigger);
+// Disparo robusto: en el wrap-around (fase actual < fase anterior) o si N==1
+dsEdgeWrap = dsPhase < dsTrigPrev;      // usa dsTrigPrev como "fase previa"
+dsEdge = (enableEdge + dsEdgeWrap + (deciFactor == 1)) > 0.5;
+dsTrigPrev = dsPhase;
+
+// Latch SOLO en el flanco
+dsHeldL = latch(withBitCrusherL, dsEdge);
+dsHeldR = latch(withBitCrusherR, dsEdge);
 
 // Aplicar downsampling
 wetFinalL = mix(withBitCrusherL, dsHeldL, downsampleOn);
