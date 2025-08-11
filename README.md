@@ -66,19 +66,21 @@ cmake --build build-release   # Para Release
 - **Control de asimetría DC (EVEN)** de 0 a 1 para generar armónicos pares mediante offset DC variable
 - **Bit Crusher configurable** de 3 a 16 bits con activador independiente (BIT CRUSHER)
 - **Downsampler/Decimador** de 0 a 100% con activador dedicado (DOWNSAMPLE)
-- **Filtros HPF/LPF** configurables (20Hz-20kHz) con botón activador (FILTERS)
+- **Crossover de 3 bandas Linkwitz-Riley 4º orden** con puntos de cruce ajustables (XLow: 20-1000Hz, XHigh: 1000-20000Hz)
+- **Selector de banda (BAND)** para procesar selectivamente graves (Low), medios (Mid) o agudos (High)
+- **Filtros con compensación allpass** para mantener fase coherente cuando está en bypass (FILTERS off)
+- **Líneas de crossover interactivas** en el analizador FFT - arrastrables con mouse para ajuste directo
 - **Filtro Tilt** de ±6dB para balance espectral pre-distorsión
 - **Control de techo (CEILING)** de -20 a +6 dB para limitar la salida
 - **Trim de salida** de ±12dB para ajuste fino del nivel
 - **Control Dry/Wet** (0-100%) para mezcla paralela post-procesamiento
 - **Bypass verdadero** con botón dedicado
-- **Analizador de espectro FFT profesional** 2048-point con toggle FFT/CURVES
+- **Analizador de espectro FFT** 2048-point con toggle FFT/CURVES
 - **Visualizador de curvas de distorsión** en tiempo real con respuesta dinámica
 - **Medidores de entrada/salida** con gradiente visual RMS/Peak
-- **5 Factory Presets** integrados (Ali, BrightLight, Midy, PlusSixAll, Spark)
-- **Procesamiento estéreo completo** con parámetros unificados
+- **Procesamiento estéreo** con parámetros unificados
 - **Tooltips bilingües** conmutables (Español/Inglés)
-- **Diagrama de bloques interactivo** con acceso al código GenExpr para estudio técnico
+- **Diagrama de bloques interactivo** con acceso al código GenExpr para estudio en Max
 
 ![Diagrama de Bloques](Assets/screenshotDiagram.png)
 
