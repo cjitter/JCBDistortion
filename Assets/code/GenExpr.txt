@@ -1058,7 +1058,7 @@ Als = sqrt(dbtoa(Gls));
 Ahs = sqrt(dbtoa(Ghs));
 
 // Slope RBJ (S=1 es canónico y estable)
-S  = 1.0;
+S  = 0.5; //1.0;
 
 // alpha para shelves (RBJ)
 alphaLs = 0.5 * sn * sqrt((Als + 1/Als) * (1/S - 1) + 2);
@@ -1237,6 +1237,10 @@ distR = softR * w0 + sigmR * w1 + rectR * w2 + fuzz1R * w3 +
 processedL = dcblock(distL);
 processedR = dcblock(distR);
 
+// Esto es solo para probar la respuesta del tilt en Plugin Doctor
+//processedL = dcblock(lTilt);
+//processedR = dcblock(rTilt);
+
 // -----------------------------------------------------------------------------
 // BIT CRUSHER Y DOWNSAMPLING OPCIONAL (ANTES DEL DRY/WET)
 // -----------------------------------------------------------------------------
@@ -1298,17 +1302,19 @@ mixedR = mix(dryR, wetWithMakeupR, drywet);
 // -----------------------------------------------------------------------------
 // SALIDA FINAL CON BYPASS
 // -----------------------------------------------------------------------------
-// Ya no aplicamos makeup aquí porque ya está en la señal wet
+
 finalL = mixedL;
 finalR = mixedR;
 
 // DC Blocker final antes de la salida
-finalDcBlockedL = dcblock(finalL);
-finalDcBlockedR = dcblock(finalR);
-
+//finalDcBlockedL = dcblock(finalL);
+//finalDcBlockedR = dcblock(finalR);
 // Salidas principales
-out1 = mix(lIn, finalDcBlockedL, bypass);
-out2 = mix(rIn, finalDcBlockedR, bypass);
+//out1 = mix(lIn, finalDcBlockedL, bypass);
+//out2 = mix(rIn, finalDcBlockedR, bypass);
+
+out1 = mix(lIn, finalL, bypass);
+out2 = mix(rIn, finalR, bypass);
 
 // Salida 3 vacía para mantener consistencia
 out3 = 0;
