@@ -11,6 +11,7 @@ DistortionCurveComponent::DistortionCurveComponent(juce::AudioProcessorValueTree
     valueTreeState.addParameterListener("e_CEILING", this);
     valueTreeState.addParameterListener("i_TILT", this);
     valueTreeState.addParameterListener("f_BYPASS", this);
+    valueTreeState.addParameterListener("p_DISTON", this);
     
     // Obtener valores iniciales
     updateFromParameters();
@@ -24,6 +25,7 @@ DistortionCurveComponent::~DistortionCurveComponent()
     valueTreeState.removeParameterListener("e_CEILING", this);
     valueTreeState.removeParameterListener("i_TILT", this);
     valueTreeState.removeParameterListener("f_BYPASS", this);
+    valueTreeState.removeParameterListener("p_DISTON", this);
 }
 
 void DistortionCurveComponent::parameterChanged(const juce::String& parameterID, float newValue)
@@ -40,6 +42,8 @@ void DistortionCurveComponent::parameterChanged(const juce::String& parameterID,
         currentTilt = newValue;
     else if (parameterID == "f_BYPASS")
         bypassMode = newValue >= 0.5f;
+    else if (parameterID == "p_DISTON")
+        distortionEnabled = newValue >= 0.5f;
     
     repaint();
 }
@@ -58,6 +62,8 @@ void DistortionCurveComponent::updateFromParameters()
         currentTilt = param->load();
     if (auto* param = valueTreeState.getRawParameterValue("f_BYPASS"))
         bypassMode = param->load() >= 0.5f;
+    if (auto* param = valueTreeState.getRawParameterValue("p_DISTON"))
+        distortionEnabled = param->load() >= 0.5f;
 }
 
 void DistortionCurveComponent::paint(juce::Graphics& g)
@@ -74,14 +80,17 @@ void DistortionCurveComponent::paint(juce::Graphics& g)
         return;
     }
     
+    // Factor de alpha global basado en si la distorsión está activa
+    float globalAlpha = distortionEnabled ? 1.0f : 0.3f;
+    
     // Modo normal: calcular color de fondo basado en TILT
     if (std::abs(currentTilt) > 0.01f) // Solo aplicar efecto si TILT es significativo
     {
-        if (currentTilt < 0.0f) // Graves - rojizo
+        if (currentTilt < 0.0f) // Graves - púrpura
         {
             float intensity = juce::jlimit(0.0f, 1.0f, std::abs(currentTilt) / 6.0f); // Normalizar -6dB a 1.0
-            juce::Colour redTint = juce::Colour(0xff5a2020); // Rojo intermedio
-            backgroundColour = backgroundColour.interpolatedWith(redTint, intensity * 0.25f);
+            juce::Colour purpleTint = juce::Colour(0xFF8434AD); // Púrpura que coincide con el espectro
+            backgroundColour = backgroundColour.interpolatedWith(purpleTint, intensity * 0.25f);
         }
         else // Agudos - violeta
         {
@@ -97,18 +106,18 @@ void DistortionCurveComponent::paint(juce::Graphics& g)
     bounds.reduce(10, 10);
     
     // Dibujar grilla
-    drawGrid(g, bounds);
+    drawGrid(g, bounds, globalAlpha);
     
     // Dibujar línea de referencia (y = x)
-    g.setColour(juce::Colours::grey.withAlpha(0.5f));
+    g.setColour(juce::Colours::grey.withAlpha(0.5f * globalAlpha));
     g.drawLine(bounds.getX(), bounds.getBottom(),
                bounds.getRight(), bounds.getY(), 1.0f);
     
     // Dibujar curva
-    drawDistortionCurve(g, bounds);
+    drawDistortionCurve(g, bounds, globalAlpha);
     
     // Dibujar nombre del modo en cuadrante superior izquierdo (centrado)
-    g.setColour(juce::Colours::white.withAlpha(0.9f));
+    g.setColour(juce::Colours::white.withAlpha(0.9f * globalAlpha));
     g.setFont(16.0f);
     auto textBounds = getLocalBounds().toFloat();
     auto upperLeft = textBounds.removeFromTop(textBounds.getHeight() / 2.0f).removeFromLeft(textBounds.getWidth() / 2.0f);
@@ -116,7 +125,7 @@ void DistortionCurveComponent::paint(juce::Graphics& g)
     g.drawText(getModeName(), upperLeft, juce::Justification::centred);
     
     // Dibujar fórmula matemática en cuadrante inferior derecho
-    g.setColour(juce::Colours::white.withAlpha(0.7f));
+    g.setColour(juce::Colours::white.withAlpha(0.7f * globalAlpha));
     g.setFont(juce::Font(juce::FontOptions(14.0f)));  // Reducir tamaño a 14.0f
     auto lowerRight = getLocalBounds().toFloat();
     lowerRight.removeFromTop(lowerRight.getHeight() / 2.0f);
@@ -126,9 +135,9 @@ void DistortionCurveComponent::paint(juce::Graphics& g)
 }
 
 
-void DistortionCurveComponent::drawGrid(juce::Graphics& g, juce::Rectangle<float> bounds)
+void DistortionCurveComponent::drawGrid(juce::Graphics& g, juce::Rectangle<float> bounds, float alpha)
 {
-    g.setColour(juce::Colours::grey.withAlpha(0.2f));
+    g.setColour(juce::Colours::grey.withAlpha(0.2f * alpha));
     
     // Líneas verticales
     for (int i = 1; i < 4; ++i)
@@ -145,7 +154,7 @@ void DistortionCurveComponent::drawGrid(juce::Graphics& g, juce::Rectangle<float
     }
     
     // Ejes principales
-    g.setColour(juce::Colours::grey.withAlpha(0.5f));
+    g.setColour(juce::Colours::grey.withAlpha(0.5f * alpha));
     float centerX = bounds.getCentreX();
     float centerY = bounds.getCentreY();
     
@@ -153,7 +162,7 @@ void DistortionCurveComponent::drawGrid(juce::Graphics& g, juce::Rectangle<float
     g.drawLine(centerX, bounds.getY(), centerX, bounds.getBottom(), 1.0f);
 }
 
-void DistortionCurveComponent::drawDistortionCurve(juce::Graphics& g, juce::Rectangle<float> bounds)
+void DistortionCurveComponent::drawDistortionCurve(juce::Graphics& g, juce::Rectangle<float> bounds, float alpha)
 {
     juce::Path curve;
     const int numPoints = 256;
@@ -174,7 +183,7 @@ void DistortionCurveComponent::drawDistortionCurve(juce::Graphics& g, juce::Rect
             curve.lineTo(screenX, screenY);
     }
     
-    g.setColour(getColorForMode());
+    g.setColour(getColorForMode().withAlpha(alpha));
     g.strokePath(curve, juce::PathStrokeType(2.0f));
 }
 

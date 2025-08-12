@@ -189,6 +189,16 @@ void CustomComboBox::setSelectedId(int newItemId)
     }
 }
 
+void CustomComboBox::setSelectedIdWithoutNotification(int newItemId)
+{
+    if (selectedId != newItemId)
+    {
+        selectedId = newItemId;
+        repaint();
+        // No llamar a onChange - este es el punto clave
+    }
+}
+
 int CustomComboBox::getSelectedId() const
 {
     return selectedId;

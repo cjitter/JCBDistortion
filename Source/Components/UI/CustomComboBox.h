@@ -57,6 +57,7 @@ public:
     void addCategoryItem(const juce::String& categoryName, const juce::StringArray& subItems, int startId);
     void clear();
     void setSelectedId(int newItemId);
+    void setSelectedIdWithoutNotification(int newItemId);
     int getSelectedId() const;
     int getNumItems() const;
     juce::String getText() const;

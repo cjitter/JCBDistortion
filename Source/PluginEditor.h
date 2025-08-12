@@ -204,7 +204,7 @@ private:
     class FiltersButtonLookAndFeel : public juce::LookAndFeel_V4
     {
     public:
-        FiltersButtonLookAndFeel(juce::AudioProcessorValueTreeState& apvts) : valueTreeState(apvts) {}
+        FiltersButtonLookAndFeel() {}
         
         void drawButtonBackground(juce::Graphics& g, juce::Button& button,
                                 const juce::Colour& backgroundColour,
@@ -212,7 +212,6 @@ private:
                                 bool shouldDrawButtonAsDown) override;
         
     private:
-        juce::AudioProcessorValueTreeState& valueTreeState;
         
         // Colores de las bandas (consistentes con SpectrumAnalyzerComponent y BandSliderLookAndFeel)
         const juce::Colour lowBandColour{0xFF9C27B0};   // Púrpura (graves)
@@ -254,6 +253,72 @@ private:
                 juce::MessageManager::callAsync([safeEditor]() {
                     if (safeEditor)
                         safeEditor->updateSidechainComponentStates();
+                });
+            }
+        }
+        
+        JCBDistortionAudioProcessorEditor* editor;
+    };
+    
+    // Parameter listener para actualizar estado visual de sliders de distorsión cuando p_DISTON cambia
+    struct DistortionParameterListener : public juce::AudioProcessorValueTreeState::Listener
+    {
+        DistortionParameterListener(JCBDistortionAudioProcessorEditor* e) : editor(e) {}
+        
+        void parameterChanged(const juce::String& parameterID, float /*newValue*/) override
+        {
+            if (parameterID == "p_DISTON")
+            {
+                // Usar SafePointer para thread safety
+                juce::Component::SafePointer<JCBDistortionAudioProcessorEditor> safeEditor(editor);
+                
+                juce::MessageManager::callAsync([safeEditor]() {
+                    if (safeEditor)
+                        safeEditor->updateDistortionComponentStates();
+                });
+            }
+        }
+        
+        JCBDistortionAudioProcessorEditor* editor;
+    };
+    
+    // Parameter listener para actualizar estado visual del slider BIT cuando h_BITSON cambia
+    struct BitCrusherParameterListener : public juce::AudioProcessorValueTreeState::Listener
+    {
+        BitCrusherParameterListener(JCBDistortionAudioProcessorEditor* e) : editor(e) {}
+        
+        void parameterChanged(const juce::String& parameterID, float /*newValue*/) override
+        {
+            if (parameterID == "h_BITSON")
+            {
+                // Usar SafePointer para thread safety
+                juce::Component::SafePointer<JCBDistortionAudioProcessorEditor> safeEditor(editor);
+                
+                juce::MessageManager::callAsync([safeEditor]() {
+                    if (safeEditor)
+                        safeEditor->updateBitCrusherComponentStates();
+                });
+            }
+        }
+        
+        JCBDistortionAudioProcessorEditor* editor;
+    };
+    
+    // Parameter listener para actualizar estado visual del slider DECI cuando n_DOWNSAMPLEON cambia
+    struct DownsampleParameterListener : public juce::AudioProcessorValueTreeState::Listener
+    {
+        DownsampleParameterListener(JCBDistortionAudioProcessorEditor* e) : editor(e) {}
+        
+        void parameterChanged(const juce::String& parameterID, float /*newValue*/) override
+        {
+            if (parameterID == "n_DOWNSAMPLEON")
+            {
+                // Usar SafePointer para thread safety
+                juce::Component::SafePointer<JCBDistortionAudioProcessorEditor> safeEditor(editor);
+                
+                juce::MessageManager::callAsync([safeEditor]() {
+                    if (safeEditor)
+                        safeEditor->updateDownsampleComponentStates();
                 });
             }
         }
@@ -881,6 +946,9 @@ private:
     void updateButtonStates();
     void updateBasicButtonStates();
     void updateSidechainComponentStates();
+    void updateDistortionComponentStates();
+    void updateBitCrusherComponentStates();
+    void updateDownsampleComponentStates();
     void updateBackgroundState();
     void updateFilterButtonText();
     void updateMeterStates();
@@ -1000,6 +1068,9 @@ private:
     // Listeners especializados
     std::unique_ptr<TransferFunctionParameterListener> transferFunctionListener;
     std::unique_ptr<SidechainParameterListener> sidechainParameterListener;
+    std::unique_ptr<DistortionParameterListener> distortionParameterListener;
+    std::unique_ptr<BitCrusherParameterListener> bitCrusherParameterListener;
+    std::unique_ptr<DownsampleParameterListener> downsampleParameterListener;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (JCBDistortionAudioProcessorEditor)
 };

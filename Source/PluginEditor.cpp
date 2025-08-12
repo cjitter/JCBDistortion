@@ -43,7 +43,7 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
       // scMeterR([&p](){ return p.getSCValue(1); }) // SC meter R
 {
     // Inicializar LookAndFeel personalizado para el botón FILTERS
-    filtersButtonLAF = std::make_unique<FiltersButtonLookAndFeel>(processor.apvts);
+    filtersButtonLAF = std::make_unique<FiltersButtonLookAndFeel>();
     
     // Configurar todos los componentes
     setupBackground();
@@ -146,6 +146,18 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     sidechainParameterListener = std::make_unique<SidechainParameterListener>(this);
     processor.apvts.addParameterListener("l_SC", sidechainParameterListener.get());
     
+    // Crear y registrar parameter listener para estado visual de sliders de distorsión
+    distortionParameterListener = std::make_unique<DistortionParameterListener>(this);
+    processor.apvts.addParameterListener("p_DISTON", distortionParameterListener.get());
+    
+    // Crear y registrar parameter listener para estado visual del slider BIT
+    bitCrusherParameterListener = std::make_unique<BitCrusherParameterListener>(this);
+    processor.apvts.addParameterListener("h_BITSON", bitCrusherParameterListener.get());
+    
+    // Crear y registrar parameter listener para estado visual del slider DECI
+    downsampleParameterListener = std::make_unique<DownsampleParameterListener>(this);
+    processor.apvts.addParameterListener("n_DOWNSAMPLEON", downsampleParameterListener.get());
+    
     // Configurar estado inicial del idioma
     if (processor.getTooltipLanguageEnglish()) {
         currentLanguage = TooltipLanguage::English;
@@ -171,6 +183,15 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     
     // Forzar actualización final de estados de componentes de filtro
     updateSidechainComponentStates();
+    
+    // Forzar actualización inicial de estados de componentes de distorsión
+    updateDistortionComponentStates();
+    
+    // Forzar actualización inicial de estados de componentes de bit crusher
+    updateBitCrusherComponentStates();
+    
+    // Forzar actualización inicial de estados de componentes de downsample
+    updateDownsampleComponentStates();
     
     // Establecer estado inicial de SOLO SIDECHAIN en transfer display
     
@@ -385,14 +406,10 @@ void JCBDistortionAudioProcessorEditor::FiltersButtonLookAndFeel::drawButtonBack
     {
         if (toggleButton->getToggleState())
         {
-            // Obtener el valor actual de la banda seleccionada
-            float bandValue = 1.0f;  // Default: Mid
-            if (auto* param = valueTreeState.getRawParameterValue("o_BAND"))
-            {
-                bandValue = param->load();
-            }
+            // Usar siempre el color de banda Mid (valor fijo 1.0f)
+            float bandValue = 1.0f;  // Siempre Mid - color fijo independiente de la selección actual
             
-            // Crear gradiente basado en la banda seleccionada
+            // Crear gradiente basado en la banda Mid
             juce::ColourGradient gradient;
             
             if (bandValue <= 1.0f)
@@ -485,6 +502,21 @@ JCBDistortionAudioProcessorEditor::~JCBDistortionAudioProcessorEditor()
     if (sidechainParameterListener)
     {
         processor.apvts.removeParameterListener("l_SC", sidechainParameterListener.get());
+    }
+    
+    if (distortionParameterListener)
+    {
+        processor.apvts.removeParameterListener("p_DISTON", distortionParameterListener.get());
+    }
+    
+    if (bitCrusherParameterListener)
+    {
+        processor.apvts.removeParameterListener("h_BITSON", bitCrusherParameterListener.get());
+    }
+    
+    if (downsampleParameterListener)
+    {
+        processor.apvts.removeParameterListener("n_DOWNSAMPLEON", downsampleParameterListener.get());
     }
     
     setLookAndFeel(nullptr);
@@ -591,9 +623,9 @@ void JCBDistortionAudioProcessorEditor::resized()
     // Top row - REACT, SMOOTH knobs (RANGE moved to left side)
     
     // NUEVO: DET knob - área derecha superior
-    rightTopControls.tiltSlider.setBounds(getScaledBounds(170, 100, 48, 48));
+    rightTopControls.tiltSlider.setBounds(getScaledBounds(175, 100, 48, 48));
     // TILT POS button - cerca del slider TILT (a la derecha)
-    rightTopControls.tiltPosButton.setBounds(getScaledBounds(148, 116, 25, 12));
+    rightTopControls.tiltPosButton.setBounds(getScaledBounds(220, 120, 25, 12));
 
     // NUEVO: BITS knob - centro de la parte derecha superior 
     rightTopControls.bitsSlider.setBounds(getScaledBounds(480, 52, 48, 48));
@@ -605,7 +637,7 @@ void JCBDistortionAudioProcessorEditor::resized()
     rightTopControls.downsampleButton.setBounds(getScaledBounds(605, 105, 65, 15));
     
     // NUEVO: LIMIT button - en la parte derecha, cerca del TRIM (makeup gain)
-    rightTopControls.safeLimitButton.setBounds(getScaledBounds(640, 45, 35, 12));
+    rightTopControls.safeLimitButton.setBounds(getScaledBounds(678, 30, 20, 10));
 
     // Bottom row - Attack, Release, Hold
     rightBottomKnobs.driveSlider.setBounds(getScaledBounds(135, 47, 53, 53));
@@ -865,6 +897,24 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
     {
         // Actualizar estado visual de sliders HPF/LPF
         updateSidechainComponentStates();
+    }
+    // DISTORTION: Control de activación del módulo de distorsión
+    else if (button == &rightBottomKnobs.distOnButton)
+    {
+        // Actualizar estado visual de sliders de distorsión (MODE, EVEN, DRIVE, CEIL)
+        updateDistortionComponentStates();
+    }
+    // Control de activación de BIT CRUSHER
+    else if (button == &rightBottomKnobs.bitButton)
+    {
+        // Actualizar estado visual del slider BIT
+        updateBitCrusherComponentStates();
+    }
+    // Control de activación de DOWNSAMPLE
+    else if (button == &rightTopControls.downsampleButton)
+    {
+        // Actualizar estado visual del slider DECI
+        updateDownsampleComponentStates();
     }
     /* MAXIMIZER: Otros controles sidechain comentados (no existen en DISTORTION)
     else if (button == &sidechainControls.keyButton)
@@ -1151,7 +1201,7 @@ void JCBDistortionAudioProcessorEditor::handleParameterChange()
     }
     
     if (presetArea.presetMenu.getSelectedId() > 0) {
-        // Un preset está seleccionado - deseleccionar y mostrar con asterisco
+        // Un preset está seleccionado del menú - deseleccionar y mostrar con asterisco
         juce::String currentPresetName = presetArea.presetMenu.getText();
         
         presetArea.presetMenu.setSelectedId(0);
@@ -1167,19 +1217,27 @@ void JCBDistortionAudioProcessorEditor::handleParameterChange()
         processor.setPresetTextItalic(true);
         
     } else {
-        // No hay preset seleccionado - verificar si es DEFAULT
+        // No hay preset seleccionado - verificar el texto actual
         juce::String currentText = presetArea.presetMenu.getTextWhenNothingSelected();
-        if (currentText == "DEFAULT" || currentText.isEmpty()) {
-            // DEFAULT nunca debe mostrarse como modificado
-            // En su lugar, no mostrar nada
+        
+        // Si está vacío o es DEFAULT, no hacer nada
+        if (currentText.isEmpty() || currentText == "DEFAULT") {
             presetArea.presetMenu.setTextWhenNothingSelected("");
             presetArea.presetMenu.setTextItalic(false);
-            
-            // Guardar el estado visual en el processor
             processor.setPresetDisplayText("");
             processor.setPresetTextItalic(false);
         }
-        // Si ya tiene un asterisco, no hacer nada
+        // Si ya tiene asterisco, no hacer nada más
+        else if (!currentText.endsWith("*")) {
+            // Agregar asterisco al preset no seleccionado
+            auto modifiedText = currentText + "*";
+            presetArea.presetMenu.setTextWhenNothingSelected(modifiedText);
+            presetArea.presetMenu.setTextItalic(true);
+            
+            // Guardar el estado visual en el processor
+            processor.setPresetDisplayText(modifiedText);
+            processor.setPresetTextItalic(true);
+        }
     }
     
     // Actualizar texto del botón EXT KEY dinámicamente basándose en el estado del parámetro "r_KEY"
@@ -1675,9 +1733,9 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     sidechainControls.bandSoloButton.setLookAndFeel(&smallButtonLAF);
     sidechainControls.bandSoloButton.setButtonText("SOLO BAND");
     sidechainControls.bandSoloButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
-    sidechainControls.bandSoloButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);
-    sidechainControls.bandSoloButton.setColour(juce::TextButton::textColourOffId, DarkTheme::textSecondary.withAlpha(0.7f));
-    sidechainControls.bandSoloButton.setColour(juce::TextButton::textColourOnId, DarkTheme::textPrimary);
+    sidechainControls.bandSoloButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF46224F));  // Morado como BIT CRUSHER
+    sidechainControls.bandSoloButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    sidechainControls.bandSoloButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
     sidechainControls.bandSoloButton.setClickingTogglesState(true);
     addAndMakeVisible(sidechainControls.bandSoloButton);
     if (auto* param = processor.apvts.getParameter("p_BANDSOLO"))
@@ -1703,11 +1761,11 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     // Botón LIMIT - limitador brickwall de protección (p_SAFELIMITON)
     rightTopControls.safeLimitButton.setComponentID("safelimit");
     rightTopControls.safeLimitButton.setLookAndFeel(&smallButtonLAF);
-    rightTopControls.safeLimitButton.setButtonText("OFF");
+    rightTopControls.safeLimitButton.setButtonText("LIM");
     rightTopControls.safeLimitButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
-    rightTopControls.safeLimitButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);
-    rightTopControls.safeLimitButton.setColour(juce::TextButton::textColourOffId, DarkTheme::textSecondary.withAlpha(0.7f));
-    rightTopControls.safeLimitButton.setColour(juce::TextButton::textColourOnId, DarkTheme::textPrimary);
+    rightTopControls.safeLimitButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF46224F));  // Morado como BIT CRUSHER
+    rightTopControls.safeLimitButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    rightTopControls.safeLimitButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
     rightTopControls.safeLimitButton.setClickingTogglesState(true);
     addAndMakeVisible(rightTopControls.safeLimitButton);
     if (auto* param = processor.apvts.getParameter("p_SAFELIMITON"))
@@ -1715,9 +1773,9 @@ rightTopControls.tiltSlider.setComponentID("tilt");
         rightTopControls.safeLimitAttachment = std::make_unique<UndoableButtonAttachment>(
             *param, rightTopControls.safeLimitButton, &undoManager);
         
-        // Callback para cambios de estado (actualizar texto)
-        rightTopControls.safeLimitAttachment->onStateChange = [this](bool isOn) {
-            rightTopControls.safeLimitButton.setButtonText(isOn ? "ON" : "OFF");
+        // Callback para cambios de estado (texto fijo LIMIT)
+        rightTopControls.safeLimitAttachment->onStateChange = [](bool /*isOn*/) {
+            // Texto siempre es "LIMIT", no cambia con el estado
         };
         
         // Callback para clicks del usuario
@@ -1725,9 +1783,8 @@ rightTopControls.tiltSlider.setComponentID("tilt");
             handleParameterChange();
         };
         
-        // Sincronización inicial
-        bool initialState = param->getValue() >= 0.5f;
-        rightTopControls.safeLimitButton.setButtonText(initialState ? "ON" : "OFF");
+        // Sincronización inicial - texto siempre es "LIMIT"
+        rightTopControls.safeLimitButton.setButtonText("LIM");
     }
 }
 
@@ -2008,7 +2065,7 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 float defaultValue = param->getDefaultValue(); // defaultValue = 0 (OFF)
                 bool toggleState = defaultValue >= 0.5f; // false = OFF
                 rightTopControls.safeLimitButton.setToggleState(toggleState, juce::sendNotificationSync);
-                rightTopControls.safeLimitButton.setButtonText(toggleState ? "ON" : "OFF");
+                rightTopControls.safeLimitButton.setButtonText("LIM");
             }
 
             // Reactivar undo después carga de preset
@@ -2336,6 +2393,12 @@ void JCBDistortionAudioProcessorEditor::updateButtonStates()
     updateBasicButtonStates();
     // Actualizar estados de componentes de filtro
     updateSidechainComponentStates();
+    // Actualizar estados de componentes de distorsión
+    updateDistortionComponentStates();
+    // Actualizar estados de componentes de bit crusher
+    updateBitCrusherComponentStates();
+    // Actualizar estados de componentes de downsample
+    updateDownsampleComponentStates();
     updateBackgroundState();
     updateMeterStates();
     
@@ -2374,6 +2437,20 @@ void JCBDistortionAudioProcessorEditor::updateSidechainComponentStates()
     sidechainControls.bandMidLabel.setAlpha(labelAlpha);
     sidechainControls.bandHighLabel.setAlpha(labelAlpha);
     
+    // SOLO BAND button - activo solo cuando FILTERS está ON
+    sidechainControls.bandSoloButton.setEnabled(filtersActive);
+    sidechainControls.bandSoloButton.setAlpha(filtersActive ? 1.0f : 0.5f);
+    
+    // Actualizar alpha del texto del botón SOLO BAND según estado
+    sidechainControls.bandSoloButton.setColour(
+        juce::TextButton::textColourOffId,
+        juce::Colours::white.withAlpha(filtersActive ? 1.0f : 0.7f)
+    );
+    sidechainControls.bandSoloButton.setColour(
+        juce::TextButton::textColourOnId,
+        juce::Colours::white
+    );
+    
     // Forzar repaint para actualizar colores
     sidechainControls.xLowSlider.repaint();
     sidechainControls.bandSlider.repaint();
@@ -2381,12 +2458,118 @@ void JCBDistortionAudioProcessorEditor::updateSidechainComponentStates()
     sidechainControls.bandLowLabel.repaint();
     sidechainControls.bandMidLabel.repaint();
     sidechainControls.bandHighLabel.repaint();
+    sidechainControls.bandSoloButton.repaint();
     
     // Repintar botón FILTERS para actualizar gradiente cuando cambia la banda
     if (filtersActive)
     {
         sidechainControls.scButton.repaint();
     }
+}
+
+void JCBDistortionAudioProcessorEditor::updateDistortionComponentStates()
+{
+    // Obtener estado del botón distOnButton (p_DISTON)
+    const bool distortionActive = rightBottomKnobs.distOnButton.getToggleState();
+    
+    // MODE slider - activo solo cuando distorsión está ON
+    rightBottomKnobs.modeSlider.setEnabled(distortionActive);
+    rightBottomKnobs.modeSlider.setAlpha(distortionActive ? 1.0f : 0.5f);
+    
+    // EVEN (DC) slider - activo solo cuando distorsión está ON
+    rightBottomKnobs.dcSlider.setEnabled(distortionActive);
+    rightBottomKnobs.dcSlider.setAlpha(distortionActive ? 1.0f : 0.5f);
+    
+    // DRIVE slider - activo solo cuando distorsión está ON
+    rightBottomKnobs.driveSlider.setEnabled(distortionActive);
+    rightBottomKnobs.driveSlider.setAlpha(distortionActive ? 1.0f : 0.5f);
+    
+    // CEIL slider - activo solo cuando distorsión está ON
+    leftTopKnobs.ceilingSlider.setEnabled(distortionActive);
+    leftTopKnobs.ceilingSlider.setAlpha(distortionActive ? 1.0f : 0.5f);
+    
+    // TILT POS button (PRE/POST) - activo solo cuando distorsión está ON
+    rightTopControls.tiltPosButton.setEnabled(distortionActive);
+    rightTopControls.tiltPosButton.setAlpha(distortionActive ? 1.0f : 0.5f);
+    
+    // Actualizar alpha del texto del botón tiltPos según estado
+    rightTopControls.tiltPosButton.setColour(
+        juce::TextButton::textColourOffId,
+        juce::Colours::white.withAlpha(distortionActive ? 1.0f : 0.7f)
+    );
+    rightTopControls.tiltPosButton.setColour(
+        juce::TextButton::textColourOnId,
+        juce::Colours::white
+    );
+    
+    // Actualizar alpha del texto del botón distOn según estado (similar a FILTERS)
+    rightBottomKnobs.distOnButton.setColour(
+        juce::TextButton::textColourOffId, 
+        juce::Colours::white.withAlpha(distortionActive ? 1.0f : 0.7f)
+    );
+    rightBottomKnobs.distOnButton.setColour(
+        juce::TextButton::textColourOnId, 
+        juce::Colours::white
+    );
+    
+    // Actualizar estado de la curva de distorsión
+    distortionCurveDisplay.setDistortionEnabled(distortionActive);
+    
+    // Forzar repaint para actualizar visualización
+    rightBottomKnobs.modeSlider.repaint();
+    rightBottomKnobs.dcSlider.repaint();
+    rightBottomKnobs.driveSlider.repaint();
+    leftTopKnobs.ceilingSlider.repaint();
+    rightTopControls.tiltPosButton.repaint();
+    rightBottomKnobs.distOnButton.repaint();
+}
+
+void JCBDistortionAudioProcessorEditor::updateBitCrusherComponentStates()
+{
+    // Obtener estado del botón BIT CRUSHER (h_BITSON)
+    const bool bitCrusherActive = rightBottomKnobs.bitButton.getToggleState();
+    
+    // BIT slider - activo solo cuando BIT CRUSHER está ON
+    rightTopControls.bitsSlider.setEnabled(bitCrusherActive);
+    rightTopControls.bitsSlider.setAlpha(bitCrusherActive ? 1.0f : 0.5f);
+    
+    // Actualizar alpha del texto del botón BIT CRUSHER según estado
+    rightBottomKnobs.bitButton.setColour(
+        juce::TextButton::textColourOffId,
+        DarkTheme::textSecondary.withAlpha(0.7f)
+    );
+    rightBottomKnobs.bitButton.setColour(
+        juce::TextButton::textColourOnId,
+        DarkTheme::textPrimary
+    );
+    
+    // Forzar repaint para actualizar visualización
+    rightTopControls.bitsSlider.repaint();
+    rightBottomKnobs.bitButton.repaint();
+}
+
+void JCBDistortionAudioProcessorEditor::updateDownsampleComponentStates()
+{
+    // Obtener estado del botón DOWNSAMPLE (n_DOWNSAMPLEON)
+    const bool downsampleActive = rightTopControls.downsampleButton.getToggleState();
+    
+    // DECI slider - activo solo cuando DOWNSAMPLE está ON
+    rightTopControls.downsampleSlider.setEnabled(downsampleActive);
+    rightTopControls.downsampleSlider.setAlpha(downsampleActive ? 1.0f : 0.5f);
+    
+    // Actualizar alpha del texto del botón DOWNSAMPLE según estado
+    rightTopControls.downsampleButton.setColour(
+        juce::TextButton::textColourOffId,
+        DarkTheme::textSecondary.withAlpha(0.7f)
+    );
+    rightTopControls.downsampleButton.setColour(
+        juce::TextButton::textColourOnId,
+        DarkTheme::textPrimary
+    );
+    
+    // Forzar repaint para actualizar visualización
+    rightTopControls.downsampleSlider.repaint();
+    rightTopControls.downsampleButton.repaint();
 }
 
 void JCBDistortionAudioProcessorEditor::updateBackgroundState()
@@ -2853,23 +3036,19 @@ void JCBDistortionAudioProcessorEditor::savePresetFile()
                 if (xml != nullptr) {
                     xml->writeTo(presetFile);
                     
-                    // Actualizar estado visual
-                    processor.setPresetDisplayText(currentPresetName);
-                    processor.setPresetTextItalic(false);
+                    // Actualizar menú primero
+                    refreshPresetMenu();
+                    
+                    // No seleccionar el preset, solo mostrar su nombre
+                    // Esto evita problemas con handleParameterChange
+                    presetArea.presetMenu.setSelectedId(0);
                     presetArea.presetMenu.setTextWhenNothingSelected(currentPresetName);
                     presetArea.presetMenu.setTextItalic(false);
                     
-                    // Actualizar menú si es necesario
-                    if (presetArea.presetMenu.getSelectedId() <= 0) {
-                        refreshPresetMenu();
-                        for (int i = 0; i < presetArea.presetMenu.getNumItems(); i++) {
-                            if (presetArea.presetMenu.getItemText(i) == currentPresetName) {
-                                presetArea.presetMenu.setSelectedId(i + 1);
-                                processor.setLastPreset(i + 1);
-                                break;
-                            }
-                        }
-                    }
+                    // Actualizar estado en el processor
+                    processor.setPresetDisplayText(currentPresetName);
+                    processor.setPresetTextItalic(false);
+                    processor.setLastPreset(0);
                 }
                 } else if (result == 2) { // Guardar como...
                     saveAsPresetFile();
@@ -2932,16 +3111,16 @@ void JCBDistortionAudioProcessorEditor::saveAsPresetFile()
                             // Actualizar el menú
                             refreshPresetMenu();
                             
-                            // Seleccionar el preset recién guardado
-                            for (int i = 0; i < presetArea.presetMenu.getNumItems(); i++) {
-                                if (presetArea.presetMenu.getItemText(i) == presetName) {
-                                    presetArea.presetMenu.setSelectedId(i + 1);
-                                    processor.setLastPreset(i + 1);
-                                    processor.setPresetDisplayText(presetName);
-                                    processor.setPresetTextItalic(false);
-                                    break;
-                                }
-                            }
+                            // No seleccionar el preset, solo mostrar su nombre
+                            // Esto evita problemas con handleParameterChange
+                            presetArea.presetMenu.setSelectedId(0);
+                            presetArea.presetMenu.setTextWhenNothingSelected(presetName);
+                            presetArea.presetMenu.setTextItalic(false);
+                            
+                            // Actualizar estado en el processor
+                            processor.setPresetDisplayText(presetName);
+                            processor.setPresetTextItalic(false);
+                            processor.setLastPreset(0);
                         }
                     }
                 });
@@ -2956,16 +3135,16 @@ void JCBDistortionAudioProcessorEditor::saveAsPresetFile()
                     // Actualizar el menú
                     refreshPresetMenu();
                     
-                    // Seleccionar el preset recién guardado
-                    for (int i = 0; i < presetArea.presetMenu.getNumItems(); i++) {
-                        if (presetArea.presetMenu.getItemText(i) == presetName) {
-                            presetArea.presetMenu.setSelectedId(i + 1);
-                            processor.setLastPreset(i + 1);
-                            processor.setPresetDisplayText(presetName);
-                            processor.setPresetTextItalic(false);
-                            break;
-                        }
-                    }
+                    // No seleccionar el preset, solo mostrar su nombre
+                    // Esto evita problemas con handleParameterChange
+                    presetArea.presetMenu.setSelectedId(0);
+                    presetArea.presetMenu.setTextWhenNothingSelected(presetName);
+                    presetArea.presetMenu.setTextItalic(false);
+                    
+                    // Actualizar estado en el processor
+                    processor.setPresetDisplayText(presetName);
+                    processor.setPresetTextItalic(false);
+                    processor.setLastPreset(0);
                 }
             }
         }

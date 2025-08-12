@@ -20,6 +20,9 @@ public:
     // Control de modo BYPASS
     void setBypassMode(bool enabled) noexcept { bypassMode = enabled; repaint(); }
     
+    // Control de estado de distorsión
+    void setDistortionEnabled(bool enabled) noexcept { distortionEnabled = enabled; repaint(); }
+    
 private:
     juce::AudioProcessorValueTreeState& valueTreeState;
     
@@ -29,6 +32,7 @@ private:
     float currentCeiling = 1.0f;
     float currentTilt = 0.0f;
     bool bypassMode = false;
+    bool distortionEnabled = true;
     
     void parameterChanged(const juce::String& parameterID, float newValue) override;
     void updateFromParameters();
@@ -45,8 +49,8 @@ private:
     float hardClip(float input);
     
     // Funciones de dibujo
-    void drawGrid(juce::Graphics& g, juce::Rectangle<float> bounds);
-    void drawDistortionCurve(juce::Graphics& g, juce::Rectangle<float> bounds);
+    void drawGrid(juce::Graphics& g, juce::Rectangle<float> bounds, float alpha = 1.0f);
+    void drawDistortionCurve(juce::Graphics& g, juce::Rectangle<float> bounds, float alpha = 1.0f);
     juce::Colour getColorForMode();
     juce::String getModeName();
     juce::String getModeFormula();

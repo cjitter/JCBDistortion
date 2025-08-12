@@ -473,11 +473,11 @@ void SpectrumAnalyzerComponent::drawFrame(juce::Graphics& g, const juce::Rectang
             g.setGradientFill(tiltGradient);
             g.fillRect(x1k, 0.0f, bounds.getWidth() - x1k, (float)bounds.getHeight());
         }
-        else  // Más graves (rojo)
+        else  // Más graves (púrpura)
         {
-            // Gradiente de rojo a transparente hacia la derecha
+            // Gradiente de púrpura a transparente hacia la derecha
             juce::ColourGradient tiltGradient(
-                juce::Colour(0xFFFF4444).withAlpha(0.05f + 0.1f * std::abs(tilt) / 6.0f),
+                juce::Colour(0xFF8434AD).withAlpha(0.05f + 0.1f * std::abs(tilt) / 6.0f),
                 0, 0,
                 juce::Colours::transparentBlack,
                 x1k, 0,
