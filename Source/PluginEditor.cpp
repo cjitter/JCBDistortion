@@ -592,6 +592,8 @@ void JCBDistortionAudioProcessorEditor::resized()
     
     // NUEVO: DET knob - área derecha superior
     rightTopControls.tiltSlider.setBounds(getScaledBounds(170, 100, 48, 48));
+    // TILT POS button - cerca del slider TILT (a la derecha)
+    rightTopControls.tiltPosButton.setBounds(getScaledBounds(148, 116, 25, 12));
 
     // NUEVO: BITS knob - centro de la parte derecha superior 
     rightTopControls.bitsSlider.setBounds(getScaledBounds(480, 52, 48, 48));
@@ -601,10 +603,15 @@ void JCBDistortionAudioProcessorEditor::resized()
     
     // NUEVO: DOWNSAMPLE button - debajo del slider correspondiente
     rightTopControls.downsampleButton.setBounds(getScaledBounds(605, 105, 65, 15));
+    
+    // NUEVO: LIMIT button - en la parte derecha, cerca del TRIM (makeup gain)
+    rightTopControls.safeLimitButton.setBounds(getScaledBounds(640, 45, 35, 12));
 
     // Bottom row - Attack, Release, Hold
     rightBottomKnobs.driveSlider.setBounds(getScaledBounds(135, 47, 53, 53));
     rightBottomKnobs.modeSlider.setBounds(getScaledBounds(65, 50, 53, 53));
+    // DIST ON button - encima del slider MODE
+    rightBottomKnobs.distOnButton.setBounds(getScaledBounds(120, 47, 25, 12));
     
     // NUEVO: DC slider - área derecha inferior, junto al REL
     rightBottomKnobs.dcSlider.setBounds(getScaledBounds(100, 100, 43, 43));
@@ -647,6 +654,10 @@ void JCBDistortionAudioProcessorEditor::resized()
     const int centerX = 353;
     // Posicionamiento del botón FILTERS (SC) - subido 10 píxeles
     sidechainControls.scButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 8, buttonWidth, 12));
+    
+    // Botón SOLO - al lado derecho del botón FILTERS
+    sidechainControls.bandSoloButton.setBounds(getScaledBounds(455, 114, 65, 15));
+    
     // sidechainControls.keyButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 17, buttonWidth, 12));
     // sidechainControls.soloScButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 29, buttonWidth, 12));
     
@@ -1327,7 +1338,37 @@ void JCBDistortionAudioProcessorEditor::setupKnobs()
             *param, rightBottomKnobs.modeSlider, &undoManager);
         rightBottomKnobs.modeAttachment->onParameterChange = [this]() { handleParameterChange(); };
     }
-
+    
+    // DIST ON button - botón para activar/desactivar distorsión
+    rightBottomKnobs.distOnButton.setComponentID("diston");
+    rightBottomKnobs.distOnButton.setLookAndFeel(&smallButtonLAF);
+    rightBottomKnobs.distOnButton.setButtonText("ON");
+    rightBottomKnobs.distOnButton.setClickingTogglesState(true);
+    rightBottomKnobs.distOnButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
+    rightBottomKnobs.distOnButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);  // Fondo transparente
+    rightBottomKnobs.distOnButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    rightBottomKnobs.distOnButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+    rightBottomKnobs.distOnButton.addListener(this);
+    addAndMakeVisible(rightBottomKnobs.distOnButton);
+    if (auto* param = processor.apvts.getParameter("p_DISTON"))
+    {
+        rightBottomKnobs.distOnButtonAttachment = std::make_unique<UndoableButtonAttachment>(
+            *param, rightBottomKnobs.distOnButton, &undoManager);
+        
+        // Configurar callback para cambiar texto cuando el estado cambie (por cualquier razón)
+        rightBottomKnobs.distOnButtonAttachment->onStateChange = [this](bool isOn) {
+            rightBottomKnobs.distOnButton.setButtonText(isOn ? "ON" : "OFF");
+        };
+        
+        // Callback para cuando el usuario hace click (para preset modification indicator)
+        rightBottomKnobs.distOnButtonAttachment->onParameterChange = [this]() {
+            handleParameterChange();
+        };
+        
+        // Sincronizar texto inicial con el estado actual del parámetro
+        bool initialState = param->getValue() >= 0.5f;
+        rightBottomKnobs.distOnButton.setButtonText(initialState ? "ON" : "OFF");
+    }
     
     // DITHER button - área izquierda
     rightBottomKnobs.bitButton.setComponentID("bitcrusher");
@@ -1368,6 +1409,37 @@ rightTopControls.tiltSlider.setComponentID("tilt");
         rightTopControls.tiltAttachment = std::make_unique<CustomSliderAttachment>(
             *param, rightTopControls.tiltSlider, &undoManager);
         rightTopControls.tiltAttachment->onParameterChange = [this]() { handleParameterChange(); };
+    }
+    
+    // TILT POS button - botón para posición PRE/POST
+    rightTopControls.tiltPosButton.setComponentID("tiltpos");
+    rightTopControls.tiltPosButton.setLookAndFeel(&smallButtonLAF);
+    rightTopControls.tiltPosButton.setButtonText("PRE");
+    rightTopControls.tiltPosButton.setClickingTogglesState(true);
+    rightTopControls.tiltPosButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
+    rightTopControls.tiltPosButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);  // Fondo transparente
+    rightTopControls.tiltPosButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
+    rightTopControls.tiltPosButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
+    rightTopControls.tiltPosButton.addListener(this);
+    addAndMakeVisible(rightTopControls.tiltPosButton);
+    if (auto* param = processor.apvts.getParameter("p_TILTPOS"))
+    {
+        rightTopControls.tiltPosButtonAttachment = std::make_unique<UndoableButtonAttachment>(
+            *param, rightTopControls.tiltPosButton, &undoManager);
+        
+        // Configurar callback para cambiar texto cuando el estado cambie (por cualquier razón)
+        rightTopControls.tiltPosButtonAttachment->onStateChange = [this](bool isPost) {
+            rightTopControls.tiltPosButton.setButtonText(isPost ? "POST" : "PRE");
+        };
+        
+        // Callback para cuando el usuario hace click (para preset modification indicator)
+        rightTopControls.tiltPosButtonAttachment->onParameterChange = [this]() {
+            handleParameterChange();
+        };
+        
+        // Sincronizar texto inicial con el estado actual del parámetro
+        bool initialState = param->getValue() >= 0.5f;
+        rightTopControls.tiltPosButton.setButtonText(initialState ? "POST" : "PRE");
     }
     
     // DOWNSAMPLE slider - área derecha superior
@@ -1597,6 +1669,66 @@ rightTopControls.tiltSlider.setComponentID("tilt");
         *processor.apvts.getParameter("l_SC"), sidechainControls.scButton, &undoManager);
     sidechainControls.scAttachment->onParameterChange = [this]() { handleParameterChange(); };
     // Tooltip actualizado via getTooltipText("sc") en updateAllTooltips()
+    
+    // Botón SOLO - para solo de banda seleccionada (p_BANDSOLO)
+    sidechainControls.bandSoloButton.setComponentID("bandsolo");
+    sidechainControls.bandSoloButton.setLookAndFeel(&smallButtonLAF);
+    sidechainControls.bandSoloButton.setButtonText("SOLO BAND");
+    sidechainControls.bandSoloButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
+    sidechainControls.bandSoloButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);
+    sidechainControls.bandSoloButton.setColour(juce::TextButton::textColourOffId, DarkTheme::textSecondary.withAlpha(0.7f));
+    sidechainControls.bandSoloButton.setColour(juce::TextButton::textColourOnId, DarkTheme::textPrimary);
+    sidechainControls.bandSoloButton.setClickingTogglesState(true);
+    addAndMakeVisible(sidechainControls.bandSoloButton);
+    if (auto* param = processor.apvts.getParameter("p_BANDSOLO"))
+    {
+        sidechainControls.bandSoloAttachment = std::make_unique<UndoableButtonAttachment>(
+            *param, sidechainControls.bandSoloButton, &undoManager);
+        
+        // Callback para cambios de estado (actualizar texto)
+        sidechainControls.bandSoloAttachment->onStateChange = [this](bool isSolo) {
+            sidechainControls.bandSoloButton.setButtonText(isSolo ? "SOLO BAND ON" : "SOLO BAND OFF");
+        };
+        
+        // Callback para clicks del usuario
+        sidechainControls.bandSoloAttachment->onParameterChange = [this]() {
+            handleParameterChange();
+        };
+        
+        // Sincronización inicial
+        bool initialState = param->getValue() >= 0.5f;
+        sidechainControls.bandSoloButton.setButtonText(initialState ? "SOLO BAND ON" : "SOLO BAND OFF");
+    }
+    
+    // Botón LIMIT - limitador brickwall de protección (p_SAFELIMITON)
+    rightTopControls.safeLimitButton.setComponentID("safelimit");
+    rightTopControls.safeLimitButton.setLookAndFeel(&smallButtonLAF);
+    rightTopControls.safeLimitButton.setButtonText("OFF");
+    rightTopControls.safeLimitButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
+    rightTopControls.safeLimitButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);
+    rightTopControls.safeLimitButton.setColour(juce::TextButton::textColourOffId, DarkTheme::textSecondary.withAlpha(0.7f));
+    rightTopControls.safeLimitButton.setColour(juce::TextButton::textColourOnId, DarkTheme::textPrimary);
+    rightTopControls.safeLimitButton.setClickingTogglesState(true);
+    addAndMakeVisible(rightTopControls.safeLimitButton);
+    if (auto* param = processor.apvts.getParameter("p_SAFELIMITON"))
+    {
+        rightTopControls.safeLimitAttachment = std::make_unique<UndoableButtonAttachment>(
+            *param, rightTopControls.safeLimitButton, &undoManager);
+        
+        // Callback para cambios de estado (actualizar texto)
+        rightTopControls.safeLimitAttachment->onStateChange = [this](bool isOn) {
+            rightTopControls.safeLimitButton.setButtonText(isOn ? "ON" : "OFF");
+        };
+        
+        // Callback para clicks del usuario
+        rightTopControls.safeLimitAttachment->onParameterChange = [this]() {
+            handleParameterChange();
+        };
+        
+        // Sincronización inicial
+        bool initialState = param->getValue() >= 0.5f;
+        rightTopControls.safeLimitButton.setButtonText(initialState ? "ON" : "OFF");
+    }
 }
 
 void JCBDistortionAudioProcessorEditor::setupMeters()
@@ -1849,10 +1981,34 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 bool toggleState = defaultValue >= 0.5f; // false = OFF
                 rightTopControls.downsampleButton.setToggleState(toggleState, juce::sendNotificationSync);
             }
+            if (auto* param = processor.apvts.getParameter("p_TILTPOS")) {
+                float defaultValue = param->getDefaultValue(); // defaultValue = 0 (PRE)
+                bool toggleState = defaultValue >= 0.5f; // false = PRE
+                rightTopControls.tiltPosButton.setToggleState(toggleState, juce::sendNotificationSync);
+                rightTopControls.tiltPosButton.setButtonText(toggleState ? "POST" : "PRE");
+            }
+            if (auto* param = processor.apvts.getParameter("p_DISTON")) {
+                float defaultValue = param->getDefaultValue(); // defaultValue = 1 (ON)
+                bool toggleState = defaultValue >= 0.5f; // true = ON
+                rightBottomKnobs.distOnButton.setToggleState(toggleState, juce::sendNotificationSync);
+                rightBottomKnobs.distOnButton.setButtonText(toggleState ? "ON" : "OFF");
+            }
             if (auto* param = processor.apvts.getParameter("m_DOWNSAMPLE")) {
                 float defaultValue = param->getDefaultValue(); // defaultValue = 0 (0%)
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
                 rightTopControls.downsampleSlider.setValue(realValue, juce::sendNotificationSync);
+            }
+            if (auto* param = processor.apvts.getParameter("p_BANDSOLO")) {
+                float defaultValue = param->getDefaultValue(); // defaultValue = 0 (SOLO off)
+                bool toggleState = defaultValue >= 0.5f; // false = SOLO off
+                sidechainControls.bandSoloButton.setToggleState(toggleState, juce::sendNotificationSync);
+                sidechainControls.bandSoloButton.setButtonText(toggleState ? "SOLO BAND ON" : "SOLO BAND OFF");
+            }
+            if (auto* param = processor.apvts.getParameter("p_SAFELIMITON")) {
+                float defaultValue = param->getDefaultValue(); // defaultValue = 0 (OFF)
+                bool toggleState = defaultValue >= 0.5f; // false = OFF
+                rightTopControls.safeLimitButton.setToggleState(toggleState, juce::sendNotificationSync);
+                rightTopControls.safeLimitButton.setButtonText(toggleState ? "ON" : "OFF");
             }
 
             // Reactivar undo después carga de preset
@@ -3049,10 +3205,12 @@ void JCBDistortionAudioProcessorEditor::updateAllTooltips()
     // MAXIMIZER: z_SMOOTH no existe - comentado según CONTEXTO.txt
     // rightTopControls.smoothSlider.setTooltip(getTooltipText("smooth"));
     rightTopControls.tiltSlider.setTooltip(getTooltipText("tilt"));  // NUEVO - tooltip para TILT slider
+    rightTopControls.tiltPosButton.setTooltip(getTooltipText("tiltpos"));  // NUEVO - tooltip para TILT POS button
     
     // Perillas - inferiores derechas
     rightBottomKnobs.driveSlider.setTooltip(getTooltipText("drive"));
     rightBottomKnobs.modeSlider.setTooltip(getTooltipText("mode"));
+    rightBottomKnobs.distOnButton.setTooltip(getTooltipText("diston"));  // NUEVO - tooltip para DIST ON button
     rightBottomKnobs.bitButton.setTooltip(getTooltipText("bitcrusher"));    // NUEVO - tooltip para BIT CRUSHER button
     rightBottomKnobs.dcSlider.setTooltip(getTooltipText("even"));  // NUEVO - tooltip para EVEN slider
     // MAXIMIZER: f_HOLD no existe - comentado según CONTEXTO.txt
@@ -3127,7 +3285,9 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "even") return JUCE_UTF8("EVEN: asimetría DC para armónicos pares\nAñade componente continua para generar armónicos pares\nRango: 0 a 1 | Por defecto: 0");
         if (key == "downsample") return JUCE_UTF8("DECI: factor de decimación\nReduce el sample rate para distorsión aliasing\nRango: 0 a 100% | Por defecto: 0%");
         if (key == "downsampleon") return JUCE_UTF8("DOWNSAMPLE: activa la decimación\nActiva el efecto de reducción de sample rate\nRango: OFF/ON | Por defecto: OFF");
+        if (key == "tiltpos") return JUCE_UTF8("TILT POS: posición del filtro tilt\nPRE: antes de la distorsión | POST: después de la distorsión\nRango: PRE/POST | Por defecto: PRE");
         if (key == "mode") return JUCE_UTF8("MODE: algoritmo de distorsión\n8 tipos diferentes: Soft Clip, Sigmoid, Rectifier, etc.\nRango: 1 a 8 (mostrado) | Por defecto: 1");
+        if (key == "diston") return JUCE_UTF8("DIST: activa/desactiva el bloque de distorsión\nON: distorsión activa | OFF: bypass del bloque distorsión\nRango: ON/OFF | Por defecto: ON");
         if (key == "trim") return JUCE_UTF8("TRIM: ganancia de entrada al distorsionador\nAjusta el nivel antes del procesamiento\nRango: -12 a +12 dB | Por defecto: 0 dB");
         if (key == "makeup") return JUCE_UTF8("MAKEUP: ganancia de salida POST procesador\nAjusta el nivel final después de la distorsión\nRango: -12 a +12 dB | Por defecto: 0 dB");
         if (key == "sc") return JUCE_UTF8("FILTERS: activa el crossover de 3 bandas.\nDivide la señal en Low/Mid/High para procesamiento selectivo.\nValor por defecto: OFF");
@@ -3135,6 +3295,8 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "hpf") return JUCE_UTF8("XLow: punto de cruce bajo del crossover\nDefine la frecuencia de separación entre bandas Low y Mid\nRango: 20 a 1000 Hz | Por defecto: 250 Hz");
         if (key == "band") return JUCE_UTF8("BAND: selector de banda del crossover\nElige qué banda de frecuencia procesar (Low/Mid/High)\nRango: Low-Mid-High (interpolable) | Por defecto: Mid");
         if (key == "lpf") return JUCE_UTF8("XHigh: punto de cruce alto del crossover\nDefine la frecuencia de separación entre bandas Mid y High\nRango: 1000 Hz a 20 kHz | Por defecto: 5 kHz");
+        if (key == "bandsolo") return JUCE_UTF8("SOLO: solo de banda seleccionada\nActiva el solo para escuchar solo la banda seleccionada en BAND\nRango: SOLO/MUTE | Por defecto: SOLO (off)");
+        if (key == "safelimit") return JUCE_UTF8("LIMIT: limitador brickwall de protección\nActiva un limitador de seguridad a la salida después del dry/wet\nRango: OFF/ON | Por defecto: OFF");
         if (key == "save") return JUCE_UTF8("SAVE: guarda el preset actual\nSobrescribe el preset seleccionado con valores actuales\nNo funciona con DEFAULT");
         if (key == "saveas") return JUCE_UTF8("SAVE AS: guarda como nuevo preset\nCrea un nuevo archivo de preset con los valores actuales\nPermite crear presets personalizados");
         if (key == "delete") return JUCE_UTF8("BORRAR: elimina el preset seleccionado\nRequiere confirmación antes de borrar");
@@ -3174,7 +3336,9 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "even") return "EVEN: DC asymmetry for even harmonics\nAdds DC component to generate even harmonics\nRange: 0 to 1 | Default: 0";
         if (key == "downsample") return "DECI: decimation factor\nReduces sample rate for aliasing distortion\nRange: 0 to 100% | Default: 0%";
         if (key == "downsampleon") return "DOWNSAMPLE: enables decimation\nActivates sample rate reduction effect\nRange: OFF/ON | Default: OFF";
+        if (key == "tiltpos") return "TILT POS: tilt filter position\nPRE: before distortion | POST: after distortion\nRange: PRE/POST | Default: PRE";
         if (key == "mode") return "MODE: distortion algorithm\n8 different types: Soft Clip, Sigmoid, Rectifier, etc.\nRange: 1 to 8 (displayed) | Default: 1";
+        if (key == "diston") return "DIST: enables/disables distortion block\nON: distortion active | OFF: distortion bypassed\nRange: ON/OFF | Default: ON";
         if (key == "trim") return "TRIM: distortion input gain\nAdjusts level before processing\nRange: -12 to +12 dB | Default: 0 dB";
         if (key == "makeup") return "MAKEUP: output gain POST processor\nAdjusts final level after distortion\nRange: -12 to +12 dB | Default: 0 dB";
         if (key == "sc") return "FILTERS: activates the 3-band crossover.\nSplits signal into Low/Mid/High for selective processing.\nDefault: OFF";
@@ -3206,6 +3370,8 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "abcopybtoa") return "Copy B to A";
         if (key == "spectrum") return "FFT ANALYZER: frequency spectrum visualization\nShows real-time analysis from 20Hz to 20kHz\nUse ZOOM button to change scale";
         if (key == "curves") return "DISTORTION CURVES: transfer function visualization\nShows how the selected algorithm transforms the signal\nTILT colors background based on tonal balance";
+        if (key == "bandsolo") return "SOLO: selected band solo\nActivates solo to hear only the band selected in BAND\nRange: SOLO/MUTE | Default: SOLO (off)";
+        if (key == "safelimit") return "LIMIT: safety brickwall limiter\nActivates a safety limiter at the output after dry/wet\nRange: OFF/ON | Default: OFF";
     }
 
     return "";
@@ -3225,9 +3391,11 @@ void JCBDistortionAudioProcessorEditor::applyAlphaToMainControls(float alpha)
     rightBottomKnobs.bitButton.setAlpha(alpha);  // NUEVO - alpha para DITHER button
     
     rightTopControls.tiltSlider.setAlpha(alpha);  // NUEVO - alpha para DET knob
+    rightTopControls.tiltPosButton.setAlpha(alpha);  // NUEVO - alpha para TILT POS button
     
     rightBottomKnobs.driveSlider.setAlpha(alpha);
     rightBottomKnobs.modeSlider.setAlpha(alpha);
+    rightBottomKnobs.distOnButton.setAlpha(alpha);  // NUEVO - alpha para DIST ON button
     rightBottomKnobs.dcSlider.setAlpha(alpha);  // NUEVO - alpha para DC slider
     // speedButton removed
     

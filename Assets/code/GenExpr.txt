@@ -161,7 +161,7 @@ Param c_DC(0, min=0, default=0, max=1);         // DC offset - añade armónicos
 Param d_MODE(1, min=0, default=0, max=7);       // Continuo 0-7 (8 algoritmos)
 Param e_CEILING(0, min=-20, default=0, max=6);
 Param f_BYPASS(0, min=0, default=0, max=1);
-Param g_BITS(16, min=3, default=16, max=16);
+Param g_BITS(16, min=2, default=16, max=16);
 Param h_BITSON(0, min=0, default=0, max=1);
 Param i_TILT(0, min=-6, default=0, max=6);
 
@@ -177,6 +177,13 @@ Param m_DOWNSAMPLE(0, min=0, default=0, max=99); // Factor de downsampling (0 = 
 Param n_DOWNSAMPLEON(0, min=0, default=0, max=1); // Activar downsampling
 
 Param o_BAND(1, min=0, default=1, max=2); // 0=low,1=mid,2=high
+
+Param p_TILTPOS(0, min=0, default=0, max=1); // 0=Pre (Tilt→Dist), 1=Post (Dist→Tilt)
+Param p_DISTON(1, min=0, default=1, max=1); // 0=off, 1=on
+
+Param p_BANDSOLO(0, min=0, default=0, max=1); // 0=off, 1=solo banda seleccionada
+Param p_SAFELIMITON(0, min=0, default=0, max=1); // 0=off, 1=on
+
 // -----------------------------------------------------------------------------
 // HISTORIALES PARA SMOOTHING
 
@@ -277,6 +284,13 @@ History tiltLsR1(0), tiltLsR2(0), tiltLsR3(0), tiltLsR4(0);
 History tiltHsL1(0), tiltHsL2(0), tiltHsL3(0), tiltHsL4(0);
 History tiltHsR1(0), tiltHsR2(0), tiltHsR3(0), tiltHsR4(0);
 
+History hTiltPos(0);
+
+History postTiltLsL1(0), postTiltLsL2(0), postTiltLsL3(0), postTiltLsL4(0);
+History postTiltLsR1(0), postTiltLsR2(0), postTiltLsR3(0), postTiltLsR4(0);
+History postTiltHsL1(0), postTiltHsL2(0), postTiltHsL3(0), postTiltHsL4(0);
+History postTiltHsR1(0), postTiltHsR2(0), postTiltHsR3(0), postTiltHsR4(0);
+
 History L_l1_x1(0);
 History R_l1_x1(0);
 History L_l2_x1(0);
@@ -317,6 +331,13 @@ History L_ap2_hp1_x1(0);
 History R_ap2_hp1_x1(0);
 History L_ap2_hp2_x1(0);
 History R_ap2_hp2_x1(0);
+
+History hDistOn(1);
+
+History hBandSolo(0);
+
+History hSafeLimitOn(0);
+
 // Entrada
 lIn = in1;
 rIn = in2;
@@ -342,6 +363,7 @@ outputMakeupDb = hOutput;
 
 hBand = hBand * smoothFactor + o_BAND * (1 - smoothFactor);
 smoothedBand = hBand;
+
 // Suavizado especial para MODE con factor más agresivo para evitar clicks
 modeSmoothFactor = 0.99;  // Más rápido que otros parámetros pero aún suave
 hMode = hMode * modeSmoothFactor + d_MODE * (1 - modeSmoothFactor);
@@ -366,6 +388,20 @@ lpfFreqHistory = fixdenorm(smoothLpfFreq);
 
 smoothScEnable = (scEnableHistory * smoothFactor) + (l_SC * (1 - smoothFactor));
 scEnableHistory = fixdenorm(smoothScEnable);
+
+hTiltPos = hTiltPos * smoothFactor + p_TILTPOS * (1 - smoothFactor);
+wPost    = clamp(hTiltPos, 0, 1);     // peso de la ruta Post
+wPre     = 1 - wPost;                  // peso de la ruta Pre
+
+hDistOn = hDistOn * smoothFactor + p_DISTON * (1 - smoothFactor);
+wDist   = clamp(hDistOn, 0, 1); // peso Dist ON
+wClean  = 1 - wDist;             // peso Bypass Dist
+
+hBandSolo = hBandSolo * smoothFactor + p_BANDSOLO * (1 - smoothFactor);
+wBandSolo = clamp(hBandSolo, 0, 1);
+
+hSafeLimitOn = hSafeLimitOn * smoothFactor + p_SAFELIMITON * (1 - smoothFactor);
+safeOn = clamp(hSafeLimitOn, 0, 1);
 
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
@@ -731,8 +767,13 @@ preBandL = wLow*lowL + wMid*midL + wHigh*highL;
 preBandR = wLow*lowR + wMid*midR + wHigh*highR;
 sumBandsL = lowL + midL + highL;
 sumBandsR = lowR + midR + highR;
-bypassWhenActiveL = sumBandsL - preBandL;
-bypassWhenActiveR = sumBandsR - preBandR;
+
+// Solo activo solo tiene sentido con el crossover activo (scSm ~1)
+soloOn = (wBandSolo > 0.5) * (scSm > 0.5);
+
+// Si Solo está ON: las otras bandas NO pasan al WET por bypassWhenActive
+bypassWhenActiveL = soloOn ? 0 : (sumBandsL - preBandL);
+bypassWhenActiveR = soloOn ? 0 : (sumBandsR - preBandR);
 
 // Conmutación por enable (scSm): si desactivado, banda ancha
 preDistInL = mix(lTrimmed, preBandL, scSm);
@@ -749,8 +790,11 @@ L_hiF = smoothLpfFreq;
 // Parámetros (L_deben L_coincidir L_con L_los L_del L_crossover)
 // L_Estados L_para L_primer L_all-L_pass @ L_loF
 // L_Estados L_para L_segundo L_all-L_pass @ L_hiF
+
 // L_Entrada
-L_x = lTrimmed;
+//L_x = lTrimmed;
+// L_Entrada (PRE-TRIM)
+L_x = lIn;
 
 // L_Constantes
 TWOPI = 6.283185307179586;
@@ -889,8 +933,11 @@ R_hiF = smoothLpfFreq;
 // Parámetros (R_deben R_coincidir R_con R_los R_del R_crossover)
 // R_Estados R_para R_primer R_all-R_pass @ R_loF
 // R_Estados R_para R_segundo R_all-R_pass @ R_hiF
+
 // R_Entrada
-R_x = rTrimmed;
+//R_x = rTrimmed;
+// R_Entrada (PRE-TRIM)
+R_x = rIn;
 
 // R_Constantes
 TWOPI = 6.283185307179586;
@@ -1195,47 +1242,106 @@ lTilt = lTiltRaw * gPivot;
 rTilt = rTiltRaw * gPivot;
 
 // -----------------------------------------------------------------------------
-// PROCESAMIENTO DE DISTORSIÓN CON MORPHING
+// PROCESAMIENTO DE DISTORSIÓN + CONMUTADOR PRE/POST TILT (SUAVIZADO)
 // -----------------------------------------------------------------------------
 
-// Ejecutar TODOS los algoritmos con implementación consistente de DC
-softL, softR = softclip(lTilt, rTilt, drive, dc, ceiling);
-sigmL, sigmR = sigmoid(lTilt, rTilt, drive, dc, ceiling);
-rectL, rectR = rectF(lTilt, rTilt, drive, dc, ceiling);
-fuzz1L, fuzz1R = fuzzExp1(lTilt, rTilt, drive, dc, ceiling);
-tanhL, tanhR = tangenteHiperbolica(lTilt, rTilt, drive, dc, ceiling);
-recthL, recthR = rectH(lTilt, rTilt, drive, dc, ceiling);
-atanL, atanR = arctangent(lTilt, rTilt, drive, dc, ceiling);
-hardL, hardR = hardClip(lTilt, rTilt, drive, dc, ceiling);
+// ---- Pesos por modo (igual que antes) ----
+mode = smoothedMode;
 
-// Sistema de morphing continuo
-mode = smoothedMode;  // Usar el modo suavizado
+w0 = max(0, 1 - abs(mode - 0));
+w1 = max(0, 1 - abs(mode - 1));
+w2 = max(0, 1 - abs(mode - 2));
+w3 = max(0, 1 - abs(mode - 3));
+w4 = max(0, 1 - abs(mode - 4));
+w5 = max(0, 1 - abs(mode - 5));
+w6 = max(0, 1 - abs(mode - 6));
+w7 = max(0, 1 - abs(mode - 7));
 
-// Calcular pesos (ahora solo 8 algoritmos)
-w0 = max(0, 1 - abs(mode - 0));      // Softclip
-w1 = max(0, 1 - abs(mode - 1));      // Sigmoid
-w2 = max(0, 1 - abs(mode - 2));      // RectF
-w3 = max(0, 1 - abs(mode - 3));      // Fuzz1
-w4 = max(0, 1 - abs(mode - 4));      // TanH
-w5 = max(0, 1 - abs(mode - 5));      // RectH
-w6 = max(0, 1 - abs(mode - 6));      // Arctangent
-w7 = max(0, 1 - abs(mode - 7));      // HardClip
-
-// Normalizar pesos
 sumWeights = w0 + w1 + w2 + w3 + w4 + w5 + w6 + w7 + 0.0001;
 w0 /= sumWeights; w1 /= sumWeights; w2 /= sumWeights; w3 /= sumWeights;
 w4 /= sumWeights; w5 /= sumWeights; w6 /= sumWeights; w7 /= sumWeights;
 
-// Mezclar algoritmos
-distL = softL * w0 + sigmL * w1 + rectL * w2 + fuzz1L * w3 +
-        tanhL * w4 + recthL * w5 + atanL * w6 + hardL * w7;
+// ========================
+// RUTA A (PRE): Tilt → Dist
+// ========================
+softL_A, softR_A = softclip(lTilt, rTilt, drive, dc, ceiling);
+sigmL_A, sigmR_A = sigmoid(lTilt, rTilt, drive, dc, ceiling);
+rectL_A, rectR_A = rectF(lTilt, rTilt, drive, dc, ceiling);
+fuzz1L_A, fuzz1R_A = fuzzExp1(lTilt, rTilt, drive, dc, ceiling);
+tanhL_A, tanhR_A = tangenteHiperbolica(lTilt, rTilt, drive, dc, ceiling);
+recthL_A, recthR_A = rectH(lTilt, rTilt, drive, dc, ceiling);
+atanL_A, atanR_A = arctangent(lTilt, rTilt, drive, dc, ceiling);
+hardL_A, hardR_A = hardClip(lTilt, rTilt, drive, dc, ceiling);
 
-distR = softR * w0 + sigmR * w1 + rectR * w2 + fuzz1R * w3 +
-        tanhR * w4 + recthR * w5 + atanR * w6 + hardR * w7;
+distL_A = softL_A * w0 + sigmL_A * w1 + rectL_A * w2 + fuzz1L_A * w3 +
+          tanhL_A * w4 + recthL_A * w5 + atanL_A * w6 + hardL_A * w7;
 
-// DC Blocker
-processedL = dcblock(distL);
-processedR = dcblock(distR);
+distR_A = softR_A * w0 + sigmR_A * w1 + rectR_A * w2 + fuzz1R_A * w3 +
+          tanhR_A * w4 + recthR_A * w5 + atanR_A * w6 + hardR_A * w7;
+
+preOutL = dcblock(distL_A);
+preOutR = dcblock(distR_A);
+
+// ========================
+// RUTA B (POST): Dist → Tilt
+// ========================
+// 1) Distorsión sobre la señal SIN tilt (preDistInL/R)
+softL_B, softR_B = softclip(preDistInL, preDistInR, drive, dc, ceiling);
+sigmL_B, sigmR_B = sigmoid(preDistInL, preDistInR, drive, dc, ceiling);
+rectL_B, rectR_B = rectF(preDistInL, preDistInR, drive, dc, ceiling);
+fuzz1L_B, fuzz1R_B = fuzzExp1(preDistInL, preDistInR, drive, dc, ceiling);
+tanhL_B, tanhR_B = tangenteHiperbolica(preDistInL, preDistInR, drive, dc, ceiling);
+recthL_B, recthR_B = rectH(preDistInL, preDistInR, drive, dc, ceiling);
+atanL_B, atanR_B = arctangent(preDistInL, preDistInR, drive, dc, ceiling);
+hardL_B, hardR_B = hardClip(preDistInL, preDistInR, drive, dc, ceiling);
+
+distL_B = softL_B * w0 + sigmL_B * w1 + rectL_B * w2 + fuzz1L_B * w3 +
+          tanhL_B * w4 + recthL_B * w5 + atanL_B * w6 + hardL_B * w7;
+
+distR_B = softR_B * w0 + sigmR_B * w1 + rectR_B * w2 + fuzz1R_B * w3 +
+          tanhR_B * w4 + recthR_B * w5 + atanR_B * w6 + hardR_B * w7;
+
+postInL = dcblock(distL_B);
+postInR = dcblock(distR_B);
+
+// 2) Aplicar el MISMO TILT RBJ a la salida distorsionada (usa histories "post*")
+//    (Reutilizamos a0Ls/a1Ls/a2Ls/b1Ls/b2Ls y a0Hs/a1Hs/a2Hs/b1Hs/b2Hs y gPivot)
+
+// --- Low Shelf (ruta post) ---
+postLsL = a0Ls * postInL + a1Ls * postTiltLsL2 + a2Ls * postTiltLsL1 - b1Ls * postTiltLsL4 - b2Ls * postTiltLsL3;
+postTiltLsL1 = postTiltLsL2; postTiltLsL2 = postInL; postTiltLsL3 = postTiltLsL4; postTiltLsL4 = postLsL;
+
+postLsR = a0Ls * postInR + a1Ls * postTiltLsR2 + a2Ls * postTiltLsR1 - b1Ls * postTiltLsR4 - b2Ls * postTiltLsR3;
+postTiltLsR1 = postTiltLsR2; postTiltLsR2 = postInR; postTiltLsR3 = postTiltLsR4; postTiltLsR4 = postLsR;
+
+// --- High Shelf (ruta post) ---
+postTiltRawL = a0Hs * postLsL + a1Hs * postTiltHsL2 + a2Hs * postTiltHsL1 - b1Hs * postTiltHsL4 - b2Hs * postTiltHsL3;
+postTiltHsL1 = postTiltHsL2; postTiltHsL2 = postLsL; postTiltHsL3 = postTiltHsL4; postTiltHsL4 = postTiltRawL;
+
+postTiltRawR = a0Hs * postLsR + a1Hs * postTiltHsR2 + a2Hs * postTiltHsR1 - b1Hs * postTiltHsR4 - b2Hs * postTiltHsR3;
+postTiltHsR1 = postTiltHsR2; postTiltHsR2 = postLsR; postTiltHsR3 = postTiltHsR4; postTiltHsR4 = postTiltRawR;
+
+// Normalización al pivote (misma gPivot)
+postTiltL = postTiltRawL * gPivot;
+postTiltR = postTiltRawR * gPivot;
+
+// ========================
+// MORPH SUAVIZADO ENTRE RUTAS
+// ========================
+// processed* es la entrada al resto de la cadena (bitcrusher, deci, etc.)
+//processedL = mix(preOutL, postTiltL, wPost);
+//processedR = mix(preOutR, postTiltR, wPost);
+
+distMorphL = mix(preOutL, postTiltL, wPost);
+distMorphR = mix(preOutR, postTiltR, wPost);
+
+// Señal limpia = Tilt directamente desde preDistIn
+cleanPreTiltL = lTilt;
+cleanPreTiltR = rTilt;
+
+// Activador global de distorsión
+processedL = mix(cleanPreTiltL, distMorphL, wDist);
+processedR = mix(cleanPreTiltR, distMorphR, wDist);
 
 // Esto es solo para probar la respuesta del tilt en Plugin Doctor
 //processedL = dcblock(lTilt);
@@ -1296,6 +1402,17 @@ wetWithMakeupR = (wetFinalR * outputMakeupLinear) + (bypassWhenActiveR * scSm);
 // Dry = señal original sin procesar (pre-trim, pre-filtros)
 // Wet = señal completamente procesada (trim + filtros + tilt + distorsión + efectos + makeup)
 // Parámetro drywet: 0 = solo dry, 1 = solo wet
+//mixedL = mix(dryL, wetWithMakeupL, drywet);
+//mixedR = mix(dryR, wetWithMakeupR, drywet);
+
+// Si Solo está activo, fuerza WET=100% para oír solo la banda procesada
+//effDrywet = soloOn ? 1 : drywet;
+//mixedL = mix(dryL, wetWithMakeupL, effDrywet);
+//mixedR = mix(dryR, wetWithMakeupR, effDrywet);
+
+// Solo de banda: si está ON, el WET solo contiene la banda procesada
+// DRY queda full-range siempre
+// Mezcla Dry (full-range) con Wet (solo banda procesada si soloOn=1)
 mixedL = mix(dryL, wetWithMakeupL, drywet);
 mixedR = mix(dryR, wetWithMakeupR, drywet);
 
@@ -1303,8 +1420,20 @@ mixedR = mix(dryR, wetWithMakeupR, drywet);
 // SALIDA FINAL CON BYPASS
 // -----------------------------------------------------------------------------
 
-finalL = mixedL;
-finalR = mixedR;
+//finalL = mixedL;
+//finalR = mixedR;
+
+// Ceiling fijo
+safeCeiling = dbtoa(-0.1);
+
+// Limitador de seguridad
+safeL = mix(mixedL, clamp(mixedL, -safeCeiling, safeCeiling), safeOn);
+safeR = mix(mixedR, clamp(mixedR, -safeCeiling, safeCeiling), safeOn);
+
+// Opción alternativa: soft clip para evitar esquina dura
+// k = 1.0 / tanh(1.0);
+// safeL = tanh(mixedL / safeCeiling) * safeCeiling * k;
+// safeR = tanh(mixedR / safeCeiling) * safeCeiling * k;
 
 // DC Blocker final antes de la salida
 //finalDcBlockedL = dcblock(finalL);
@@ -1313,8 +1442,8 @@ finalR = mixedR;
 //out1 = mix(lIn, finalDcBlockedL, bypass);
 //out2 = mix(rIn, finalDcBlockedR, bypass);
 
-out1 = mix(lIn, finalL, bypass);
-out2 = mix(rIn, finalR, bypass);
+out1 = mix(lIn, safeL, bypass);
+out2 = mix(rIn, safeR, bypass);
 
 // Salida 3 vacía para mantener consistencia
 out3 = 0;

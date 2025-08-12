@@ -110,6 +110,18 @@ JCBDistortionAudioProcessor::JCBDistortionAudioProcessor()
             else if (paramName == "o_BAND") {
                 value = juce::jlimit(0.0f, 2.0f, value);
             }
+            else if (paramName == "p_TILTPOS") {
+                value = juce::jlimit(0.0f, 1.0f, value);
+            }
+            else if (paramName == "p_DISTON") {
+                value = juce::jlimit(0.0f, 1.0f, value);
+            }
+            else if (paramName == "p_BANDSOLO") {
+                value = juce::jlimit(0.0f, 1.0f, value);
+            }
+            else if (paramName == "p_SAFELIMITON") {
+                value = juce::jlimit(0.0f, 1.0f, value);
+            }
             
             JCBDistortion::setparameter(m_PluginState, i, value, nullptr);
         }
@@ -775,13 +787,25 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
                                                            },
                                                            nullptr);
 
+   // p_TILTPOS @min 0 @max 1 @default 0 (Tilt position: 0=Pre, 1=Post)
+   auto tiltPos = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("p_TILTPOS", versionHint),
+                                                            juce::CharPointer_UTF8("Tilt Position"),
+                                                            0, 1, 0);
 
+   // p_DISTON @min 0 @max 1 @default 1 (Distortion on/off)
+   auto distOn = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("p_DISTON", versionHint),
+                                                           juce::CharPointer_UTF8("Distortion On"),
+                                                           0, 1, 1);
 
+   // p_BANDSOLO @min 0 @max 1 @default 0 (Band solo: 0=off, 1=solo selected band)
+   auto bandSolo = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("p_BANDSOLO", versionHint),
+                                                             juce::CharPointer_UTF8("Band Solo"),
+                                                             0, 1, 0);
 
-
-
-
-
+   // p_SAFELIMITON @min 0 @max 1 @default 0 (Safety limiter: 0=off, 1=on)
+   auto safeLimitOn = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("p_SAFELIMITON", versionHint),
+                                                                juce::CharPointer_UTF8("Safety Limiter"),
+                                                                0, 1, 0);
 
    // Añadir parámetros en orden alfabético (exactamente como Gen~)
    params.push_back(std::move(drywet));         // a_DRYWET
@@ -801,6 +825,10 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
    params.push_back(std::move(downsample));     // m_DOWNSAMPLE
    params.push_back(std::move(downsampleOn));   // n_DOWNSAMPLEON
    params.push_back(std::move(band));           // o_BAND
+   params.push_back(std::move(tiltPos));        // p_TILTPOS
+   params.push_back(std::move(distOn));         // p_DISTON
+   params.push_back(std::move(bandSolo));       // p_BANDSOLO
+   params.push_back(std::move(safeLimitOn));    // p_SAFELIMITON
 
    // DISTORTION: No requiere parámetros especiales AAX de gain reduction
 
@@ -865,6 +893,18 @@ void JCBDistortionAudioProcessor::parameterChanged(const juce::String& parameter
     }
     else if (parameterID == "o_BAND") {
         newValue = juce::jlimit(0.0f, 2.0f, newValue);
+    }
+    else if (parameterID == "p_TILTPOS") {
+        newValue = juce::jlimit(0.0f, 1.0f, newValue);
+    }
+    else if (parameterID == "p_DISTON") {
+        newValue = juce::jlimit(0.0f, 1.0f, newValue);
+    }
+    else if (parameterID == "p_BANDSOLO") {
+        newValue = juce::jlimit(0.0f, 1.0f, newValue);
+    }
+    else if (parameterID == "p_SAFELIMITON") {
+        newValue = juce::jlimit(0.0f, 1.0f, newValue);
     }
     else if (parameterID == "p_DISPLAYMODE") {
         newValue = juce::jlimit(0.0f, 1.0f, newValue);

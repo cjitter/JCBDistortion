@@ -330,27 +330,33 @@ private:
     struct RightTopControls {
         // MAXIMIZER: h_RANGE, g_REACT y z_SMOOTH no existen - eliminados según CONTEXTO.txt
         CustomSlider tiltSlider{"tilt"};  // NUEVO - parámetro i_TILT (Tilt EQ)
+        juce::TextButton tiltPosButton{"PRE"};  // NUEVO - parámetro p_TILTPOS (posición del tilt: PRE/POST)
         CustomSlider bitsSlider{"BIT"};  // NUEVO - parámetro g_BITS (Bit crusher resolution)
         CustomSlider downsampleSlider{"DECI"};  // NUEVO - parámetro m_DOWNSAMPLE (factor downsampling 0-99)
         juce::TextButton downsampleButton{"DOWNSAMPLE"};  // NUEVO - parámetro n_DOWNSAMPLEON (activar downsampling)
+        juce::TextButton safeLimitButton{"LIMIT"};  // NUEVO - parámetro p_SAFELIMITON (limitador brickwall)
         
         // MAXIMIZER: rangeAttachment, reactAttachment y smoothAttachment eliminados - parámetros inexistentes
         std::unique_ptr<CustomSliderAttachment> tiltAttachment;  // NUEVO - attachment para i_TILT
+        std::unique_ptr<UndoableButtonAttachment> tiltPosButtonAttachment;  // NUEVO - attachment para p_TILTPOS
         std::unique_ptr<CustomSliderAttachment> bitsAttachment;  // NUEVO - attachment para g_BITS
         std::unique_ptr<CustomSliderAttachment> downsampleAttachment;  // NUEVO - attachment para m_DOWNSAMPLE
         std::unique_ptr<UndoableButtonAttachment> downsampleButtonAttachment;  // NUEVO - attachment para n_DOWNSAMPLEON
+        std::unique_ptr<UndoableButtonAttachment> safeLimitAttachment;  // NUEVO - attachment para p_SAFELIMITON
     } rightTopControls;
     
     // Controles derechos, fila inferior
     struct RightBottomKnobs {
         CustomSlider driveSlider{"drive"};  // DISTORTION: b_DRIVE (amplificación 1-50)
         CustomSlider modeSlider{"mode"};    // DISTORTION: d_MODE (modos 0-9)
+        juce::TextButton distOnButton{"ON"};  // NUEVO - parámetro p_DISTON (distorsión on/off)
         CustomSlider dcSlider{"dc"};  // NUEVO - parámetro c_DC (continuo 0-1 para armónicos)
         juce::TextButton bitButton{"BIT CRUSHER"};  // DISTORTION: h_BITSON (bit crusher on/off)
         // MAXIMIZER: f_HOLD no existe - eliminado según CONTEXTO.txt
         
         std::unique_ptr<CustomSliderAttachment> driveAttachment;  // DISTORTION: para b_DRIVE
         std::unique_ptr<CustomSliderAttachment> modeAttachment;   // DISTORTION: para d_MODE
+        std::unique_ptr<UndoableButtonAttachment> distOnButtonAttachment;  // NUEVO - attachment para p_DISTON
         std::unique_ptr<CustomSliderAttachment> dcAttachment;  // NUEVO - attachment para c_DC
         std::unique_ptr<UndoableButtonAttachment> bitAttachment;  // DISTORTION: para h_BITSON
         // MAXIMIZER: holdAttachment eliminado - parámetro inexistente
@@ -369,11 +375,13 @@ private:
         juce::Label bandMidLabel;     // Label para "Mid"
         juce::Label bandHighLabel;    // Label para "High"
         juce::TextButton scButton{"FILTERS"};
+        juce::TextButton bandSoloButton{"SOLO"};  // NUEVO - parámetro p_BANDSOLO
         
         std::unique_ptr<CustomSliderAttachment> xLowAttachment;
         std::unique_ptr<CustomSliderAttachment> bandAttachment;
         std::unique_ptr<CustomSliderAttachment> xHighAttachment;
         std::unique_ptr<UndoableButtonAttachment> scAttachment;
+        std::unique_ptr<UndoableButtonAttachment> bandSoloAttachment;  // NUEVO - attachment para p_BANDSOLO
     } sidechainControls;
     
     //==========================================================================

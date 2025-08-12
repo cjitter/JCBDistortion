@@ -40,6 +40,7 @@ public:
     //==========================================================================
     
     std::function<void()> onParameterChange;  // Callback para cambios de parámetro (preset modification indicator)
+    std::function<void(bool)> onStateChange;  // Callback para cambios de estado (actualizar texto del botón, etc.)
     
     //==========================================================================
     // CONSTRUCTOR Y DESTRUCTOR
@@ -108,6 +109,11 @@ private:
         // Actualizar estado del botón desde valor del parámetro (automation, preset loading, etc.)
         bool shouldBeToggled = newValue >= 0.5f;
         button.setToggleState(shouldBeToggled, juce::dontSendNotification);
+        
+        // Llamar callback de cambio de estado si está definido
+        // Esto permite actualizar texto del botón u otras propiedades visuales
+        if (onStateChange)
+            onStateChange(shouldBeToggled);
         
         // MAXIMIZER: No filter order parameters - comentado según CONTEXTO.txt
         // juce::String paramId = parameter.getParameterID();
