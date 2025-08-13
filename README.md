@@ -61,26 +61,39 @@ cmake --build build-release   # Para Release
 
 ## Características principales
 
-- **Distorsionador multimodal con 8 algoritmos seleccionables** (MODE 0-7): Soft Clipping, Sigmoid, Full/Half Wave Rectifier, Fuzz Exponential, Hyperbolic Tangent, Arctangent, Hard Clip
-- **Control de ganancia de entrada (DRIVE)** de 1 a 50x para modular la intensidad de distorsión
-- **Control de asimetría DC (EVEN)** de 0 a 1 para generar armónicos pares mediante offset DC variable
-- **Bit Crusher configurable** de 3 a 16 bits con activador independiente (BIT CRUSHER)
-- **Downsampler/Decimador** de 0 a 100% con activador dedicado (DOWNSAMPLE)
-- **Crossover de 3 bandas Linkwitz-Riley 4º orden** con puntos de cruce ajustables (XLow: 20-1000Hz, XHigh: 1000-20000Hz)
-- **Selector de banda (BAND)** para procesar selectivamente graves (Low), medios (Mid) o agudos (High)
-- **Filtros con compensación allpass** para mantener fase coherente cuando está en bypass (FILTERS off)
-- **Líneas de crossover interactivas** en el analizador FFT - arrastrables con mouse para ajuste directo
-- **Filtro Tilt** de ±6dB para balance espectral pre-distorsión
-- **Control de techo (CEILING)** de -20 a +6 dB para limitar la salida
-- **Trim de salida** de ±12dB para ajuste fino del nivel
-- **Control Dry/Wet** (0-100%) para mezcla paralela post-procesamiento
-- **Bypass verdadero** con botón dedicado
-- **Analizador de espectro FFT** 2048-point con toggle FFT/CURVES
-- **Visualizador de curvas de distorsión** en tiempo real con respuesta dinámica
-- **Medidores de entrada/salida** con gradiente visual RMS/Peak
-- **Procesamiento estéreo** con parámetros unificados
-- **Tooltips bilingües** conmutables (Español/Inglés)
-- **Diagrama de bloques interactivo** con acceso al código GenExpr para estudio en Max
+	•	Distorsionador multimodal con 8 algoritmos seleccionables (MODE 0–7): Soft Clipping, Sigmoid, Full/Half Wave Rectifier, Fuzz Exponential, Hyperbolic Tangent, Arctangent, Hard Clip.
+	•	Control de ganancia de entrada (DRIVE) de 1 a 50× para modular la intensidad de distorsión.
+	•	Control de asimetría (EVEN) ahora basado en skew dependiente de polaridad (no inyección directa de DC), para armónicos pares más musicales y sin picos DC.
+	•	Ruta Tilt conmutables Pre/Post la distorsión y morph continuo entre ambas (p_TILTPOS): ajusta el carácter antes o después de saturar.
+	•	Crossover LR4 de 3 bandas (Linkwitz–Riley 4º orden) con puntos de cruce ajustables (XLow 20–1000 Hz, XHigh 1–20 kHz).
+	•	Compensación de fase en el dry mediante all-pass equivalentes al LR4, manteniendo coherencia cuando el crossover está activo/inactivo.
+	•	Selector de banda (BAND) con pesos continuos y Solo de banda que deja escuchar esa banda a través del procesador (wet), manteniendo el dry full-range.
+	•	Filtro Tilt ±6 dB (RBJ shelves complementarios con normalización en pivote) para balance espectral.
+	•	Bit Crusher mejorado (3–16 bits) con:
+	•	cuantización por round (no ceil) para menos sesgo,
+	•	dcblock post-quantización y mezcla conmutada (BITSON).
+	•	Downsampler/Decimador con phasor y latch por flanco, reinicio limpio al activar y decimación 1…100 (sin zipper noise).
+	•	Control de techo (CEILING) de −20 a +6 dB y limitador de seguridad opcional con ceiling fijo −0.1 dB para prevenir overs.
+	•	Trim de salida ±12 dB y Control Dry/Wet 0–100 % (mezcla paralela post-procesado).
+	•	Smoothing de parámetros crítico (incl. MODE) y fixdenorm en todos los biquads para estabilidad numérica.
+	•	Bypass verdadero con botón dedicado.
+	•	Analizador FFT 2048-pt con líneas de crossover arrastrables (FFT/CURVES).
+	•	Visualizador de curvas de distorsión en tiempo real.
+	•	Medidores In/Out con RMS/Peak.
+	•	Procesamiento estéreo con parámetros unificados.
+	•	Tooltips bilingües (ES/EN) conmutables.
+	•	Diagrama de bloques interactivo con acceso a GenExpr para estudio en Max.
+
+## Cambios recientes v0.9.2
+
+	•	EVEN refinado: asimetría por pendiente (skew) con normalización y tanh-shaping → armónicos pares más “finos” y controlables, sin golpes DC incluso a altos drives.
+	•	Ruta Pre/Post Tilt con morph: mismo juego de coeficientes y normalización al pivote para que Pre y Post se combinen sin saltos.
+	•	Dry all-pass compensation: el dry recorre dos etapas all-pass (loF/hiF) que replican el group delay del LR4; suma en fase y pasa el null test.
+	•	Bit Crusher: cuantización por round, dcblock a la salida y mezcla conmutada → crush agresivo pero sin artefactos ni “choking”.
+	•	Downsampling: latch por flanco con reset al activar y fase estable; sin “rate zipper” al mover el parámetro.
+	•	Modularización real del pipeline: InputStage → CrossoverStage → DistortionCore → EffectsChain → OutputStage; cada módulo es intercambiable y fácil de depurar.
+	•	Gestión de banda: Band Solo encaminado por el core (solo la banda seleccionada en wet, dry full-range), más útil para diseño de sonido y A/B.
+	•	Robustez numérica: fixdenorm() en todos los estados de biquads y smoothing afinado (incl. MODE con factor específico) para evitar clicks/zipper.
 
 ![Diagrama de Bloques](Assets/screenshotDiagram.png)
 
