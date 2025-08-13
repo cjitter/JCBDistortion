@@ -93,6 +93,8 @@ cmake --build build-release   # Para Release
 - Modularización real del pipeline: InputStage → CrossoverStage → DistortionCore → EffectsChain → OutputStage; cada módulo es intercambiable y fácil de depurar.
 - Gestión de banda: Band Solo encaminado por el core (solo la banda seleccionada en wet, dry full-range), más útil para diseño de sonido y A/B.
 - Robustez numérica: fixdenorm() en todos los estados de biquads y smoothing afinado (incl. MODE con factor específico) para evitar clicks/zipper.
+
+
 ![Diagrama de Bloques](Assets/screenshotDiagram.png)
 
 ## Recursos
