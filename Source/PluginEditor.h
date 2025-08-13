@@ -797,11 +797,14 @@ private:
                     // Cargar código desde cache thread-safe
                     juce::String genCode = safeOwner->loadCodeFromFile(blockName);
                     
-                    // Determinar título de ventana: usar "OUTPUT" para bloques específicos
+                    // Determinar título de ventana: usar nombres personalizados para bloques específicos
                     juce::String windowTitle = blockName;
                     if (blockName == "LOOKAHEAD" || blockName == "MAKEUP" || 
                         blockName == "OUTPUT") {
                         windowTitle = "OUTPUT";
+                    }
+                    else if (blockName == "LR4" || blockName == "LR4-DRY-AllpassCompensated") {
+                        windowTitle = "CROSSOVER STAGE";
                     }
                     
                     safeOwner->codeWindow->setCode(genCode, windowTitle);

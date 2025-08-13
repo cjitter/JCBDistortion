@@ -130,8 +130,9 @@ juce_add_binary_data(JCBDistortion_BinaryData
         Assets/code/EffectsChain.txt
         Assets/code/InputStage.txt
         Assets/code/OutputStage.txt
-        Assets/code/LR4.txt
-        Assets/code/LR4-DRY-AllpassCompensated.txt
+        Assets/code/CrossoverStage.txt
+        #Assets/code/LR4.txt
+        #Assets/code/LR4-DRY-AllpassCompensated.txt
         # Presets de fábrica con prefijos de categoría
         Assets/FactoryPresets/Drums_PlusSixAll.preset
         Assets/FactoryPresets/Drums_Kick.preset

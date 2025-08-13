@@ -3989,9 +3989,9 @@ void JCBDistortionAudioProcessorEditor::initializeCodeContentCache()
         //{"GEN EXPR", BinaryData::GenExpr_txt, BinaryData::GenExpr_txtSize},
         //{"GEN EXPR (FILTERS)", BinaryData::GenExpr_with_filters_txt, BinaryData::GenExpr_with_filters_txtSize},
         {"OUTPUT STAGE", BinaryData::OutputStage_txt, BinaryData::OutputStage_txtSize},
-        // Bloques de filtros LR4 (Linkwitz-Riley 4th order)
-        {"LR4", BinaryData::LR4_txt, BinaryData::LR4_txtSize},
-        {"LR4-DRY-AllpassCompensated", BinaryData::LR4DRYAllpassCompensated_txt, BinaryData::LR4DRYAllpassCompensated_txtSize},
+        // Bloques de filtros LR4 (Linkwitz-Riley 4th order) - ambos apuntan al CrossoverStage completo
+        {"LR4", BinaryData::CrossoverStage_txt, BinaryData::CrossoverStage_txtSize},
+        {"LR4-DRY-AllpassCompensated", BinaryData::CrossoverStage_txt, BinaryData::CrossoverStage_txtSize},
     };
     
     // Cargar todo en cache

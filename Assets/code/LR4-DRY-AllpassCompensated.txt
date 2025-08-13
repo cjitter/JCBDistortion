@@ -79,32 +79,32 @@ hp_a2_h = lp_a2_h;
 
 // === PRIMER ALL-PASS @ freq_low ===
 // LP Stage 1
-ap1_lp1_x1p = ap1_lp1_x1; ap1_lp1_x2p = ap1_lp1_x2;
-ap1_lp1_y1p = ap1_lp1_y1; ap1_lp1_y2p = ap1_lp1_y2;
+ap1_lp1_x1p = fixdenorm(ap1_lp1_x1); ap1_lp1_x2p = fixdenorm(ap1_lp1_x2);
+ap1_lp1_y1p = fixdenorm(ap1_lp1_y1); ap1_lp1_y2p = fixdenorm(ap1_lp1_y2);
 ap1_lp_s1 = lp_b0_l*x + lp_b1_l*ap1_lp1_x1p + lp_b2_l*ap1_lp1_x2p
             - lp_a1_l*ap1_lp1_y1p - lp_a2_l*ap1_lp1_y2p;
 ap1_lp1_x2 = ap1_lp1_x1p; ap1_lp1_x1 = x;
 ap1_lp1_y2 = ap1_lp1_y1p; ap1_lp1_y1 = ap1_lp_s1;
 
 // LP Stage 2
-ap1_lp2_x1p = ap1_lp2_x1; ap1_lp2_x2p = ap1_lp2_x2;
-ap1_lp2_y1p = ap1_lp2_y1; ap1_lp2_y2p = ap1_lp2_y2;
+ap1_lp2_x1p = fixdenorm(ap1_lp2_x1); ap1_lp2_x2p = fixdenorm(ap1_lp2_x2);
+ap1_lp2_y1p = fixdenorm(ap1_lp2_y1); ap1_lp2_y2p = fixdenorm(ap1_lp2_y2);
 ap1_lp = lp_b0_l*ap1_lp_s1 + lp_b1_l*ap1_lp2_x1p + lp_b2_l*ap1_lp2_x2p
          - lp_a1_l*ap1_lp2_y1p - lp_a2_l*ap1_lp2_y2p;
 ap1_lp2_x2 = ap1_lp2_x1p; ap1_lp2_x1 = ap1_lp_s1;
 ap1_lp2_y2 = ap1_lp2_y1p; ap1_lp2_y1 = ap1_lp;
 
 // HP Stage 1
-ap1_hp1_x1p = ap1_hp1_x1; ap1_hp1_x2p = ap1_hp1_x2;
-ap1_hp1_y1p = ap1_hp1_y1; ap1_hp1_y2p = ap1_hp1_y2;
+ap1_hp1_x1p = fixdenorm(ap1_hp1_x1); ap1_hp1_x2p = fixdenorm(ap1_hp1_x2);
+ap1_hp1_y1p = fixdenorm(ap1_hp1_y1); ap1_hp1_y2p = fixdenorm(ap1_hp1_y2);
 ap1_hp_s1 = hp_b0_l*x + hp_b1_l*ap1_hp1_x1p + hp_b2_l*ap1_hp1_x2p
             - hp_a1_l*ap1_hp1_y1p - hp_a2_l*ap1_hp1_y2p;
 ap1_hp1_x2 = ap1_hp1_x1p; ap1_hp1_x1 = x;
 ap1_hp1_y2 = ap1_hp1_y1p; ap1_hp1_y1 = ap1_hp_s1;
 
 // HP Stage 2
-ap1_hp2_x1p = ap1_hp2_x1; ap1_hp2_x2p = ap1_hp2_x2;
-ap1_hp2_y1p = ap1_hp2_y1; ap1_hp2_y2p = ap1_hp2_y2;
+ap1_hp2_x1p = fixdenorm(ap1_hp2_x1); ap1_hp2_x2p = fixdenorm(ap1_hp2_x2);
+ap1_hp2_y1p = fixdenorm(ap1_hp2_y1); ap1_hp2_y2p = fixdenorm(ap1_hp2_y2);
 ap1_hp = hp_b0_l*ap1_hp_s1 + hp_b1_l*ap1_hp2_x1p + hp_b2_l*ap1_hp2_x2p
          - hp_a1_l*ap1_hp2_y1p - hp_a2_l*ap1_hp2_y2p;
 ap1_hp2_x2 = ap1_hp2_x1p; ap1_hp2_x1 = ap1_hp_s1;
@@ -115,32 +115,32 @@ stage1_out = ap1_lp + ap1_hp;
 
 // === SEGUNDO ALL-PASS @ freq_high ===
 // LP Stage 1
-ap2_lp1_x1p = ap2_lp1_x1; ap2_lp1_x2p = ap2_lp1_x2;
-ap2_lp1_y1p = ap2_lp1_y1; ap2_lp1_y2p = ap2_lp1_y2;
+ap2_lp1_x1p = fixdenorm(ap2_lp1_x1); ap2_lp1_x2p = fixdenorm(ap2_lp1_x2);
+ap2_lp1_y1p = fixdenorm(ap2_lp1_y1); ap2_lp1_y2p = fixdenorm(ap2_lp1_y2);
 ap2_lp_s1 = lp_b0_h*stage1_out + lp_b1_h*ap2_lp1_x1p + lp_b2_h*ap2_lp1_x2p
             - lp_a1_h*ap2_lp1_y1p - lp_a2_h*ap2_lp1_y2p;
 ap2_lp1_x2 = ap2_lp1_x1p; ap2_lp1_x1 = stage1_out;
 ap2_lp1_y2 = ap2_lp1_y1p; ap2_lp1_y1 = ap2_lp_s1;
 
 // LP Stage 2
-ap2_lp2_x1p = ap2_lp2_x1; ap2_lp2_x2p = ap2_lp2_x2;
-ap2_lp2_y1p = ap2_lp2_y1; ap2_lp2_y2p = ap2_lp2_y2;
+ap2_lp2_x1p = fixdenorm(ap2_lp2_x1); ap2_lp2_x2p = fixdenorm(ap2_lp2_x2);
+ap2_lp2_y1p = fixdenorm(ap2_lp2_y1); ap2_lp2_y2p = fixdenorm(ap2_lp2_y2);
 ap2_lp = lp_b0_h*ap2_lp_s1 + lp_b1_h*ap2_lp2_x1p + lp_b2_h*ap2_lp2_x2p
          - lp_a1_h*ap2_lp2_y1p - lp_a2_h*ap2_lp2_y2p;
 ap2_lp2_x2 = ap2_lp2_x1p; ap2_lp2_x1 = ap2_lp_s1;
 ap2_lp2_y2 = ap2_lp2_y1p; ap2_lp2_y1 = ap2_lp;
 
 // HP Stage 1
-ap2_hp1_x1p = ap2_hp1_x1; ap2_hp1_x2p = ap2_hp1_x2;
-ap2_hp1_y1p = ap2_hp1_y1; ap2_hp1_y2p = ap2_hp1_y2;
+ap2_hp1_x1p = fixdenorm(ap2_hp1_x1); ap2_hp1_x2p = fixdenorm(ap2_hp1_x2);
+ap2_hp1_y1p = fixdenorm(ap2_hp1_y1); ap2_hp1_y2p = fixdenorm(ap2_hp1_y2);
 ap2_hp_s1 = hp_b0_h*stage1_out + hp_b1_h*ap2_hp1_x1p + hp_b2_h*ap2_hp1_x2p
             - hp_a1_h*ap2_hp1_y1p - hp_a2_h*ap2_hp1_y2p;
 ap2_hp1_x2 = ap2_hp1_x1p; ap2_hp1_x1 = stage1_out;
 ap2_hp1_y2 = ap2_hp1_y1p; ap2_hp1_y1 = ap2_hp_s1;
 
 // HP Stage 2
-ap2_hp2_x1p = ap2_hp2_x1; ap2_hp2_x2p = ap2_hp2_x2;
-ap2_hp2_y1p = ap2_hp2_y1; ap2_hp2_y2p = ap2_hp2_y2;
+ap2_hp2_x1p = fixdenorm(ap2_hp2_x1); ap2_hp2_x2p = fixdenorm(ap2_hp2_x2);
+ap2_hp2_y1p = fixdenorm(ap2_hp2_y1); ap2_hp2_y2p = fixdenorm(ap2_hp2_y2);
 ap2_hp = hp_b0_h*ap2_hp_s1 + hp_b1_h*ap2_hp2_x1p + hp_b2_h*ap2_hp2_x2p
          - hp_a1_h*ap2_hp2_y1p - hp_a2_h*ap2_hp2_y2p;
 ap2_hp2_x2 = ap2_hp2_x1p; ap2_hp2_x1 = ap2_hp_s1;
