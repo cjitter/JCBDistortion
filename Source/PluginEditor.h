@@ -902,13 +902,13 @@ private:
             // Distribución horizontal de los 4 bloques principales
             cachedClickableAreas = {
                 // Los 4 bloques del procesamiento de distorsión
-                {"INPUT STAGE", 75.f, 65.f, 55.f, 65.f},      // Entrada y trim
-                {"DISTORTION CORE", 163.f, 70.f, 120.f, 55.f}, // Motor de distorsión
-                {"EFFECTS CHAIN", 390.f, 35.f, 98.f, 37.f},   // Bit crusher, downsample, filtros
-                {"OUTPUT STAGE", 510.f, 72.f, 85.f, 50.f},    // Salida y makeup gain
+                {"INPUT STAGE", 75.f, 75.f, 55.f, 45.f},      // Entrada y trim
+                {"DISTORTION CORE", 162.f, 75.f, 120.f, 55.f}, // Motor de distorsión
+                {"EFFECTS CHAIN", 390.f, 42.f, 98.f, 37.f},   // Bit crusher, downsample, filtros
+                {"OUTPUT STAGE", 512.f, 80.f, 85.f, 50.f},    // Salida y makeup gain
                 // Bloques de filtros LR4 (Linkwitz-Riley 4th order)
-                {"LR4", 310.f, 26.f, 50.f, 50.f},             // Filtro LR4 básico
-                {"LR4-DRY-AllpassCompensated", 395.f, 120.f, 85.f, 37.f},  // LR4 con compensación allpass
+                {"LR4", 310.f, 34.f, 50.f, 52.f},             // Filtro LR4 básico
+                {"LR4-DRY-AllpassCompensated", 395.f, 127.f, 85.f, 37.f},  // LR4 con compensación allpass
             };
             
             clickableAreasCached = true;
