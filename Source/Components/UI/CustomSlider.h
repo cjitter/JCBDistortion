@@ -120,6 +120,17 @@ public:
                      // MAXIMIZER: Removed sctrim references
                 accentColour = juce::Colour(0xFF6495ED);
             }
+            // TILT (Teal) - #4DB6AC
+            else if (name == "tilt" || id == "tilt") {
+                accentColour = juce::Colour(0xFF4DB6AC);
+            }
+            // DISTORTION CONTROLS (Rojo coral) - #E57373
+            else if (name == "mode" || id == "mode" || 
+                     name == "dc" || id == "dc" || name == "even" || id == "even" ||
+                     name == "drive" || id == "drive" || 
+                     name == "ceiling" || id == "ceiling" || name == "ceil" || id == "ceil") {
+                accentColour = juce::Colour(0xFFE57373);
+            }
             
             // Dibujar cuerpo del knob - estilos diferentes para grande vs pequeño
             if (!isSmall)

@@ -158,18 +158,18 @@
 						}
 ,
 						"classnamespace" : "box",
-						"rect" : [ 562.0, 127.0, 748.0, 831.0 ],
+						"rect" : [ 544.0, 179.0, 952.0, 717.0 ],
 						"gridsize" : [ 15.0, 15.0 ],
 						"boxes" : [ 							{
 								"box" : 								{
 									"fontsize" : 19.0,
 									"id" : "obj-2",
-									"linecount" : 38,
+									"linecount" : 31,
 									"maxclass" : "comment",
 									"numinlets" : 1,
 									"numoutlets" : 0,
-									"patching_rect" : [ 7.0, 4.0, 639.0, 813.0 ],
-									"text" : "// -----------------------------------------------------------------------------\n// PARÁMETROS\n// -----------------------------------------------------------------------------\nParam a_DRYWET(1, min=0, default=1, max=1);\nParam b_DRIVE(1, min=1, default=1, max=50);\nParam c_DC(0, min=0, default=0, max=1);         // DC offset - añade armónicos pares (asimetría)\nParam d_MODE(1, min=0, default=0, max=7);       // Continuo 0-7 (8 algoritmos)\nParam e_CEILING(0, min=-20, default=0, max=6);\nParam f_BYPASS(0, min=0, default=0, max=1);\nParam g_BITS(16, min=2, default=16, max=16);\nParam h_BITSON(0, min=0, default=0, max=1);\nParam i_TILT(0, min=-6, default=0, max=6);\n\n// Parámetros de filtros HPF/LPF\nParam j_HPF(250, min=20, default=250, max=1000);      // XOver low frequency (Hz)\nParam k_LPF(5000, min=1000, default=5000, max=20000); // XOver high frequency (Hz)\nParam l_SC(0, min=0, default=0, max=1);               // Input filter enable\n\n// Parámetros existentes\nParam k_INPUT(0, min=-12, default=0, max=12);   // Input trim gain\nParam l_OUTPUT(0, min=-12, default=0, max=12);  // Output makeup gain\nParam m_DOWNSAMPLE(0, min=0, default=0, max=99); // Factor de downsampling (0 = sin efecto)\nParam n_DOWNSAMPLEON(0, min=0, default=0, max=1); // Activar downsampling\n\nParam o_BAND(1, min=0, default=1, max=2); // 0=low,1=mid,2=high\n\nParam p_TILTPOS(0, min=0, default=0, max=1); // 0=Pre (Tilt→Dist), 1=Post (Dist→Tilt)\nParam p_DISTON(1, min=0, default=1, max=1); // 0=off, 1=on\nParam p_BANDSOLO(0, min=0, default=0, max=1); // 0=off, 1=solo banda seleccionada\nParam p_SAFELIMITON(0, min=0, default=0, max=1); // 0=off, 1=on"
+									"patching_rect" : [ 9.0, 11.0, 919.0, 686.0 ],
+									"text" : "// -----------------------------------------------------------------------------\n// PARÁMETROS\n// -----------------------------------------------------------------------------\nParam a_DRYWET(1, min=0, default=1, max=1);\nParam b_DRIVE(1, min=1, default=1, max=50);\nParam c_DC(0, min=0, default=0, max=1);         // DC offset - añade armónicos pares (asimetría)\nParam d_MODE(1, min=0, default=0, max=7);       // Continuo 0-7 (8 algoritmos)\nParam e_CEILING(0, min=-20, default=0, max=6);\nParam f_BYPASS(0, min=0, default=0, max=1);\nParam g_BITS(16, min=2, default=16, max=16);\nParam h_BITSON(0, min=0, default=0, max=1);\nParam i_TILT(0, min=-6, default=0, max=6);\n\n// Parámetros de filtros HPF/LPF\nParam j_HPF(250, min=20, default=250, max=1000);      // XOver low frequency (Hz)\nParam k_LPF(5000, min=1000, default=5000, max=20000); // XOver high frequency (Hz)\nParam l_SC(0, min=0, default=0, max=1);               // Input filter enable\n\n// Parámetros existentes\nParam k_INPUT(0, min=-12, default=0, max=12);   // Input trim gain\nParam l_OUTPUT(0, min=-12, default=0, max=12);  // Output makeup gain\nParam m_DOWNSAMPLE(0, min=0, default=0, max=99); // Factor de downsampling (0 = sin efecto)\nParam n_DOWNSAMPLEON(0, min=0, default=0, max=1); // Activar downsampling\n\nParam o_BAND(1, min=0, default=1, max=2); // 0=low,1=mid,2=high\n\nParam p_TILTPOS(0, min=0, default=0, max=1); // 0=Pre (Tilt→Dist), 1=Post (Dist→Tilt)\nParam p_DISTON(1, min=0, default=1, max=1); // 0=off, 1=on\n\nParam p_BANDSOLO(0, min=0, default=0, max=1); // 0=off, 1=solo banda seleccionada\nParam p_SAFELIMITON(0, min=0, default=0, max=1); // 0=off, 1=on\n"
 								}
 
 							}
@@ -177,8 +177,8 @@
 						"lines" : [  ]
 					}
 ,
-					"patching_rect" : [ 28.0, 19.0, 60.0, 22.0 ],
-					"text" : "p Params"
+					"patching_rect" : [ 73.0, 419.0, 81.0, 22.0 ],
+					"text" : "p Parametros"
 				}
 
 			}
@@ -623,7 +623,7 @@
 					"numinlets" : 0,
 					"numoutlets" : 1,
 					"outlettype" : [ "" ],
-					"patching_rect" : [ 39.0, 244.0, 49.0, 22.0 ],
+					"patching_rect" : [ 161.0, 299.0, 49.0, 22.0 ],
 					"text" : "r parms"
 				}
 
@@ -2061,7 +2061,7 @@
 , 			{
 				"patchline" : 				{
 					"destination" : [ "obj-2", 0 ],
-					"midpoints" : [ 48.5, 387.7578125, 235.5, 387.7578125 ],
+					"midpoints" : [ 170.5, 387.7578125, 235.5, 387.7578125 ],
 					"source" : [ "obj-80", 0 ]
 				}
 

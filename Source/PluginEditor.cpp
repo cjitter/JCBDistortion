@@ -44,6 +44,10 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
 {
     // Inicializar LookAndFeel personalizado para el botón FILTERS
     filtersButtonLAF = std::make_unique<FiltersButtonLookAndFeel>();
+    reversedGradientButtonLAF = std::make_unique<ReversedGradientButtonLookAndFeel>();
+    tealGradientButtonLAF = std::make_unique<TealGradientButtonLookAndFeel>();
+    coralGradientButtonLAF = std::make_unique<CoralGradientButtonLookAndFeel>();
+    transparentButtonLAF = std::make_unique<TransparentButtonLookAndFeel>();
     
     // Configurar todos los componentes
     setupBackground();
@@ -76,9 +80,9 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     // Verificar si el host es Logic Pro
     juce::PluginHostType hostInfo;
     if (hostInfo.isLogic()) {
-        titleText = "v0.9.1 beta";  // Solo versión para Logic Pro
+        titleText = "v0.9.2 beta";  // Solo versión para Logic Pro
     } else {
-        titleText = "JCBDistortion v0.9.1 beta";  // Nombre completo para otros DAWs
+        titleText = "JCBDistortion v0.9.2 beta";  // Nombre completo para otros DAWs
     }
     
     titleLink.setButtonText(titleText);
@@ -417,28 +421,28 @@ void JCBDistortionAudioProcessorEditor::FiltersButtonLookAndFeel::drawButtonBack
                 // Gradiente entre Low (púrpura) y Mid (mezcla)
                 float t = bandValue;  // 0 a 1
                 gradient = juce::ColourGradient(
-                    lowBandColour.withAlpha(0.35f),
+                    lowBandColour.withAlpha(0.20f),  // Restaurar transparencia original
                     bounds.getX(), bounds.getCentreY(),
-                    lowBandColour.interpolatedWith(highBandColour, 0.5f).withAlpha(0.25f),
+                    lowBandColour.interpolatedWith(highBandColour, 0.5f).withAlpha(0.15f),  // Restaurar transparencia original
                     bounds.getRight(), bounds.getCentreY(),
                     false
                 );
                 // Añadir punto intermedio para transición más suave
-                gradient.addColour(0.5, lowBandColour.interpolatedWith(highBandColour, t * 0.5f).withAlpha(0.3f));
+                gradient.addColour(0.5, lowBandColour.interpolatedWith(highBandColour, t * 0.5f).withAlpha(0.18f));
             }
             else
             {
                 // Gradiente entre Mid (mezcla) y High (azul)
                 float t = bandValue - 1.0f;  // 0 a 1
                 gradient = juce::ColourGradient(
-                    lowBandColour.interpolatedWith(highBandColour, 0.5f).withAlpha(0.25f),
+                    lowBandColour.interpolatedWith(highBandColour, 0.5f).withAlpha(0.15f),  // Restaurar transparencia original
                     bounds.getX(), bounds.getCentreY(),
-                    highBandColour.withAlpha(0.35f),
+                    highBandColour.withAlpha(0.20f),  // Restaurar transparencia original
                     bounds.getRight(), bounds.getCentreY(),
                     false
                 );
                 // Añadir punto intermedio para transición más suave
-                gradient.addColour(0.5, lowBandColour.interpolatedWith(highBandColour, 0.5f + t * 0.5f).withAlpha(0.3f));
+                gradient.addColour(0.5, lowBandColour.interpolatedWith(highBandColour, 0.5f + t * 0.5f).withAlpha(0.18f));
             }
             
             // Dibujar fondo con gradiente
@@ -480,6 +484,167 @@ juce::Colour JCBDistortionAudioProcessorEditor::FiltersButtonLookAndFeel::getInt
     else
     {
         // Interpolar entre Mid (mezcla) y High (azul)
+        float t = bandValue - 1.0f;
+        return lowBandColour.interpolatedWith(highBandColour, 0.5f)
+            .interpolatedWith(highBandColour, t);
+    }
+}
+
+//==============================================================================
+// IMPLEMENTACIÓN DE REVERSEDGRADIENTBUTTONLOOKANDFEEL
+//==============================================================================
+
+void JCBDistortionAudioProcessorEditor::ReversedGradientButtonLookAndFeel::drawButtonBackground(
+    juce::Graphics& g, juce::Button& button,
+    const juce::Colour& backgroundColour,
+    bool shouldDrawButtonAsHighlighted,
+    bool shouldDrawButtonAsDown)
+{
+    auto bounds = button.getLocalBounds().toFloat();
+    
+    // Si el botón está activado (toggle ON), dibujar gradiente invertido
+    if (auto* toggleButton = dynamic_cast<juce::TextButton*>(&button))
+    {
+        if (toggleButton->getToggleState())
+        {
+            // Crear gradiente invertido: púrpura a la izquierda, azul a la derecha
+            juce::ColourGradient gradient(
+                lowBandColour.withAlpha(0.0f),   // Púrpura a la izquierda - completamente transparente
+                bounds.getX(), bounds.getCentreY(),
+                highBandColour.withAlpha(0.0f),  // Azul a la derecha - completamente transparente
+                bounds.getRight(), bounds.getCentreY(),
+                false
+            );
+            
+            // Añadir punto intermedio para transición más suave
+            gradient.addColour(0.5, 
+                highBandColour.interpolatedWith(lowBandColour, 0.5f).withAlpha(0.0f));
+            
+            g.setGradientFill(gradient);
+            g.fillRoundedRectangle(bounds, 2.0f);
+            
+            // Añadir borde sutil como DOWNSAMPLE y SOLO BAND
+            juce::Colour borderColour = lowBandColour.interpolatedWith(highBandColour, 0.5f);
+            g.setColour(borderColour.withAlpha(0.15f));  // Borde muy sutil
+            g.drawRoundedRectangle(bounds.reduced(0.5f), 2.0f, 1.0f);
+        }
+    }
+}
+
+//==============================================================================
+// IMPLEMENTACIÓN DE TEALGRADIENTBUTTONLOOKANDFEEL
+//==============================================================================
+
+void JCBDistortionAudioProcessorEditor::TealGradientButtonLookAndFeel::drawButtonBackground(
+    juce::Graphics& g, juce::Button& button,
+    const juce::Colour& backgroundColour,
+    bool shouldDrawButtonAsHighlighted,
+    bool shouldDrawButtonAsDown)
+{
+    auto bounds = button.getLocalBounds().toFloat();
+    
+    // Para el botón TILT PRE/POST usar gradiente de teal
+    const juce::Colour tealColour{0xFF4DB6AC};
+    
+    // Siempre dibujar gradiente, independientemente del estado del toggle
+    // Crear gradiente de teal: oscuro a la izquierda, claro a la derecha
+    juce::ColourGradient gradient(
+        tealColour.darker(0.2f).withAlpha(0.25f),   // Teal oscuro a la izquierda - más transparente
+        bounds.getX(), bounds.getCentreY(),
+        tealColour.brighter(0.2f).withAlpha(0.25f),  // Teal claro a la derecha - más transparente
+        bounds.getRight(), bounds.getCentreY(),
+        false
+    );
+    
+    // Añadir punto intermedio para transición más suave
+    gradient.addColour(0.5, 
+        tealColour.withAlpha(0.20f));
+    
+    g.setGradientFill(gradient);
+    g.fillRoundedRectangle(bounds, 2.0f);
+}
+
+//==============================================================================
+// IMPLEMENTACIÓN DE CORALGRADIENTBUTTONLOOKANDFEEL
+//==============================================================================
+
+void JCBDistortionAudioProcessorEditor::CoralGradientButtonLookAndFeel::drawButtonBackground(
+    juce::Graphics& g, juce::Button& button,
+    const juce::Colour& backgroundColour,
+    bool shouldDrawButtonAsHighlighted,
+    bool shouldDrawButtonAsDown)
+{
+    auto bounds = button.getLocalBounds().toFloat();
+    
+    // Si el botón está activado (toggle ON), dibujar gradiente rojo coral
+    if (auto* toggleButton = dynamic_cast<juce::TextButton*>(&button))
+    {
+        if (toggleButton->getToggleState())
+        {
+            // Crear gradiente de rojo coral: oscuro a la izquierda, claro a la derecha
+            juce::ColourGradient gradient(
+                coralColour.darker(0.2f).withAlpha(0.15f),   // Coral oscuro a la izquierda - más transparente
+                bounds.getX(), bounds.getCentreY(),
+                coralColour.brighter(0.2f).withAlpha(0.15f),  // Coral claro a la derecha - más transparente
+                bounds.getRight(), bounds.getCentreY(),
+                false
+            );
+            
+            // Añadir punto intermedio para transición más suave
+            gradient.addColour(0.5, 
+                coralColour.withAlpha(0.13f));
+            
+            g.setGradientFill(gradient);
+            g.fillRoundedRectangle(bounds, 2.0f);
+        }
+    }
+}
+
+//==============================================================================
+// IMPLEMENTACIÓN DE TRANSPARENTBUTTONLOOKANDFEEL
+//==============================================================================
+
+void JCBDistortionAudioProcessorEditor::TransparentButtonLookAndFeel::drawButtonBackground(
+    juce::Graphics& g, juce::Button& button,
+    const juce::Colour& backgroundColour,
+    bool shouldDrawButtonAsHighlighted,
+    bool shouldDrawButtonAsDown)
+{
+    auto bounds = button.getLocalBounds().toFloat();
+    
+    // Si el botón está activado (toggle ON), solo dibujar borde sutil sin fondo
+    if (auto* toggleButton = dynamic_cast<juce::TextButton*>(&button))
+    {
+        if (toggleButton->getToggleState())
+        {
+            // NO dibujar fondo - completamente transparente
+            
+            // Solo añadir un borde muy sutil
+            juce::Colour borderColour = lowBandColour.interpolatedWith(highBandColour, 0.5f);
+            g.setColour(borderColour.withAlpha(0.15f));  // Borde muy sutil
+            g.drawRoundedRectangle(bounds.reduced(0.5f), 3.0f, 1.0f);
+        }
+        else
+        {
+            // Botón desactivado: fondo transparente (comportamiento por defecto)
+            g.setColour(backgroundColour);
+            g.fillRoundedRectangle(bounds, 3.0f);
+        }
+    }
+}
+
+juce::Colour JCBDistortionAudioProcessorEditor::TransparentButtonLookAndFeel::getInterpolatedBandColour(float bandValue) const
+{
+    // Mismo código que FiltersButtonLookAndFeel para consistencia
+    if (bandValue <= 1.0f)
+    {
+        return lowBandColour.interpolatedWith(
+            lowBandColour.interpolatedWith(highBandColour, 0.5f),
+            bandValue
+        );
+    }
+    else
+    {
         float t = bandValue - 1.0f;
         return lowBandColour.interpolatedWith(highBandColour, 0.5f)
             .interpolatedWith(highBandColour, t);
@@ -606,50 +771,30 @@ void JCBDistortionAudioProcessorEditor::resized()
     
     // Posicionar el analizador de espectro en el mismo lugar
     spectrumAnalyzer.setBounds(getScaledBounds(x, y, w, h));
-    
-    // === PARAMETER BUTTONS (ENCIMA DE TRANSFER FUNCTION) ===
-    // Botones DITHER y BYPASS en fila horizontal superior central
-    rightBottomKnobs.bitButton.setBounds(getScaledBounds(530, 65, 60, 15));
 
-    
     // === LEFT SIDE KNOBS === (Between SC meters and transfer function)
     leftBottomKnobs.drywetSlider.setBounds(getScaledBounds(24, 100, 53, 53));
-    leftTopKnobs.ceilingSlider.setBounds(getScaledBounds(200, 50, 50, 50));  // NUEVO - e_CEILING slider
-
-    // Bottom row - D/W, LA, CLIP (AGAIN está en fila superior)
-    
 
     // === RIGHT SIDE CONTROLS ===
-    // Top row - REACT, SMOOTH knobs (RANGE moved to left side)
-    
-    // NUEVO: DET knob - área derecha superior
-    rightTopControls.tiltSlider.setBounds(getScaledBounds(175, 100, 48, 48));
-    // TILT POS button - cerca del slider TILT (a la derecha)
-    rightTopControls.tiltPosButton.setBounds(getScaledBounds(220, 120, 25, 12));
+    rightBottomKnobs.modeSlider.setBounds(getScaledBounds(65, 45, 53, 53));
+    rightBottomKnobs.distOnButton.setBounds(getScaledBounds(118, 50, 25, 12));
+    rightBottomKnobs.driveSlider.setBounds(getScaledBounds(140, 47, 53, 53));
+    rightBottomKnobs.dcSlider.setBounds(getScaledBounds(107, 87, 43, 43));
 
-    // NUEVO: BITS knob - centro de la parte derecha superior 
+    rightTopControls.tiltSlider.setBounds(getScaledBounds(180, 110, 48, 48));
+    rightTopControls.tiltPosButton.setBounds(getScaledBounds(155, 133, 23, 12));
+
+    leftTopKnobs.ceilingSlider.setBounds(getScaledBounds(205, 47, 50, 50));  // NUEVO - e_CEILING slider
+
+    rightBottomKnobs.bitButton.setBounds(getScaledBounds(530, 65, 57, 15));
     rightTopControls.bitsSlider.setBounds(getScaledBounds(480, 52, 48, 48));
-    
-    // NUEVO: DOWNSAMPLE knob - área derecha superior, junto a BITS
-    rightTopControls.downsampleSlider.setBounds(getScaledBounds(557, 91, 48, 48));
-    
-    // NUEVO: DOWNSAMPLE button - debajo del slider correspondiente
-    rightTopControls.downsampleButton.setBounds(getScaledBounds(605, 105, 65, 15));
-    
-    // NUEVO: LIMIT button - en la parte derecha, cerca del TRIM (makeup gain)
+    rightTopControls.downsampleSlider.setBounds(getScaledBounds(557, 95, 48, 48));
+    rightTopControls.downsampleButton.setBounds(getScaledBounds(605, 109, 62, 15));
     rightTopControls.safeLimitButton.setBounds(getScaledBounds(678, 30, 20, 10));
+    sidechainControls.bandSoloButton.setBounds(getScaledBounds(455, 114, 62, 15));
 
-    // Bottom row - Attack, Release, Hold
-    rightBottomKnobs.driveSlider.setBounds(getScaledBounds(135, 47, 53, 53));
-    rightBottomKnobs.modeSlider.setBounds(getScaledBounds(65, 50, 53, 53));
-    // DIST ON button - encima del slider MODE
-    rightBottomKnobs.distOnButton.setBounds(getScaledBounds(120, 47, 25, 12));
-    
-    // NUEVO: DC slider - área derecha inferior, junto al REL
-    rightBottomKnobs.dcSlider.setBounds(getScaledBounds(100, 100, 43, 43));
 
     // === CONTROLES DE FILTRO (TOP CENTER) ===
-    // HPF and LPF sliders para filtrado de entrada con crossover
     sidechainControls.xLowSlider.setBounds(getScaledBounds(285, 5, 36, 36));
     sidechainControls.xHighSlider.setBounds(getScaledBounds(388, 5, 36, 36));
 
@@ -673,26 +818,13 @@ void JCBDistortionAudioProcessorEditor::resized()
     // Label "High" alineada a la derecha del slider
     sidechainControls.bandHighLabel.setBounds(
         bandBounds.getRight() - 25, labelY, 25, labelHeight);
-    // sidechainControls.hpfOrderButton.setBounds(getScaledBounds(265, 14, 24, 12));
-    // sidechainControls.lpfOrderButton.setBounds(getScaledBounds(415, 14, 24, 12));
-    
-    // Iconos de filtro debajo de los botones de orden
-    // hpfIcon.setBounds(getScaledBounds(265, 28, 24, 12));  // Debajo del botón de orden HPF
-    // lpfIcon.setBounds(getScaledBounds(415, 28, 24, 12));  // Debajo del botón de orden LPF
-    
-    
+
     // Botón FILTERS en el medio - centrado entre los sliders HPF y LPF
     const int buttonWidth = 44;
     const int centerX = 353;
     // Posicionamiento del botón FILTERS (SC) - subido 10 píxeles
     sidechainControls.scButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 8, buttonWidth, 12));
-    
-    // Botón SOLO - al lado derecho del botón FILTERS
-    sidechainControls.bandSoloButton.setBounds(getScaledBounds(455, 114, 65, 15));
-    
-    // sidechainControls.keyButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 17, buttonWidth, 12));
-    // sidechainControls.soloScButton.setBounds(getScaledBounds(centerX - buttonWidth/2, 29, buttonWidth, 12));
-    
+
     // === PRESET AREA (TOP LEFT) ===
     presetArea.saveButton.setBounds(getScaledBounds(15, 15, 20, 12));  // Alineado con undo
     presetArea.saveAsButton.setBounds(getScaledBounds(37, 15, 25, 12));
@@ -1399,11 +1531,11 @@ void JCBDistortionAudioProcessorEditor::setupKnobs()
     
     // DIST ON button - botón para activar/desactivar distorsión
     rightBottomKnobs.distOnButton.setComponentID("diston");
-    rightBottomKnobs.distOnButton.setLookAndFeel(&smallButtonLAF);
+    rightBottomKnobs.distOnButton.setLookAndFeel(coralGradientButtonLAF.get());  // Usar gradiente rojo coral
     rightBottomKnobs.distOnButton.setButtonText("ON");
     rightBottomKnobs.distOnButton.setClickingTogglesState(true);
     rightBottomKnobs.distOnButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
-    rightBottomKnobs.distOnButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);  // Fondo transparente
+    rightBottomKnobs.distOnButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);  // Transparente para que se vea el gradiente
     rightBottomKnobs.distOnButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     rightBottomKnobs.distOnButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
     rightBottomKnobs.distOnButton.addListener(this);
@@ -1430,10 +1562,10 @@ void JCBDistortionAudioProcessorEditor::setupKnobs()
     
     // DITHER button - área izquierda
     rightBottomKnobs.bitButton.setComponentID("bitcrusher");
-    rightBottomKnobs.bitButton.setLookAndFeel(&smallButtonLAF);
+    rightBottomKnobs.bitButton.setLookAndFeel(reversedGradientButtonLAF.get());  // Usar gradiente invertido
     rightBottomKnobs.bitButton.setButtonText("BIT CRUSHER");
     rightBottomKnobs.bitButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
-    rightBottomKnobs.bitButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF46224F));
+    rightBottomKnobs.bitButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);  // Transparente para gradiente
     rightBottomKnobs.bitButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     rightBottomKnobs.bitButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
     rightBottomKnobs.bitButton.setClickingTogglesState(true);
@@ -1471,7 +1603,7 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     
     // TILT POS button - botón para posición PRE/POST
     rightTopControls.tiltPosButton.setComponentID("tiltpos");
-    rightTopControls.tiltPosButton.setLookAndFeel(&smallButtonLAF);
+    rightTopControls.tiltPosButton.setLookAndFeel(tealGradientButtonLAF.get());
     rightTopControls.tiltPosButton.setButtonText("PRE");
     rightTopControls.tiltPosButton.setClickingTogglesState(true);
     rightTopControls.tiltPosButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
@@ -1539,11 +1671,11 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     
     // DOWNSAMPLE button - control de activación
     rightTopControls.downsampleButton.setComponentID("downsampleon");
-    rightTopControls.downsampleButton.setLookAndFeel(&smallButtonLAF);
+    rightTopControls.downsampleButton.setLookAndFeel(transparentButtonLAF.get());  // Usar fondo transparente
     rightTopControls.downsampleButton.setButtonText("DOWNSAMPLE");
     rightTopControls.downsampleButton.setClickingTogglesState(true);
     rightTopControls.downsampleButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
-    rightTopControls.downsampleButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF46224F));
+    rightTopControls.downsampleButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);  // Transparente para gradiente
     rightTopControls.downsampleButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     rightTopControls.downsampleButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
     rightTopControls.downsampleButton.addListener(this);
@@ -1730,10 +1862,10 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     
     // Botón SOLO - para solo de banda seleccionada (p_BANDSOLO)
     sidechainControls.bandSoloButton.setComponentID("bandsolo");
-    sidechainControls.bandSoloButton.setLookAndFeel(&smallButtonLAF);
+    sidechainControls.bandSoloButton.setLookAndFeel(transparentButtonLAF.get());  // Usar fondo transparente
     sidechainControls.bandSoloButton.setButtonText("SOLO BAND");
     sidechainControls.bandSoloButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
-    sidechainControls.bandSoloButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF46224F));  // Morado como BIT CRUSHER
+    sidechainControls.bandSoloButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);  // Transparente para gradiente
     sidechainControls.bandSoloButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     sidechainControls.bandSoloButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
     sidechainControls.bandSoloButton.setClickingTogglesState(true);
@@ -1743,9 +1875,20 @@ rightTopControls.tiltSlider.setComponentID("tilt");
         sidechainControls.bandSoloAttachment = std::make_unique<UndoableButtonAttachment>(
             *param, sidechainControls.bandSoloButton, &undoManager);
         
-        // Callback para cambios de estado (actualizar texto)
+        // Callback para cambios de estado (actualizar texto y colores)
         sidechainControls.bandSoloAttachment->onStateChange = [this](bool isSolo) {
             sidechainControls.bandSoloButton.setButtonText(isSolo ? "SOLO BAND ON" : "SOLO BAND OFF");
+            
+            // Actualizar colores del texto según estado (igual que BIT CRUSHER y DOWNSAMPLE)
+            sidechainControls.bandSoloButton.setColour(
+                juce::TextButton::textColourOffId,
+                isSolo ? DarkTheme::textPrimary : DarkTheme::textSecondary.withAlpha(0.7f)
+            );
+            sidechainControls.bandSoloButton.setColour(
+                juce::TextButton::textColourOnId,
+                DarkTheme::textPrimary
+            );
+            sidechainControls.bandSoloButton.repaint();
         };
         
         // Callback para clicks del usuario
@@ -1756,14 +1899,24 @@ rightTopControls.tiltSlider.setComponentID("tilt");
         // Sincronización inicial
         bool initialState = param->getValue() >= 0.5f;
         sidechainControls.bandSoloButton.setButtonText(initialState ? "SOLO BAND ON" : "SOLO BAND OFF");
+        
+        // Aplicar colores iniciales (igual que BIT CRUSHER y DOWNSAMPLE)
+        sidechainControls.bandSoloButton.setColour(
+            juce::TextButton::textColourOffId,
+            initialState ? DarkTheme::textPrimary : DarkTheme::textSecondary.withAlpha(0.7f)
+        );
+        sidechainControls.bandSoloButton.setColour(
+            juce::TextButton::textColourOnId,
+            DarkTheme::textPrimary
+        );
     }
     
     // Botón LIMIT - limitador brickwall de protección (p_SAFELIMITON)
     rightTopControls.safeLimitButton.setComponentID("safelimit");
-    rightTopControls.safeLimitButton.setLookAndFeel(&smallButtonLAF);
+    rightTopControls.safeLimitButton.setLookAndFeel(filtersButtonLAF.get());  // Usar gradiente como FILTERS
     rightTopControls.safeLimitButton.setButtonText("LIM");
     rightTopControls.safeLimitButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
-    rightTopControls.safeLimitButton.setColour(juce::TextButton::buttonOnColourId, juce::Colour(0xFF46224F));  // Morado como BIT CRUSHER
+    rightTopControls.safeLimitButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);  // Transparente para gradiente
     rightTopControls.safeLimitButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     rightTopControls.safeLimitButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
     rightTopControls.safeLimitButton.setClickingTogglesState(true);
@@ -2162,6 +2315,9 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
         // Actualizar sliders desde APVTS
         updateSliderValues();
         
+        // IMPORTANTE: Actualizar también los botones desde APVTS (fix para presets Factory/User)
+        updateButtonValues();
+        
         // Actualizar la gráfica de transferencia con los valores actuales
         
         // Borrar el historial de undos DESPUÉS de haber establecido todos los valores.
@@ -2441,15 +2597,32 @@ void JCBDistortionAudioProcessorEditor::updateSidechainComponentStates()
     sidechainControls.bandSoloButton.setEnabled(filtersActive);
     sidechainControls.bandSoloButton.setAlpha(filtersActive ? 1.0f : 0.5f);
     
-    // Actualizar alpha del texto del botón SOLO BAND según estado
-    sidechainControls.bandSoloButton.setColour(
-        juce::TextButton::textColourOffId,
-        juce::Colours::white.withAlpha(filtersActive ? 1.0f : 0.7f)
-    );
-    sidechainControls.bandSoloButton.setColour(
-        juce::TextButton::textColourOnId,
-        juce::Colours::white
-    );
+    // Actualizar alpha del texto del botón SOLO BAND considerando AMBOS estados:
+    // 1. Su propio estado ON/OFF (igual que BIT CRUSHER y DOWNSAMPLE)
+    // 2. El estado de FILTERS (comportamiento adicional)
+    const bool isSoloBandOn = sidechainControls.bandSoloButton.getToggleState();
+    
+    if (filtersActive) {
+        // FILTERS ON: aplicar colores según estado de SOLO BAND
+        sidechainControls.bandSoloButton.setColour(
+            juce::TextButton::textColourOffId,
+            isSoloBandOn ? DarkTheme::textPrimary : DarkTheme::textSecondary.withAlpha(0.7f)
+        );
+        sidechainControls.bandSoloButton.setColour(
+            juce::TextButton::textColourOnId,
+            DarkTheme::textPrimary
+        );
+    } else {
+        // FILTERS OFF: todo pálido
+        sidechainControls.bandSoloButton.setColour(
+            juce::TextButton::textColourOffId,
+            DarkTheme::textSecondary.withAlpha(0.5f)
+        );
+        sidechainControls.bandSoloButton.setColour(
+            juce::TextButton::textColourOnId,
+            DarkTheme::textSecondary.withAlpha(0.5f)
+        );
+    }
     
     // Forzar repaint para actualizar colores
     sidechainControls.xLowSlider.repaint();
@@ -2529,8 +2702,8 @@ void JCBDistortionAudioProcessorEditor::updateBitCrusherComponentStates()
     // Obtener estado del botón BIT CRUSHER (h_BITSON)
     const bool bitCrusherActive = rightBottomKnobs.bitButton.getToggleState();
     
-    // BIT slider - activo solo cuando BIT CRUSHER está ON
-    rightTopControls.bitsSlider.setEnabled(bitCrusherActive);
+    // BIT slider - siempre interactivo pero con alpha reducido cuando BIT CRUSHER está OFF
+    rightTopControls.bitsSlider.setEnabled(true);  // Siempre habilitado para pre-configuración
     rightTopControls.bitsSlider.setAlpha(bitCrusherActive ? 1.0f : 0.5f);
     
     // Actualizar alpha del texto del botón BIT CRUSHER según estado
@@ -2553,8 +2726,8 @@ void JCBDistortionAudioProcessorEditor::updateDownsampleComponentStates()
     // Obtener estado del botón DOWNSAMPLE (n_DOWNSAMPLEON)
     const bool downsampleActive = rightTopControls.downsampleButton.getToggleState();
     
-    // DECI slider - activo solo cuando DOWNSAMPLE está ON
-    rightTopControls.downsampleSlider.setEnabled(downsampleActive);
+    // DECI slider - siempre interactivo pero con alpha reducido cuando DOWNSAMPLE está OFF
+    rightTopControls.downsampleSlider.setEnabled(true);  // Siempre habilitado para pre-configuración
     rightTopControls.downsampleSlider.setAlpha(downsampleActive ? 1.0f : 0.5f);
     
     // Actualizar alpha del texto del botón DOWNSAMPLE según estado
@@ -2815,6 +2988,67 @@ void JCBDistortionAudioProcessorEditor::updateSliderValues()
     // NUEVO: Actualizar alpha del REL slider basado en estado inicial de AUTOREL
 }
 
+void JCBDistortionAudioProcessorEditor::updateButtonValues()
+{
+    // Actualizar todos los botones con los valores actuales del APVTS
+    // Esta función es crucial para que los presets Factory/User actualicen correctamente los botones
+    
+    // Bypass button
+    if (auto* param = processor.apvts.getRawParameterValue("f_BYPASS")) {
+        bool toggleState = param->load() >= 0.5f;
+        parameterButtons.bypassButton.setToggleState(toggleState, juce::dontSendNotification);
+    }
+    
+    // Filters button (FILTERS)
+    if (auto* param = processor.apvts.getRawParameterValue("l_SC")) {
+        bool toggleState = param->load() >= 0.5f;
+        sidechainControls.scButton.setToggleState(toggleState, juce::dontSendNotification);
+    }
+    
+    // Bit crusher button
+    if (auto* param = processor.apvts.getRawParameterValue("h_BITSON")) {
+        bool toggleState = param->load() >= 0.5f;
+        rightBottomKnobs.bitButton.setToggleState(toggleState, juce::dontSendNotification);
+    }
+    
+    // Downsample button
+    if (auto* param = processor.apvts.getRawParameterValue("n_DOWNSAMPLEON")) {
+        bool toggleState = param->load() >= 0.5f;
+        rightTopControls.downsampleButton.setToggleState(toggleState, juce::dontSendNotification);
+    }
+    
+    // Tilt position button (PRE/POST)
+    if (auto* param = processor.apvts.getRawParameterValue("p_TILTPOS")) {
+        bool toggleState = param->load() >= 0.5f;
+        rightTopControls.tiltPosButton.setToggleState(toggleState, juce::dontSendNotification);
+        rightTopControls.tiltPosButton.setButtonText(toggleState ? "POST" : "PRE");
+    }
+    
+    // Distortion ON/OFF button
+    if (auto* param = processor.apvts.getRawParameterValue("p_DISTON")) {
+        bool toggleState = param->load() >= 0.5f;
+        rightBottomKnobs.distOnButton.setToggleState(toggleState, juce::dontSendNotification);
+        rightBottomKnobs.distOnButton.setButtonText(toggleState ? "ON" : "OFF");
+    }
+    
+    // Band solo button
+    if (auto* param = processor.apvts.getRawParameterValue("p_BANDSOLO")) {
+        bool toggleState = param->load() >= 0.5f;
+        sidechainControls.bandSoloButton.setToggleState(toggleState, juce::dontSendNotification);
+        sidechainControls.bandSoloButton.setButtonText(toggleState ? "SOLO BAND ON" : "SOLO BAND OFF");
+    }
+    
+    // Safe limit button
+    if (auto* param = processor.apvts.getRawParameterValue("p_SAFELIMITON")) {
+        bool toggleState = param->load() >= 0.5f;
+        rightTopControls.safeLimitButton.setToggleState(toggleState, juce::dontSendNotification);
+        rightTopControls.safeLimitButton.setButtonText("LIM");
+    }
+    
+    // Actualizar estados visuales de los componentes después de cambiar valores
+    updateButtonStates();
+}
+
 void JCBDistortionAudioProcessorEditor::resetGuiSize()
 {
     // Ciclar al siguiente estado: Current -> Maximum -> Minimum -> Current
@@ -2952,7 +3186,7 @@ void JCBDistortionAudioProcessorEditor::refreshPresetMenu()
             for (int j = 0; j < presets.size(); ++j)
             {
                 int presetId = nextId + j + 1;  // +1 porque el ID de la categoría es nextId
-                presetIdToNameMap[presetId] = fullNames[j];  // Usar nombre completo con prefijo
+                presetIdToNameMap[presetId] = fullNames[j];  // Usar nombre completo con prefijo de categoría para BinaryData
             }
             
             nextId += static_cast<int>(presets.size()) + 1;
@@ -3164,7 +3398,12 @@ void JCBDistortionAudioProcessorEditor::deletePresetFile()
     
     if (selectedId > 0) {
         // Hay un preset seleccionado en el menú
-        presetName = presetArea.presetMenu.getItemText(selectedId - 1);
+        // Usar el mapeo que ya tiene el nombre correcto con "[F] " para factory presets
+        if (presetIdToNameMap.find(selectedId) != presetIdToNameMap.end()) {
+            presetName = presetIdToNameMap[selectedId];
+        } else {
+            presetName = presetArea.presetMenu.getItemText(selectedId - 1);
+        }
     } else {
         // No hay selección, verificar si hay un preset modificado
         juce::String displayText = presetArea.presetMenu.getTextWhenNothingSelected();
@@ -3187,7 +3426,7 @@ void JCBDistortionAudioProcessorEditor::deletePresetFile()
     if (presetName == "DEFAULT" || presetName.startsWith("[F] ")) {
         juce::String errorMsg = presetName == "DEFAULT" ? 
             JUCE_UTF8("The DEFAULT preset cannot be deleted.") :
-            JUCE_UTF8("Factory Presets cannot be deleted.");
+            JUCE_UTF8("Factory presets cannot be deleted.");
         showCustomAlertDialog(JUCE_UTF8("Error"), errorMsg);
         return;
     }
@@ -3409,6 +3648,8 @@ void JCBDistortionAudioProcessorEditor::updateAllTooltips()
     sidechainControls.xLowSlider.setTooltip(getTooltipText("hpf"));
     sidechainControls.bandSlider.setTooltip(getTooltipText("band"));
     sidechainControls.xHighSlider.setTooltip(getTooltipText("lpf"));
+    sidechainControls.bandSoloButton.setTooltip(getTooltipText("bandsolo"));  // NUEVO - tooltip para SOLO BAND button
+    rightTopControls.safeLimitButton.setTooltip(getTooltipText("safelimit"));  // NUEVO - tooltip para LIM button
     // sidechainControls.keyButton.setTooltip(getTooltipText("extkey"));
     // sidechainControls.soloScButton.setTooltip(getTooltipText("solosc"));
     
@@ -3453,7 +3694,7 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
     if (currentLanguage == TooltipLanguage::Spanish)
     {
         // Spanish tooltips
-        if (key == "title") return JUCE_UTF8("JCBDistortion: distorsionador multimodal v0.9.1\nPlugin de audio open source\nClick para créditos");
+        if (key == "title") return JUCE_UTF8("JCBDistortion: distorsionador multimodal v0.9.2\nPlugin de audio open source\nClick para créditos");
         if (key == "drywet") return JUCE_UTF8("DRY/WET: mezcla entre señal original y procesada\nControla el balance final de salida\nRango: 0 a 100% | Por defecto: 100%");
         if (key == "lookahead") return JUCE_UTF8("LOOKAHEAD: anticipación para evitar distorsión\nEvita overshooting en transitorios rápidos\nRango: 0 a 5 ms | Por defecto: 0 ms");
         if (key == "drive") return JUCE_UTF8("DRIVE: intensidad de distorsión\nControla la ganancia antes de la saturación\nRango: 1 a 50 | Por defecto: 1");
@@ -3474,8 +3715,8 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "hpf") return JUCE_UTF8("XLow: punto de cruce bajo del crossover\nDefine la frecuencia de separación entre bandas Low y Mid\nRango: 20 a 1000 Hz | Por defecto: 250 Hz");
         if (key == "band") return JUCE_UTF8("BAND: selector de banda del crossover\nElige qué banda de frecuencia procesar (Low/Mid/High)\nRango: Low-Mid-High (interpolable) | Por defecto: Mid");
         if (key == "lpf") return JUCE_UTF8("XHigh: punto de cruce alto del crossover\nDefine la frecuencia de separación entre bandas Mid y High\nRango: 1000 Hz a 20 kHz | Por defecto: 5 kHz");
-        if (key == "bandsolo") return JUCE_UTF8("SOLO: solo de banda seleccionada\nActiva el solo para escuchar solo la banda seleccionada en BAND\nRango: SOLO/MUTE | Por defecto: SOLO (off)");
-        if (key == "safelimit") return JUCE_UTF8("LIMIT: limitador brickwall de protección\nActiva un limitador de seguridad a la salida después del dry/wet\nRango: OFF/ON | Por defecto: OFF");
+        if (key == "bandsolo") return JUCE_UTF8("SOLO BAND: solea la banda de filtro activa\nPermite escuchar solo la banda seleccionada (Low/Mid/High) a través de la cadena de procesamiento\nRango: OFF/ON | Por defecto: OFF");
+        if (key == "safelimit") return JUCE_UTF8("LIM: limitador brickwall de protección\nLimitador ajustado a -0.1 dBFS para evitar sobremodulación en la salida del plugin (post dry/wet)\nRango: OFF/ON | Por defecto: OFF");
         if (key == "save") return JUCE_UTF8("SAVE: guarda el preset actual\nSobrescribe el preset seleccionado con valores actuales\nNo funciona con DEFAULT");
         if (key == "saveas") return JUCE_UTF8("SAVE AS: guarda como nuevo preset\nCrea un nuevo archivo de preset con los valores actuales\nPermite crear presets personalizados");
         if (key == "delete") return JUCE_UTF8("BORRAR: elimina el preset seleccionado\nRequiere confirmación antes de borrar");
@@ -3504,7 +3745,7 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
     else
     {
         // English tooltips
-        if (key == "title") return "JCBDistortion: multimodal distortion v0.9.1\nOpen source audio plugin\nClick for credits";
+        if (key == "title") return "JCBDistortion: multimodal distortion v0.9.2\nOpen source audio plugin\nClick for credits";
         if (key == "drywet") return "DRY/WET: mix between original and processed signal\nControls final output balance\nRange: 0 to 100% | Default: 100%";
         if (key == "lookahead") return "LOOKAHEAD: anticipation to prevent distortion\nPrevents overshooting on fast transients\nRange: 0 to 5 ms | Default: 0 ms";
         if (key == "drive") return "DRIVE: distortion intensity\nControls gain before saturation\nRange: 1 to 50 | Default: 1";
@@ -3549,8 +3790,8 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "abcopybtoa") return "Copy B to A";
         if (key == "spectrum") return "FFT ANALYZER: frequency spectrum visualization\nShows real-time analysis from 20Hz to 20kHz\nUse ZOOM button to change scale";
         if (key == "curves") return "DISTORTION CURVES: transfer function visualization\nShows how the selected algorithm transforms the signal\nTILT colors background based on tonal balance";
-        if (key == "bandsolo") return "SOLO: selected band solo\nActivates solo to hear only the band selected in BAND\nRange: SOLO/MUTE | Default: SOLO (off)";
-        if (key == "safelimit") return "LIMIT: safety brickwall limiter\nActivates a safety limiter at the output after dry/wet\nRange: OFF/ON | Default: OFF";
+        if (key == "bandsolo") return "SOLO BAND: solos the active filter band\nAllows listening only to the selected band (Low/Mid/High) through the processing chain\nRange: OFF/ON | Default: OFF";
+        if (key == "safelimit") return "LIM: protection brickwall limiter\nLimiter set to -0.1 dBFS to prevent overmodulation at plugin output (post dry/wet)\nRange: OFF/ON | Default: OFF";
     }
 
     return "";
@@ -3600,7 +3841,7 @@ void JCBDistortionAudioProcessorEditor::queueParameterUpdate(const juce::String&
         std::lock_guard<std::mutex> lock(parameterUpdateMutex);
         
         // Check if this parameter is already queued
-        auto it = std::find_if(pendingParameterUpdates.begin(), pendingParameterUpdates.end(),
+        auto it = std::ranges::find_if(pendingParameterUpdates,
                                [&paramID](const DeferredParameterUpdate& update) {
                                    return update.paramID == paramID;
                                });
@@ -3644,8 +3885,7 @@ void JCBDistortionAudioProcessorEditor::processPendingParameterUpdates()
             // CRÍTICO: Sincronización directa con Gen~ DSP
             // Esto asegura que los valores del DEFAULT button lleguen al DSP
             // Convertir valor normalizado a valor real usando el rango del parámetro
-            auto* floatParam = dynamic_cast<juce::AudioParameterFloat*>(param);
-            if (floatParam) {
+            if (auto* floatParam = dynamic_cast<juce::AudioParameterFloat*>(param)) {
                 float realValue = floatParam->getNormalisableRange().convertFrom0to1(update.normalizedValue);
                 
                 if (update.paramID == "d_ATK" || update.paramID == "e_REL") {
@@ -3657,8 +3897,7 @@ void JCBDistortionAudioProcessorEditor::processPendingParameterUpdates()
             }
             
             // Manejo de AudioParameterBool para sincronización con Gen~
-            auto* boolParam = dynamic_cast<juce::AudioParameterBool*>(param);
-            if (boolParam) {
+            if (dynamic_cast<juce::AudioParameterBool*>(param)) {
                 float realValue = update.normalizedValue >= 0.5f ? 1.0f : 0.0f;
 
                 
@@ -3723,7 +3962,7 @@ void JCBDistortionAudioProcessorEditor::hideCodeWindow()
 juce::String JCBDistortionAudioProcessorEditor::loadCodeFromFile(const juce::String& blockName)
 {
     // Thread-safe: usar cache pre-cargado en lugar de leer BinaryData cada vez
-    if (codeContentCacheInitialized && codeContentCache.find(blockName) != codeContentCache.end()) {
+    if (codeContentCacheInitialized && codeContentCache.contains(blockName)) {
         return codeContentCache[blockName];
     }
     

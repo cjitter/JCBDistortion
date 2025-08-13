@@ -220,6 +220,71 @@ private:
         juce::Colour getInterpolatedBandColour(float bandValue) const;
     };
     
+    // LookAndFeel personalizado para botones con gradiente invertido (azul a la izquierda, púrpura a la derecha)
+    class ReversedGradientButtonLookAndFeel : public juce::LookAndFeel_V4
+    {
+    public:
+        ReversedGradientButtonLookAndFeel() {}
+        
+        void drawButtonBackground(juce::Graphics& g, juce::Button& button,
+                                const juce::Colour& backgroundColour,
+                                bool shouldDrawButtonAsHighlighted,
+                                bool shouldDrawButtonAsDown) override;
+        
+    private:
+        // Colores de las bandas (consistentes con SpectrumAnalyzerComponent y BandSliderLookAndFeel)
+        const juce::Colour lowBandColour{0xFF9C27B0};   // Púrpura (graves)
+        const juce::Colour highBandColour{0xFF2196F3};  // Azul (agudos)
+    };
+    
+    // LookAndFeel personalizado para botón PRE/POST con gradiente teal siempre visible
+    class TealGradientButtonLookAndFeel : public juce::LookAndFeel_V4
+    {
+    public:
+        TealGradientButtonLookAndFeel() {}
+        
+        void drawButtonBackground(juce::Graphics& g, juce::Button& button,
+                                const juce::Colour& backgroundColour,
+                                bool shouldDrawButtonAsHighlighted,
+                                bool shouldDrawButtonAsDown) override;
+        
+    private:
+        const juce::Colour tealColour{0xFF4DB6AC};  // Teal para TILT
+    };
+    
+    // LookAndFeel personalizado para botón DIST ON con gradiente rojo coral
+    class CoralGradientButtonLookAndFeel : public juce::LookAndFeel_V4
+    {
+    public:
+        CoralGradientButtonLookAndFeel() {}
+        
+        void drawButtonBackground(juce::Graphics& g, juce::Button& button,
+                                const juce::Colour& backgroundColour,
+                                bool shouldDrawButtonAsHighlighted,
+                                bool shouldDrawButtonAsDown) override;
+        
+    private:
+        const juce::Colour coralColour{0xFFE57373};  // Rojo coral para distorsión
+    };
+    
+    // LookAndFeel personalizado para botones con fondo completamente transparente (DOWNSAMPLE, SOLO BAND)
+    class TransparentButtonLookAndFeel : public juce::LookAndFeel_V4
+    {
+    public:
+        TransparentButtonLookAndFeel() {}
+        
+        void drawButtonBackground(juce::Graphics& g, juce::Button& button,
+                                const juce::Colour& backgroundColour,
+                                bool shouldDrawButtonAsHighlighted,
+                                bool shouldDrawButtonAsDown) override;
+        
+    private:
+        const juce::Colour lowBandColour{0xFF9C27B0};   // Púrpura (Low band)
+        const juce::Colour highBandColour{0xFF2196F3};  // Azul (High band)
+        
+        juce::Colour getInterpolatedBandColour(float bandValue) const;
+    };
+    
     //==========================================================================
     // LISTENERS ESPECIALIZADOS
     //==========================================================================
@@ -504,7 +569,7 @@ private:
     //==========================================================================
     
     // Título y versión en la parte inferior (combinado como ExpansorGate)
-    juce::TextButton titleLink{"JCBDistortion v0.9.1 beta"};
+    juce::TextButton titleLink{"JCBDistortion v0.9.2 beta"};
     
     // Imágenes de fondo
     juce::ImageComponent backgroundImage;
@@ -954,6 +1019,7 @@ private:
     void updateMeterStates();
     void updateMeters();
     void updateSliderValues();
+    void updateButtonValues();
     
     //==========================================================================
     // MÉTODOS HELPER DE UI
@@ -1001,7 +1067,7 @@ private:
     void hideCodeWindow();
     juce::String loadCodeFromFile(const juce::String& blockName);
     void initializeCodeContentCache();
-    juce::String getBasicBlockDescription(const juce::String& blockName);
+    static juce::String getBasicBlockDescription(const juce::String& blockName);
     
     //==========================================================================
     // MÉTODOS DE CREDITS
@@ -1024,6 +1090,10 @@ private:
     SmallButtonLAF smallButtonLAF;
     BandSliderLookAndFeel bandSliderLAF;
     std::unique_ptr<FiltersButtonLookAndFeel> filtersButtonLAF;  // Unique_ptr porque necesita APVTS en constructor
+    std::unique_ptr<ReversedGradientButtonLookAndFeel> reversedGradientButtonLAF;  // LookAndFeel con gradiente invertido
+    std::unique_ptr<TealGradientButtonLookAndFeel> tealGradientButtonLAF;  // LookAndFeel con gradiente teal para PRE/POST
+    std::unique_ptr<CoralGradientButtonLookAndFeel> coralGradientButtonLAF;  // LookAndFeel con gradiente coral para DIST ON
+    std::unique_ptr<TransparentButtonLookAndFeel> transparentButtonLAF;  // LookAndFeel transparente para DOWNSAMPLE y SOLO BAND
     
     // Banderas de estado principales
     bool isLoadingPreset = false;
@@ -1050,7 +1120,7 @@ private:
     mutable std::mutex parameterUpdateMutex;
     
     // Sistema universal de decay para todos los DAWs
-    void applyMeterDecayIfNeeded();
+    static void applyMeterDecayIfNeeded();
     
     // Cache de contenido de código
     std::unordered_map<juce::String, juce::String> codeContentCache;

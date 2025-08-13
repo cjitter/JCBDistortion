@@ -19,7 +19,7 @@
 
 cmake_minimum_required(VERSION 3.20)
 
-project(JCBDistortion VERSION 0.9.1)
+project(JCBDistortion VERSION 0.9.2)
 
 # Configuración C++
 set(CMAKE_CXX_STANDARD 20)
@@ -69,7 +69,7 @@ juce_add_plugin(JCBDistortion
         # Información básica del plugin
         PLUGIN_NAME "JCBDistortion"
         PRODUCT_NAME "JCBDistortion"
-        VERSION 0.9.1
+        VERSION 0.9.2
         DESCRIPTION "Stereo multimodal distortion plugin"
 
         # Información de la empresa
