@@ -75,7 +75,17 @@ public:
     // Toggle para cambiar modo de visualización
     void toggleDisplayMode();
     
+    // Actualizar color del botón SOLO BAND basado en banda seleccionada
+    
+    // Métodos de actualización de componentes (usados por listeners)
+    void updateSidechainComponentStates();
+    void updateDistortionComponentStates();
+    void updateBitCrusherComponentStates();
+    void updateDownsampleComponentStates();
+    void updateToneLpfComponentStates();
+    
 private:
+    // Helper para obtener color de banda
     //==========================================================================
     // REFERENCIAS PRINCIPALES
     //==========================================================================
@@ -249,7 +259,7 @@ private:
                                 bool shouldDrawButtonAsDown) override;
         
     private:
-        const juce::Colour tealColour{0xFF4DB6AC};  // Teal para TILT
+        const juce::Colour tealColour{0xFFA6DAD5};  // Verde agua pálido para TILT
     };
     
     // LookAndFeel personalizado para botón DIST ON con gradiente rojo coral
@@ -264,7 +274,7 @@ private:
                                 bool shouldDrawButtonAsDown) override;
         
     private:
-        const juce::Colour coralColour{0xFFE57373};  // Rojo coral para distorsión
+        const juce::Colour coralColour{0xFFFEB2B2};  // Rosa pálido para distorsión
     };
     
     // LookAndFeel personalizado para botones con fondo completamente transparente (DOWNSAMPLE, SOLO BAND)
@@ -278,6 +288,10 @@ private:
                                 bool shouldDrawButtonAsHighlighted,
                                 bool shouldDrawButtonAsDown) override;
         
+        void drawButtonText(juce::Graphics& g, juce::TextButton& button,
+                           bool shouldDrawButtonAsHighlighted,
+                           bool shouldDrawButtonAsDown) override;
+        
     private:
         const juce::Colour lowBandColour{0xFF9C27B0};   // Púrpura (Low band)
         const juce::Colour highBandColour{0xFF2196F3};  // Azul (High band)
@@ -289,107 +303,6 @@ private:
     // LISTENERS ESPECIALIZADOS
     //==========================================================================
     
-    // Listener de parámetros para actualizaciones de automatización
-    struct TransferFunctionParameterListener : public juce::AudioProcessorValueTreeState::Listener
-    {
-        TransferFunctionParameterListener(JCBDistortionAudioProcessorEditor* e) : editor(e) {}
-        
-        void parameterChanged(const juce::String& /*parameterID*/, float /*newValue*/) override
-        {
-            // Listener vacío - mantenido por compatibilidad
-        }
-        
-        JCBDistortionAudioProcessorEditor* editor;
-    };
-    
-    
-    // Parameter listener para actualizar estado visual de sliders HPF/LPF cuando l_SC cambia
-    struct SidechainParameterListener : public juce::AudioProcessorValueTreeState::Listener
-    {
-        SidechainParameterListener(JCBDistortionAudioProcessorEditor* e) : editor(e) {}
-        
-        void parameterChanged(const juce::String& parameterID, float /*newValue*/) override
-        {
-            if (parameterID == "l_SC")
-            {
-                // Usar SafePointer para thread safety
-                juce::Component::SafePointer<JCBDistortionAudioProcessorEditor> safeEditor(editor);
-                
-                juce::MessageManager::callAsync([safeEditor]() {
-                    if (safeEditor)
-                        safeEditor->updateSidechainComponentStates();
-                });
-            }
-        }
-        
-        JCBDistortionAudioProcessorEditor* editor;
-    };
-    
-    // Parameter listener para actualizar estado visual de sliders de distorsión cuando p_DISTON cambia
-    struct DistortionParameterListener : public juce::AudioProcessorValueTreeState::Listener
-    {
-        DistortionParameterListener(JCBDistortionAudioProcessorEditor* e) : editor(e) {}
-        
-        void parameterChanged(const juce::String& parameterID, float /*newValue*/) override
-        {
-            if (parameterID == "p_DISTON")
-            {
-                // Usar SafePointer para thread safety
-                juce::Component::SafePointer<JCBDistortionAudioProcessorEditor> safeEditor(editor);
-                
-                juce::MessageManager::callAsync([safeEditor]() {
-                    if (safeEditor)
-                        safeEditor->updateDistortionComponentStates();
-                });
-            }
-        }
-        
-        JCBDistortionAudioProcessorEditor* editor;
-    };
-    
-    // Parameter listener para actualizar estado visual del slider BIT cuando h_BITSON cambia
-    struct BitCrusherParameterListener : public juce::AudioProcessorValueTreeState::Listener
-    {
-        BitCrusherParameterListener(JCBDistortionAudioProcessorEditor* e) : editor(e) {}
-        
-        void parameterChanged(const juce::String& parameterID, float /*newValue*/) override
-        {
-            if (parameterID == "h_BITSON")
-            {
-                // Usar SafePointer para thread safety
-                juce::Component::SafePointer<JCBDistortionAudioProcessorEditor> safeEditor(editor);
-                
-                juce::MessageManager::callAsync([safeEditor]() {
-                    if (safeEditor)
-                        safeEditor->updateBitCrusherComponentStates();
-                });
-            }
-        }
-        
-        JCBDistortionAudioProcessorEditor* editor;
-    };
-    
-    // Parameter listener para actualizar estado visual del slider DECI cuando n_DOWNSAMPLEON cambia
-    struct DownsampleParameterListener : public juce::AudioProcessorValueTreeState::Listener
-    {
-        DownsampleParameterListener(JCBDistortionAudioProcessorEditor* e) : editor(e) {}
-        
-        void parameterChanged(const juce::String& parameterID, float /*newValue*/) override
-        {
-            if (parameterID == "n_DOWNSAMPLEON")
-            {
-                // Usar SafePointer para thread safety
-                juce::Component::SafePointer<JCBDistortionAudioProcessorEditor> safeEditor(editor);
-                
-                juce::MessageManager::callAsync([safeEditor]() {
-                    if (safeEditor)
-                        safeEditor->updateDownsampleComponentStates();
-                });
-            }
-        }
-        
-        JCBDistortionAudioProcessorEditor* editor;
-    };
     
     
     //==========================================================================
@@ -458,13 +371,14 @@ private:
     
     // Controles derechos - fila superior
     struct RightTopControls {
-        // MAXIMIZER: h_RANGE, g_REACT y z_SMOOTH no existen - eliminados según CONTEXTO.txt
         CustomSlider tiltSlider{"tilt"};  // NUEVO - parámetro i_TILT (Tilt EQ)
         juce::TextButton tiltPosButton{"PRE"};  // NUEVO - parámetro p_TILTPOS (posición del tilt: PRE/POST)
         CustomSlider bitsSlider{"BIT"};  // NUEVO - parámetro g_BITS (Bit crusher resolution)
         CustomSlider downsampleSlider{"DECI"};  // NUEVO - parámetro m_DOWNSAMPLE (factor downsampling 0-99)
         juce::TextButton downsampleButton{"DOWNSAMPLE"};  // NUEVO - parámetro n_DOWNSAMPLEON (activar downsampling)
         juce::TextButton safeLimitButton{"LIMIT"};  // NUEVO - parámetro p_SAFELIMITON (limitador brickwall)
+        juce::TextButton toneLpfButton{"LPF"};  // NUEVO - parámetro q_TONEON (tone LPF on/off)
+        CustomSlider toneFreqSlider{"tonefreq"};  // NUEVO - parámetro r_TONEFREQ (frecuencia del tone LPF)
         
         // MAXIMIZER: rangeAttachment, reactAttachment y smoothAttachment eliminados - parámetros inexistentes
         std::unique_ptr<CustomSliderAttachment> tiltAttachment;  // NUEVO - attachment para i_TILT
@@ -473,6 +387,8 @@ private:
         std::unique_ptr<CustomSliderAttachment> downsampleAttachment;  // NUEVO - attachment para m_DOWNSAMPLE
         std::unique_ptr<UndoableButtonAttachment> downsampleButtonAttachment;  // NUEVO - attachment para n_DOWNSAMPLEON
         std::unique_ptr<UndoableButtonAttachment> safeLimitAttachment;  // NUEVO - attachment para p_SAFELIMITON
+        std::unique_ptr<UndoableButtonAttachment> toneLpfAttachment;  // NUEVO - attachment para q_TONEON
+        std::unique_ptr<CustomSliderAttachment> toneFreqAttachment;  // NUEVO - attachment para r_TONEFREQ
     } rightTopControls;
     
     // Controles derechos, fila inferior
@@ -1013,10 +929,6 @@ private:
     //==========================================================================
     void updateButtonStates();
     void updateBasicButtonStates();
-    void updateSidechainComponentStates();
-    void updateDistortionComponentStates();
-    void updateBitCrusherComponentStates();
-    void updateDownsampleComponentStates();
     void updateBackgroundState();
     void updateFilterButtonText();
     void updateMeterStates();
@@ -1138,12 +1050,22 @@ private:
     // Operaciones de archivo
     std::unique_ptr<juce::FileChooser> fileChooser;
     
+    // Forward declarations for listener classes (defined after main class)
+    class TransferFunctionParameterListener;
+    class SidechainParameterListener;
+    class DistortionParameterListener;
+    class BitCrusherParameterListener;
+    class DownsampleParameterListener;
+    class ToneLpfParameterListener;
+    
     // Listeners especializados
     std::unique_ptr<TransferFunctionParameterListener> transferFunctionListener;
     std::unique_ptr<SidechainParameterListener> sidechainParameterListener;
     std::unique_ptr<DistortionParameterListener> distortionParameterListener;
     std::unique_ptr<BitCrusherParameterListener> bitCrusherParameterListener;
     std::unique_ptr<DownsampleParameterListener> downsampleParameterListener;
+    std::unique_ptr<ToneLpfParameterListener> toneLpfParameterListener;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (JCBDistortionAudioProcessorEditor)
 };
+

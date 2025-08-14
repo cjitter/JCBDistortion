@@ -24,7 +24,7 @@
  * Custom Slider con Look and Feel integrado
  * Contiene tanto la funcionalidad del slider como su styling visual
  * Diseñado para knobs rotativos con detección automática de tamaño
- * basada en el nombre del componente (trim, lookahead, hpf, lpf = pequeños)
+ * basada en el nombre del componente (trim = pequeño)
  */
 class CustomSlider : public juce::Slider
 {
@@ -93,43 +93,32 @@ public:
                 // Siempre usar el color establecido en el componente slider
                 accentColour = slider.findColour(juce::Slider::rotarySliderOutlineColourId);
             }
-            // DETECTOR (Verde) - #66FF66
-            else if (name == "detect" || id == "detect" ||
-                     name == "attack" || id == "attack" || name == "release" || id == "release" ||
-                     name == "react" || id == "react" || name == "smo" || id == "smo" ||
-                     name == "hold" || id == "hold") {
-                accentColour = juce::Colour(0xFF66FF66);
+            // OUTPUT STAGE (Azul pálido) - #B1CAF6
+            else if (name == "drywet" || id == "drywet" || name == "trim" || id == "trim") {
+                accentColour = juce::Colour(0xFFB1CAF6);
             }
-            // AR (Naranja) - #FFB366
-            else if (name == "speed" || id == "speed") {
-                accentColour = juce::Colour(0xFFFFB366);
-            }
-            // COMPRESSOR CORE (Púrpura) - #B366FF (más vivo)
-            else if (name == "thd" || id == "thd" || name == "ratio" || id == "ratio" || 
-                     name == "knee" || id == "knee" || name == "range" || id == "range") {
-                accentColour = juce::Colour(0xFFB366FF);
-            }
-            // AUTO-MAKEUP (Rojo) - #FF6666
-            else if (name == "again" || id == "again" || name == "parall" || id == "parall" ||
-                     name == "clipper" || id == "clipper") {
-                accentColour = juce::Colour(0xFFFF6666);
-            }
-            // OUTPUT STAGE (Azul) - #6495ED
-            else if (name == "drywet" || id == "drywet" || name == "lookahead" || id == "lookahead" ||
-                     name == "trim" || id == "trim" || name == "makeup" || id == "makeup") {
-                     // MAXIMIZER: Removed sctrim references
-                accentColour = juce::Colour(0xFF6495ED);
-            }
-            // TILT (Teal) - #4DB6AC
+            // TILT (Verde agua pálido) - #A6DAD5
             else if (name == "tilt" || id == "tilt") {
-                accentColour = juce::Colour(0xFF4DB6AC);
+                accentColour = juce::Colour(0xFFA6DAD5);
             }
-            // DISTORTION CONTROLS (Rojo coral) - #E57373
-            else if (name == "mode" || id == "mode" || 
+            // TONE LPF (Azul claro) - #6EB8F6
+            else if (name == "tonefreq" || id == "tonefreq" || name == "tone" || id == "tone") {
+                accentColour = juce::Colour(0xFF6EB8F6);
+            }
+            // BIT CRUSHER (Verde pálido) - #B2FFB3
+            else if (name == "bit" || id == "bit") {
+                accentColour = juce::Colour(0xFFB2FFB3);
+            }
+            // DOWNSAMPLER (Púrpura pálido) - #D9B2FF
+            else if (name == "deci" || id == "deci") {
+                accentColour = juce::Colour(0xFFD9B2FF);
+            }
+            // DISTORTION CONTROLS - Todos rosa pálido - #FEB2B2
+            else if (name == "mode" || id == "mode" ||
                      name == "dc" || id == "dc" || name == "even" || id == "even" ||
                      name == "drive" || id == "drive" || 
                      name == "ceiling" || id == "ceiling" || name == "ceil" || id == "ceil") {
-                accentColour = juce::Colour(0xFFE57373);
+                accentColour = juce::Colour(0xFFFEB2B2);
             }
             
             // Dibujar cuerpo del knob - estilos diferentes para grande vs pequeño
@@ -252,8 +241,8 @@ public:
         
         /**
          * Determina si un slider debe ser pequeño basado en su nombre
-         * Sliders pequeños: solo trim (MAXIMIZER: removed sctrim)
-         * Todos los demás (lookahead, hpf, lpf, etc.) son grandes
+         * Sliders pequeños: solo trim
+         * Todos los demás (hpf, lpf, etc.) son grandes
          */
         bool isSmallSlider(const juce::Slider& slider) const
         {
@@ -261,7 +250,6 @@ public:
             juce::String id = slider.getComponentID().toLowerCase();
             
             return (name == "trim" || id == "trim");
-            // MAXIMIZER: Removed sctrim references
         }
         
         /**
@@ -273,30 +261,14 @@ public:
             juce::String name = slider.getName().toLowerCase();
             juce::String id = slider.getComponentID().toLowerCase();
             
-            if (name == "attack" || id == "attack") return "ATK";
-            if (name == "release" || id == "release") return "REL";
-            if (name == "hold" || id == "hold") return "HOLD";
-            if (name == "react" || id == "react") return "REACT";
             if (name == "hpf" || id == "hpf" || name == "xlow" || id == "xlow") return "XLow";  // Crossover Low
             if (name == "band" || id == "band") return "BAND";  // Crossover Band selector
             if (name == "lpf" || id == "lpf" || name == "xhigh" || id == "xhigh") return "XHigh";  // Crossover High
-            if (name == "thd" || id == "thd") return "GAIN";
-            if (name == "ratio" || id == "ratio") return "RATIO";
-            if (name == "range" || id == "range") return "RANGE";
-            if (name == "knee" || id == "knee") return "KNEE";
             if (name == "trim" || id == "trim") return "TRIM";
-            if (name == "makeup" || id == "makeup") return "MAKE";
             if (name == "drywet" || id == "drywet") return "D/W";
-            if (name == "lookahead" || id == "lookahead") return "LA";
-            if (name == "clipper" || id == "clipper") return "CLIP";
-            if (name == "a-rel" || id == "autorel") return "A-REL";
-            if (name == "speed" || id == "speed") return "AR";
-            if (name == "parall" || id == "parall") return "PARAL";
-            if (name == "again" || id == "again") return "AGAIN";
-            if (name == "smo" || id == "smo") return "SMO";
             if (name == "ceiling" || id == "ceiling") return "CEIL";
-            if (name == "detect" || id == "detect") return "DET";  // NUEVO - label para detection slider
             if (name == "tilt" || id == "tilt") return "TILT";
+            if (name == "tonefreq" || id == "tonefreq" || name == "tone" || id == "tone") return "LPF";  // TONE LPF label
             if (name == "bit" || id == "bit") return "BITS";
             if (name == "deci" || id == "deci") return "DECI";
             if (name == "drive" || id == "drive") return "DRIVE";

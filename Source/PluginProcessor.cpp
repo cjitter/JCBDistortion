@@ -122,6 +122,12 @@ JCBDistortionAudioProcessor::JCBDistortionAudioProcessor()
             else if (paramName == "p_SAFELIMITON") {
                 value = juce::jlimit(0.0f, 1.0f, value);
             }
+            else if (paramName == "q_TONEON") {
+                value = juce::jlimit(0.0f, 1.0f, value);
+            }
+            else if (paramName == "r_TONEFREQ") {
+                value = juce::jlimit(5000.0f, 20000.0f, value);
+            }
             
             JCBDistortion::setparameter(m_PluginState, i, value, nullptr);
         }
@@ -689,7 +695,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
    // g_BITS @min 3 @max 16 @default 16 (Bit depth)
    auto bits = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("g_BITS", versionHint),
                                                            juce::CharPointer_UTF8("Bits"),
-                                                           juce::NormalisableRange<float>(3.0f, 16.0f, 0.1f, 1.0f),
+                                                           juce::NormalisableRange<float>(2.0f, 16.0f, 0.1f, 1.0f),
                                                            16.0f,
                                                            juce::String(),
                                                            juce::AudioParameterFloat::genericParameter,
@@ -757,13 +763,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
    // l_OUTPUT @min -12 @max 12 @default 0 (Output makeup gain)
    auto outputGain = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("l_OUTPUT", versionHint),
                                                                  juce::CharPointer_UTF8("Output"),
-                                                                 juce::NormalisableRange<float>(-12.f, 12.f, 0.1f, 1.0f),
+                                                                 juce::NormalisableRange<float>(-24.f, 12.f, 0.1f, 1.0f),
                                                                  0.f);
    
    // m_DOWNSAMPLE @min 0 @max 99 @default 0 (Factor de downsampling)
    auto downsample = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("m_DOWNSAMPLE", versionHint),
                                                                juce::CharPointer_UTF8("Downsample"),
-                                                               0, 99, 0);
+                                                               0, 100, 0);
    
    // n_DOWNSAMPLEON @min 0 @max 1 @default 0 (Activar downsampling)
    auto downsampleOn = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("n_DOWNSAMPLEON", versionHint),
@@ -807,6 +813,16 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
                                                                 juce::CharPointer_UTF8("Safety Limiter"),
                                                                 0, 1, 0);
 
+   // q_TONEON @min 0 @max 1 @default 0 (Tone on/off: 0=off, 1=on)
+   auto toneOn = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("q_TONEON", versionHint),
+                                                          juce::CharPointer_UTF8("Tone On"),
+                                                          0, 1, 0);
+
+   // r_TONEFREQ @min 5000 @max 20000 @default 12000 (Tone frequency Hz)
+   auto toneFreq = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("r_TONEFREQ", versionHint),
+                                                              juce::CharPointer_UTF8("Tone Frequency"),
+                                                              5000.0f, 20000.0f, 12000.0f);
+
    // Añadir parámetros en orden alfabético (exactamente como Gen~)
    params.push_back(std::move(drywet));         // a_DRYWET
    params.push_back(std::move(drive));          // b_DRIVE
@@ -829,6 +845,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
    params.push_back(std::move(distOn));         // p_DISTON
    params.push_back(std::move(bandSolo));       // p_BANDSOLO
    params.push_back(std::move(safeLimitOn));    // p_SAFELIMITON
+   params.push_back(std::move(toneOn));         // q_TONEON
+   params.push_back(std::move(toneFreq));       // r_TONEFREQ
 
    // DISTORTION: No requiere parámetros especiales AAX de gain reduction
 
@@ -862,7 +880,7 @@ void JCBDistortionAudioProcessor::parameterChanged(const juce::String& parameter
         newValue = juce::jlimit(0.0f, 1.0f, newValue);
     }
     else if (parameterID == "g_BITS") {
-        newValue = juce::jlimit(3.0f, 16.0f, newValue);
+        newValue = juce::jlimit(2.0f, 16.0f, newValue);
     }
     else if (parameterID == "h_BITSON") {
         newValue = juce::jlimit(0.0f, 1.0f, newValue);
@@ -883,7 +901,7 @@ void JCBDistortionAudioProcessor::parameterChanged(const juce::String& parameter
         newValue = juce::jlimit(-12.0f, 12.0f, newValue);
     }
     else if (parameterID == "l_OUTPUT") {
-        newValue = juce::jlimit(-12.0f, 12.0f, newValue);
+        newValue = juce::jlimit(-24.0f, 12.0f, newValue);
     }
     else if (parameterID == "m_DOWNSAMPLE") {
         newValue = juce::jlimit(0.0f, 99.0f, newValue);
@@ -906,10 +924,11 @@ void JCBDistortionAudioProcessor::parameterChanged(const juce::String& parameter
     else if (parameterID == "p_SAFELIMITON") {
         newValue = juce::jlimit(0.0f, 1.0f, newValue);
     }
-    else if (parameterID == "p_DISPLAYMODE") {
+    else if (parameterID == "q_TONEON") {
         newValue = juce::jlimit(0.0f, 1.0f, newValue);
-        // Este parámetro no se envía a Gen~, solo se usa en la GUI
-        return;
+    }
+    else if (parameterID == "r_TONEFREQ") {
+        newValue = juce::jlimit(5000.0f, 20000.0f, newValue);
     }
     
     // Buscar el índice correcto en Gen~ basado en el nombre del parámetro

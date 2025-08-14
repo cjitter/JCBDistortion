@@ -791,30 +791,50 @@ void SpectrumAnalyzerComponent::parameterChanged(const juce::String& parameterID
     else if (parameterID == "j_HPF")
     {
         crossoverLowFreq.store(newValue);
-        repaint();
+        // Thread-safe repaint usando MessageManager
+        juce::MessageManager::callAsync([safeThis = juce::Component::SafePointer(this)]() {
+            if (safeThis)
+                safeThis->repaint();
+        });
     }
     else if (parameterID == "k_LPF")
     {
         crossoverHighFreq.store(newValue);
-        repaint();
+        // Thread-safe repaint usando MessageManager
+        juce::MessageManager::callAsync([safeThis = juce::Component::SafePointer(this)]() {
+            if (safeThis)
+                safeThis->repaint();
+        });
     }
     // Actualizar banda seleccionada
     else if (parameterID == "o_BAND")
     {
         selectedBand.store(newValue);
-        repaint();
+        // Thread-safe repaint usando MessageManager
+        juce::MessageManager::callAsync([safeThis = juce::Component::SafePointer(this)]() {
+            if (safeThis)
+                safeThis->repaint();
+        });
     }
     // Actualizar estado de filtros
     else if (parameterID == "l_SC")
     {
         filtersEnabled.store(newValue > 0.5f);
-        repaint();
+        // Thread-safe repaint usando MessageManager
+        juce::MessageManager::callAsync([safeThis = juce::Component::SafePointer(this)]() {
+            if (safeThis)
+                safeThis->repaint();
+        });
     }
     // Actualizar valor del tilt
     else if (parameterID == "i_TILT")
     {
         tiltValue.store(newValue);
-        repaint();
+        // Thread-safe repaint usando MessageManager
+        juce::MessageManager::callAsync([safeThis = juce::Component::SafePointer(this)]() {
+            if (safeThis)
+                safeThis->repaint();
+        });
     }
 }
 

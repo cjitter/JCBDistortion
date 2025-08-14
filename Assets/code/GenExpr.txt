@@ -185,7 +185,7 @@ Param l_SC(0, min=0, default=0, max=1);               // Input filter enable
 
 // Parámetros existentes
 Param k_INPUT(0, min=-12, default=0, max=12);   // Input trim gain
-Param l_OUTPUT(0, min=-12, default=0, max=12);  // Output makeup gain
+Param l_OUTPUT(0, min=-24, default=0, max=12);  // Output makeup gain
 Param m_DOWNSAMPLE(0, min=0, default=0, max=99); // Factor de downsampling (0 = sin efecto)
 Param n_DOWNSAMPLEON(0, min=0, default=0, max=1); // Activar downsampling
 
@@ -196,6 +196,9 @@ Param p_DISTON(1, min=0, default=1, max=1); // 0=off, 1=on
 
 Param p_BANDSOLO(0, min=0, default=0, max=1); // 0=off, 1=solo banda seleccionada
 Param p_SAFELIMITON(0, min=0, default=0, max=1); // 0=off, 1=on
+
+Param q_TONEON(0,    min=0,    default=0,     max=1);        // 0=off, 1=on
+Param r_TONEFREQ(12000, min=5000, default=12000, max=20000);  // Hz
 
 // -----------------------------------------------------------------------------
 // HISTORIALES PARA SMOOTHING
@@ -351,6 +354,15 @@ History hBandSolo(0);
 
 History hSafeLimitOn(0);
 
+// Smoothing y estados del LPF global post Dry/Wet
+History hToneOn(0), hToneFreq(12000);
+History toneL_x1(0), toneL_x2(0), toneL_y1(0), toneL_y2(0);
+History toneR_x1(0), toneR_x2(0), toneR_y1(0), toneR_y2(0);
+
+// Allpass (dry) para compensar el LPF del wet
+History toneApL_x1(0), toneApL_x2(0), toneApL_y1(0), toneApL_y2(0);
+History toneApR_x1(0), toneApR_x2(0), toneApR_y1(0), toneApR_y2(0);
+
 // Entrada
 lIn = in1;
 rIn = in2;
@@ -415,6 +427,13 @@ wBandSolo = clamp(hBandSolo, 0, 1);
 
 hSafeLimitOn = hSafeLimitOn * smoothFactor + p_SAFELIMITON * (1 - smoothFactor);
 safeOn = clamp(hSafeLimitOn, 0, 1);
+
+// Smoothing LPF global (toggle y frecuencia)
+hToneOn   = hToneOn   * onSmooth     + q_TONEON   * (1 - onSmooth);
+toneOn    = clamp(hToneOn, 0, 1);
+
+hToneFreq = hToneFreq * smoothFactor + r_TONEFREQ * (1 - smoothFactor);
+toneFreq  = hToneFreq;
 
 // -----------------------------------------------------------------------------
 // -----------------------------------------------------------------------------
@@ -1484,57 +1503,118 @@ wetFinalR = mix(withBitCrusherR, dsHeldR, downsampleOn);
 // -----------------------------------------------------------------------------
 // OUTPUT MAKEUP (SOLO A LA SEÑAL WET)
 // -----------------------------------------------------------------------------
-// Aplicar makeup gain ANTES del dry/wet para que solo afecte a la señal procesada
-//wetWithMakeupL = wetFinalL * outputMakeupLinear + bypassWhenActiveL;
-//wetWithMakeupR = wetFinalR * outputMakeupLinear + bypassWhenActiveR;
 wetWithMakeupL = (wetFinalL * outputMakeupLinear) + (bypassWhenActiveL * scSm);
 wetWithMakeupR = (wetFinalR * outputMakeupLinear) + (bypassWhenActiveR * scSm);
+
+// ---------- LPF SOLO EN LA RUTA WET + ALLPASS EN LA RUTA DRY ----------
+omegaT  = (toneFreq * twopi) / samplerate;
+sinT    = sin(omegaT);
+cosT    = cos(omegaT);
+Qlp     = 0.7071067811865476;         // Butterworth
+alphaT  = sinT / (2 * Qlp);
+
+// Coeficientes LPF 2º orden (RBJ), normalizados a a0
+b0T = (1 - cosT) * 0.5;
+b1T = 1 - cosT;
+b2T = (1 - cosT) * 0.5;
+a0T = 1 + alphaT;
+a1T = -2 * cosT;
+a2T = 1 - alphaT;
+
+inv_a0T = 1 / a0T;
+t_a0 = b0T * inv_a0T;
+t_a1 = b1T * inv_a0T;
+t_a2 = b2T * inv_a0T;
+t_b1 = a1T * inv_a0T;
+t_b2 = a2T * inv_a0T;
+
+// Allpass equivalente (mismos polos que el LPF):
+// H_ap(z) = (a2 + a1 z^-1 + 1 z^-2) / (1 + a1 z^-1 + a2 z^-2)
+// Ojo: en tu notación normalizada, los feedback del LPF son t_b1 y t_b2
+ap_b0 = t_b2;
+ap_b1 = t_b1;
+ap_b2 = 1;
+ap_a1 = t_b1;
+ap_a2 = t_b2;
+
+// --- LPF sobre la ruta WET ---
+tL_x1p = fixdenorm(toneL_x1);
+tL_x2p = fixdenorm(toneL_x2);
+tL_y1p = fixdenorm(toneL_y1);
+tL_y2p = fixdenorm(toneL_y2);
+
+wetToneL = t_a0 * wetWithMakeupL + t_a1 * tL_x1p + t_a2 * tL_x2p
+         - t_b1 * tL_y1p - t_b2 * tL_y2p;
+
+toneL_x2 = tL_x1p;
+toneL_x1 = wetWithMakeupL;
+toneL_y2 = tL_y1p;
+toneL_y1 = wetToneL;
+
+tR_x1p = fixdenorm(toneR_x1);
+tR_x2p = fixdenorm(toneR_x2);
+tR_y1p = fixdenorm(toneR_y1);
+tR_y2p = fixdenorm(toneR_y2);
+
+wetToneR = t_a0 * wetWithMakeupR + t_a1 * tR_x1p + t_a2 * tR_x2p
+         - t_b1 * tR_y1p - t_b2 * tR_y2p;
+
+toneR_x2 = tR_x1p;
+toneR_x1 = wetWithMakeupR;
+toneR_y2 = tR_y1p;
+toneR_y1 = wetToneR;
+
+// Toggle para activar/desactivar el LPF en el WET
+wetProcessedL = mix(wetWithMakeupL, wetToneL, toneOn);
+wetProcessedR = mix(wetWithMakeupR, wetToneR, toneOn);
+
+// --- Allpass sobre la ruta DRY para compensar la fase ---
+apL_x1p = fixdenorm(toneApL_x1);
+apL_x2p = fixdenorm(toneApL_x2);
+apL_y1p = fixdenorm(toneApL_y1);
+apL_y2p = fixdenorm(toneApL_y2);
+
+dryCompL = ap_b0 * dryL + ap_b1 * apL_x1p + ap_b2 * apL_x2p
+         - ap_a1 * apL_y1p - ap_a2 * apL_y2p;
+
+toneApL_x2 = apL_x1p;
+toneApL_x1 = dryL;
+toneApL_y2 = apL_y1p;
+toneApL_y1 = dryCompL;
+
+apR_x1p = fixdenorm(toneApR_x1);
+apR_x2p = fixdenorm(toneApR_x2);
+apR_y1p = fixdenorm(toneApR_y1);
+apR_y2p = fixdenorm(toneApR_y2);
+
+dryCompR = ap_b0 * dryR + ap_b1 * apR_x1p + ap_b2 * apR_x2p
+         - ap_a1 * apR_y1p - ap_a2 * apR_y2p;
+
+toneApR_x2 = apR_x1p;
+toneApR_x1 = dryR;
+toneApR_y2 = apR_y1p;
+toneApR_y1 = dryCompR;
+
+// Toggle para activar el allpass solo si el LPF está activo
+dryProcessedL = mix(dryL, dryCompL, toneOn);
+dryProcessedR = mix(dryR, dryCompR, toneOn);
 
 // -----------------------------------------------------------------------------
 // MEZCLA DRY/WET
 // -----------------------------------------------------------------------------
-// Dry = señal original sin procesar (pre-trim, pre-filtros)
-// Wet = señal completamente procesada (trim + filtros + tilt + distorsión + efectos + makeup)
-// Parámetro drywet: 0 = solo dry, 1 = solo wet
-//mixedL = mix(dryL, wetWithMakeupL, drywet);
-//mixedR = mix(dryR, wetWithMakeupR, drywet);
-
-// Si Solo está activo, fuerza WET=100% para oír solo la banda procesada
-//effDrywet = soloOn ? 1 : drywet;
-//mixedL = mix(dryL, wetWithMakeupL, effDrywet);
-//mixedR = mix(dryR, wetWithMakeupR, effDrywet);
-
-// Solo de banda: si está ON, el WET solo contiene la banda procesada
-// DRY queda full-range siempre
-// Mezcla Dry (full-range) con Wet (solo banda procesada si soloOn=1)
-mixedL = mix(dryL, wetWithMakeupL, drywet);
-mixedR = mix(dryR, wetWithMakeupR, drywet);
+mixedL = mix(dryProcessedL, wetProcessedL, drywet);
+mixedR = mix(dryProcessedR, wetProcessedR, drywet);
 
 // -----------------------------------------------------------------------------
 // SALIDA FINAL CON BYPASS
 // -----------------------------------------------------------------------------
 
-//finalL = mixedL;
-//finalR = mixedR;
-
 // Ceiling fijo
 safeCeiling = dbtoa(-0.1);
 
-// Limitador de seguridad
+// Limitador de seguridad (usa toneOut*)
 safeL = mix(mixedL, clamp(mixedL, -safeCeiling, safeCeiling), safeOn);
 safeR = mix(mixedR, clamp(mixedR, -safeCeiling, safeCeiling), safeOn);
-
-// Opción alternativa: soft clip para evitar esquina dura
-// k = 1.0 / tanh(1.0);
-// safeL = tanh(mixedL / safeCeiling) * safeCeiling * k;
-// safeR = tanh(mixedR / safeCeiling) * safeCeiling * k;
-
-// DC Blocker final antes de la salida
-//finalDcBlockedL = dcblock(finalL);
-//finalDcBlockedR = dcblock(finalR);
-// Salidas principales
-//out1 = mix(lIn, finalDcBlockedL, bypass);
-//out2 = mix(rIn, finalDcBlockedR, bypass);
 
 out1 = mix(lIn, safeL, bypass);
 out2 = mix(rIn, safeR, bypass);

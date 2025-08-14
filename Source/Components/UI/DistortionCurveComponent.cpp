@@ -45,7 +45,11 @@ void DistortionCurveComponent::parameterChanged(const juce::String& parameterID,
     else if (parameterID == "p_DISTON")
         distortionEnabled = newValue >= 0.5f;
     
-    repaint();
+    // Thread-safe repaint usando MessageManager
+    juce::MessageManager::callAsync([safeThis = juce::Component::SafePointer(this)]() {
+        if (safeThis)
+            safeThis->repaint();
+    });
 }
 
 void DistortionCurveComponent::updateFromParameters()

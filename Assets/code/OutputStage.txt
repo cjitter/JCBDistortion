@@ -21,7 +21,7 @@
 // PARÁMETROS
 Param a_DRYWET(1, min=0, default=1, max=1);
 Param f_BYPASS(0, min=0, default=0, max=1);
-Param l_OUTPUT(0, min=-12, default=0, max=12);  // Output makeup gain
+Param l_OUTPUT(0, min=-24, default=0, max=12);  // Output makeup gain
 Param p_SAFELIMITON(0, min=0, default=0, max=1); // Safety limiter
 
 // HISTORIALES
