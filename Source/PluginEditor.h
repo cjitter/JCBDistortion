@@ -370,66 +370,106 @@ private:
     // KNOBS DE CONTROL (organizados por ubicación visual)
     //==========================================================================
     
+    // TODO v1.0: Refactoring post-alpha
+    // Reorganizar structs para que coincidan con el layout visual real:
+    // - LeftTopKnobs: MODE, DRIVE, EVEN, CEIL (fila superior izquierda)
+    // - RightTopKnobs: BIT, D/W (fila superior derecha)
+    // - LeftBottomKnobs: TILT + PRE, TONE + POST (fila media izquierda)
+    // - RightBottomKnobs: RLPF, Q, DECI (fila media derecha)
+    // - CenterButtons: ON, BIT CRUSHER, DECIMATOR (botones centrales)
+    // NOTA: Actualmente los controles NO están en los structs correctos según su posición visual
+    
     // Controles izquierdos - fila superior
     struct LeftTopKnobs {
-        CustomSlider ceilingSlider{"ceiling"};  // NUEVO - parámetro e_CEILING específico del Maximizer
-        // MAXIMIZER: c_RATIO y q_KNEE no existen - eliminados según CONTEXTO.txt
+        // VISUAL: Fila superior, posición 4 (después de MODE, DRIVE, EVEN)
+        // TODO: Este struct debería contener MODE, DRIVE, EVEN, CEIL
+        CustomSlider ceilingSlider{"ceiling"};  // e_CEILING - CEIL knob
         
-        std::unique_ptr<CustomSliderAttachment> ceilingAttachment;  // NUEVO - attachment para e_CEILING
-        // MAXIMIZER: ratioAttachment y kneeAttachment eliminados - parámetros inexistentes
+        std::unique_ptr<CustomSliderAttachment> ceilingAttachment;
     } leftTopKnobs;
 
     // Controles izquierdos - fila inferior
     struct LeftBottomKnobs {
-        CustomSlider drywetSlider{"drywet"};  // DISTORTION: o_DRYWET (D/W)
-        CustomSlider toneFreqSlider{"tonefreq"};  // MOVIDO DESDE RightTopControls - parámetro r_TONEFREQ
-        CustomSlider toneQSlider{"toneQ"};  // NUEVO - parámetro t_TONEQ (resonancia Q del LPF TONE)
-        juce::TextButton toneLpfButton{"TONE"};  // MOVIDO DESDE RightTopControls - parámetro q_TONEON
-        juce::TextButton tonePosButton{"POST"};  // NUEVO - parámetro u_TONEPOS (posición del tone: PRE/POST)
+        // VISUAL: Fila superior, posición 7 (extremo derecho)
+        // TODO: Mover a RightTopKnobs en refactoring futuro
+        CustomSlider drywetSlider{"drywet"};  // o_DRYWET - D/W knob
         
-        std::unique_ptr<CustomSliderAttachment> drywetAttachment;  // DISTORTION: para o_DRYWET
-        std::unique_ptr<CustomSliderAttachment> toneFreqAttachment;  // MOVIDO DESDE RightTopControls - para r_TONEFREQ
-        std::unique_ptr<CustomSliderAttachment> toneQAttachment;  // NUEVO - attachment para t_TONEQ
-        std::unique_ptr<UndoableButtonAttachment> toneLpfAttachment;  // MOVIDO DESDE RightTopControls - para q_TONEON
-        std::unique_ptr<UndoableButtonAttachment> tonePosAttachment;  // NUEVO - attachment para u_TONEPOS
+        // VISUAL: Fila media, posición 2 (después de TILT)
+        CustomSlider toneFreqSlider{"tonefreq"};  // r_TONEFREQ - TONE knob
+        
+        // VISUAL: Fila media, posición 4 (etiquetado como Q)
+        // TODO: Mover a RightBottomKnobs en refactoring futuro
+        CustomSlider toneQSlider{"toneQ"};  // t_TONEQ - Q knob
+        
+        // VISUAL: Botón TONE en fila media
+        juce::TextButton toneLpfButton{"TONE"};  // q_TONEON
+        
+        // VISUAL: Botón POST junto a TONE
+        juce::TextButton tonePosButton{"POST"};  // u_TONEPOS
+        
+        std::unique_ptr<CustomSliderAttachment> drywetAttachment;
+        std::unique_ptr<CustomSliderAttachment> toneFreqAttachment;
+        std::unique_ptr<CustomSliderAttachment> toneQAttachment;
+        std::unique_ptr<UndoableButtonAttachment> toneLpfAttachment;
+        std::unique_ptr<UndoableButtonAttachment> tonePosAttachment;
     } leftBottomKnobs;
 
     
     // Controles derechos - fila superior
     struct RightTopControls {
-        CustomSlider tiltSlider{"tilt"};  // NUEVO - parámetro i_TILT (Tilt EQ)
-        juce::TextButton tiltOnButton{"TILT"};  // NUEVO - parámetro s_TILTON (activador de Tilt: ON/OFF)
-        juce::TextButton tiltPosButton{"PRE"};  // NUEVO - parámetro p_TILTPOS (posición del tilt: PRE/POST)
-        CustomSlider bitsSlider{"BIT"};  // NUEVO - parámetro g_BITS (Bit crusher resolution)
-        CustomSlider downsampleSlider{"DECI"};  // NUEVO - parámetro m_DOWNSAMPLE (factor downsampling 0-99)
-        juce::TextButton downsampleButton{"DOWNSAMPLE"};  // NUEVO - parámetro n_DOWNSAMPLEON (activar downsampling)
-        juce::TextButton safeLimitButton{"LIMIT"};  // NUEVO - parámetro p_SAFELIMITON (limitador brickwall)
+        // VISUAL: Fila media, posición 1
+        // TODO: Mover a LeftBottomKnobs en refactoring futuro
+        CustomSlider tiltSlider{"tilt"};  // i_TILT - TILT knob
+        juce::TextButton tiltOnButton{"TILT"};  // s_TILTON
+        juce::TextButton tiltPosButton{"PRE"};  // p_TILTPOS
         
-        // MAXIMIZER: rangeAttachment, reactAttachment y smoothAttachment eliminados - parámetros inexistentes
-        std::unique_ptr<CustomSliderAttachment> tiltAttachment;  // NUEVO - attachment para i_TILT
-        std::unique_ptr<UndoableButtonAttachment> tiltOnAttachment;  // NUEVO - attachment para s_TILTON
-        std::unique_ptr<UndoableButtonAttachment> tiltPosButtonAttachment;  // NUEVO - attachment para p_TILTPOS
-        std::unique_ptr<CustomSliderAttachment> bitsAttachment;  // NUEVO - attachment para g_BITS
-        std::unique_ptr<CustomSliderAttachment> downsampleAttachment;  // NUEVO - attachment para m_DOWNSAMPLE
-        std::unique_ptr<UndoableButtonAttachment> downsampleButtonAttachment;  // NUEVO - attachment para n_DOWNSAMPLEON
-        std::unique_ptr<UndoableButtonAttachment> safeLimitAttachment;  // NUEVO - attachment para p_SAFELIMITON
+        // VISUAL: Fila superior, posición 6 (después del analizador FFT)
+        CustomSlider bitsSlider{"BIT"};  // g_BITS - BIT knob
+        
+        // VISUAL: Fila media, posición 5
+        // TODO: Mover a RightBottomKnobs en refactoring futuro
+        CustomSlider downsampleSlider{"DECI"};  // m_DOWNSAMPLE - DECI knob
+        
+        // VISUAL: Botón central DECIMATOR
+        juce::TextButton downsampleButton{"DOWNSAMPLE"};  // n_DOWNSAMPLEON
+        
+        // VISUAL: No visible actualmente en GUI
+        juce::TextButton safeLimitButton{"LIMIT"};  // p_SAFELIMITON
+        
+        std::unique_ptr<CustomSliderAttachment> tiltAttachment;
+        std::unique_ptr<UndoableButtonAttachment> tiltOnAttachment;
+        std::unique_ptr<UndoableButtonAttachment> tiltPosButtonAttachment;
+        std::unique_ptr<CustomSliderAttachment> bitsAttachment;
+        std::unique_ptr<CustomSliderAttachment> downsampleAttachment;
+        std::unique_ptr<UndoableButtonAttachment> downsampleButtonAttachment;
+        std::unique_ptr<UndoableButtonAttachment> safeLimitAttachment;
     } rightTopControls;
     
     // Controles derechos, fila inferior
     struct RightBottomKnobs {
-        CustomSlider driveSlider{"drive"};  // DISTORTION: b_DRIVE (amplificación 1-50)
-        CustomSlider modeSlider{"mode"};    // DISTORTION: d_MODE (modos 0-9)
-        juce::TextButton distOnButton{"ON"};  // NUEVO - parámetro p_DISTON (distorsión on/off)
-        CustomSlider dcSlider{"dc"};  // NUEVO - parámetro c_DC (continuo 0-1 para armónicos)
-        juce::TextButton bitButton{"BIT CRUSHER"};  // DISTORTION: h_BITSON (bit crusher on/off)
-        // MAXIMIZER: f_HOLD no existe - eliminado según CONTEXTO.txt
+        // VISUAL: Fila superior, posición 2
+        // TODO: Mover a LeftTopKnobs en refactoring futuro
+        CustomSlider driveSlider{"drive"};  // b_DRIVE - DRIVE knob
         
-        std::unique_ptr<CustomSliderAttachment> driveAttachment;  // DISTORTION: para b_DRIVE
-        std::unique_ptr<CustomSliderAttachment> modeAttachment;   // DISTORTION: para d_MODE
-        std::unique_ptr<UndoableButtonAttachment> distOnButtonAttachment;  // NUEVO - attachment para p_DISTON
-        std::unique_ptr<CustomSliderAttachment> dcAttachment;  // NUEVO - attachment para c_DC
-        std::unique_ptr<UndoableButtonAttachment> bitAttachment;  // DISTORTION: para h_BITSON
-        // MAXIMIZER: holdAttachment eliminado - parámetro inexistente
+        // VISUAL: Fila superior, posición 1
+        // TODO: Mover a LeftTopKnobs en refactoring futuro
+        CustomSlider modeSlider{"mode"};  // d_MODE - MODE knob
+        
+        // VISUAL: Botón central ON
+        juce::TextButton distOnButton{"ON"};  // p_DISTON
+        
+        // VISUAL: Fila superior, posición 3
+        // TODO: Mover a LeftTopKnobs en refactoring futuro
+        CustomSlider dcSlider{"dc"};  // c_DC - EVEN knob
+        
+        // VISUAL: Botón central BIT CRUSHER
+        juce::TextButton bitButton{"BIT CRUSHER"};  // h_BITSON
+        
+        std::unique_ptr<CustomSliderAttachment> driveAttachment;
+        std::unique_ptr<CustomSliderAttachment> modeAttachment;
+        std::unique_ptr<UndoableButtonAttachment> distOnButtonAttachment;
+        std::unique_ptr<CustomSliderAttachment> dcAttachment;
+        std::unique_ptr<UndoableButtonAttachment> bitAttachment;
     } rightBottomKnobs;
     
     //==========================================================================
