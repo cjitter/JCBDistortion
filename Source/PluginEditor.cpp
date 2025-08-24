@@ -843,6 +843,42 @@ JCBDistortionAudioProcessorEditor::~JCBDistortionAudioProcessorEditor()
         processor.apvts.removeParameterListener("q_TONEON", toneLpfParameterListener.get());
     }
     
+    // IMPORTANTE: Limpiar todos los LookAndFeels de componentes hijos antes de destrucción
+    // Esto resuelve la aserción juce_LookAndFeel.cpp:82 detectada por pluginval
+    
+    // Sliders con sliderLAFBig
+    leftTopKnobs.ceilingSlider.setLookAndFeel(nullptr);
+    leftBottomKnobs.drywetSlider.setLookAndFeel(nullptr);
+    leftBottomKnobs.toneFreqSlider.setLookAndFeel(nullptr);
+    leftBottomKnobs.toneQSlider.setLookAndFeel(nullptr);
+    rightTopControls.bitsSlider.setLookAndFeel(nullptr);
+    rightBottomKnobs.driveSlider.setLookAndFeel(nullptr);
+    rightBottomKnobs.modeSlider.setLookAndFeel(nullptr);
+    rightTopControls.tiltSlider.setLookAndFeel(nullptr);
+    rightTopControls.downsampleSlider.setLookAndFeel(nullptr);
+    rightBottomKnobs.dcSlider.setLookAndFeel(nullptr);
+    sidechainControls.xLowSlider.setLookAndFeel(nullptr);
+    sidechainControls.xHighSlider.setLookAndFeel(nullptr);
+    
+    // Slider con bandSliderLAF
+    sidechainControls.bandSlider.setLookAndFeel(nullptr);
+    
+    // Botones con transparentButtonLAF
+    leftBottomKnobs.toneLpfButton.setLookAndFeel(nullptr);
+    leftBottomKnobs.tonePosButton.setLookAndFeel(nullptr);
+    rightBottomKnobs.distOnButton.setLookAndFeel(nullptr);
+    rightTopControls.tiltPosButton.setLookAndFeel(nullptr);
+    rightTopControls.downsampleButton.setLookAndFeel(nullptr);
+    sidechainControls.bandSoloButton.setLookAndFeel(nullptr);
+    
+    // Botones con filtersButtonLAF
+    sidechainControls.scButton.setLookAndFeel(nullptr);
+    rightTopControls.safeLimitButton.setLookAndFeel(nullptr);
+    
+    // Botón con reversedGradientButtonLAF
+    rightBottomKnobs.bitButton.setLookAndFeel(nullptr);
+    
+    // Limpiar LookAndFeel del editor principal
     setLookAndFeel(nullptr);
 }
 
@@ -932,26 +968,30 @@ void JCBDistortionAudioProcessorEditor::resized()
     spectrumAnalyzer.setBounds(getScaledBounds(x, y, w, h));
 
     // === LEFT SIDE KNOBS === (Between SC meters and transfer function)
-    leftBottomKnobs.drywetSlider.setBounds(getScaledBounds(24, 100, 53, 53));
+    leftBottomKnobs.toneLpfButton.setBounds(getScaledBounds(35, 118, 25, 15));  // Botón TONE entre D/W y FREQ
+    leftBottomKnobs.tonePosButton.setBounds(getScaledBounds(72, 122, 20, 10));  // Botón PRE/POST más pequeño
+    leftBottomKnobs.toneFreqSlider.setBounds(getScaledBounds(85, 102, 53, 53));  // Slider FREQ más pequeño
+    leftBottomKnobs.toneQSlider.setBounds(getScaledBounds(133, 102, 53, 53));  // Slider Q más pequeño
+
+    rightTopControls.tiltSlider.setBounds(getScaledBounds(180, 102, 53, 53));  // TILT más pequeño para consistencia
+    rightTopControls.tiltPosButton.setBounds(getScaledBounds(225, 122, 20, 10));  // Botón PRE/POST de TILT
 
     // === RIGHT SIDE CONTROLS ===
-    rightBottomKnobs.modeSlider.setBounds(getScaledBounds(66, 46, 53, 53));
-    rightBottomKnobs.distOnButton.setBounds(getScaledBounds(119, 52, 30, 17));
-    rightBottomKnobs.driveSlider.setBounds(getScaledBounds(148, 45, 53, 53));
-    leftTopKnobs.ceilingSlider.setBounds(getScaledBounds(203, 47, 50, 50));  // NUEVO - e_CEILING slider
-    rightBottomKnobs.dcSlider.setBounds(getScaledBounds(112, 75, 43, 43));
-
-    rightTopControls.tiltSlider.setBounds(getScaledBounds(175, 105, 48, 48));
-    rightTopControls.tiltPosButton.setBounds(getScaledBounds(154, 128, 23, 12));
+    rightBottomKnobs.distOnButton.setBounds(getScaledBounds(35, 68, 25, 20));
+    rightBottomKnobs.modeSlider.setBounds(getScaledBounds(64, 49, 53, 53));
+    rightBottomKnobs.driveSlider.setBounds(getScaledBounds(112, 49, 53, 53));
+    rightBottomKnobs.dcSlider.setBounds(getScaledBounds(158, 49, 53, 53));
+    leftTopKnobs.ceilingSlider.setBounds(getScaledBounds(205, 49, 53, 53));  // NUEVO - e_CEILING slider
 
     rightTopControls.bitsSlider.setBounds(getScaledBounds(480, 56, 48, 48));
     rightBottomKnobs.bitButton.setBounds(getScaledBounds(522, 75, 57, 15));
     rightTopControls.downsampleSlider.setBounds(getScaledBounds(555, 98, 48, 48));
     rightTopControls.downsampleButton.setBounds(getScaledBounds(596, 110, 62, 15));
+
+    leftBottomKnobs.drywetSlider.setBounds(getScaledBounds(620, 48, 48, 48));
+
     rightTopControls.safeLimitButton.setBounds(getScaledBounds(678, 30, 20, 10));
     sidechainControls.bandSoloButton.setBounds(getScaledBounds(455, 114, 62, 15));
-    rightTopControls.toneFreqSlider.setBounds(getScaledBounds(630, 46, 40, 40));  // A la derecha de DECI, mismo tamaño que BIT y DECI
-    rightTopControls.toneLpfButton.setBounds(getScaledBounds(638, 82, 25, 15));  // Debajo del knob TONE, como BIT CRUSHER
 
 
     // === CONTROLES DE FILTRO (TOP CENTER) ===
@@ -1209,7 +1249,7 @@ void JCBDistortionAudioProcessorEditor::buttonClicked(juce::Button* button)
         updateDownsampleComponentStates();
     }
     // Control de activación de TONE LPF
-    else if (button == &rightTopControls.toneLpfButton)
+    else if (button == &leftBottomKnobs.toneLpfButton)
     {
         // Actualizar estado visual del slider TONE
         updateToneLpfComponentStates();
@@ -1592,7 +1632,7 @@ void JCBDistortionAudioProcessorEditor::setupKnobs()
     // DRYWET (o_DRYWET) - Mezcla dry/wet 0-100%
     leftBottomKnobs.drywetSlider.setComponentID("drywet");
     leftBottomKnobs.drywetSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    leftBottomKnobs.drywetSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 70, 16);
+    leftBottomKnobs.drywetSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 16);
     leftBottomKnobs.drywetSlider.setLookAndFeel(&sliderLAFBig);
     leftBottomKnobs.drywetSlider.setTextBoxIsEditable(true);
     leftBottomKnobs.drywetSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
@@ -1621,6 +1661,110 @@ void JCBDistortionAudioProcessorEditor::setupKnobs()
         leftBottomKnobs.drywetAttachment->onParameterChange = [this]() { handleParameterChange(); };
     }
     leftBottomKnobs.drywetSlider.setTooltip(JUCE_UTF8("D/W: mezcla entre señal seca y procesada.\n0% = solo señal original, 100% = solo señal comprimida.\nValor por defecto: 100% (wet)"));
+    
+    // TONE FREQ slider - movido desde RightTopControls
+    leftBottomKnobs.toneFreqSlider.setComponentID("r_TONEFREQ");
+    leftBottomKnobs.toneFreqSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    leftBottomKnobs.toneFreqSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 60, 16);
+    leftBottomKnobs.toneFreqSlider.setLookAndFeel(&sliderLAFBig);
+    leftBottomKnobs.toneFreqSlider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colour(0xFF6EB8F6));  // Azul claro TONE
+    leftBottomKnobs.toneFreqSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colour(0xFF6EB8F6));
+    leftBottomKnobs.toneFreqSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+    leftBottomKnobs.toneFreqSlider.setTextBoxIsEditable(true);
+    leftBottomKnobs.toneFreqSlider.setEnabled(true);
+    leftBottomKnobs.toneFreqSlider.setDoubleClickReturnValue(true, 20000.0f);
+    leftBottomKnobs.toneFreqSlider.setPopupDisplayEnabled(false, false, this);
+    leftBottomKnobs.toneFreqSlider.setNumDecimalPlacesToDisplay(0);
+    leftBottomKnobs.toneFreqSlider.textFromValueFunction = [](double value) {
+        if (value < 1000.0)
+            return juce::String(static_cast<int>(value));
+        else
+            return juce::String(value / 1000.0, 1) + "k";
+    };
+    leftBottomKnobs.toneFreqSlider.setTextValueSuffix(" Hz");
+    leftBottomKnobs.toneFreqSlider.setRange(20.0, 20000.0, 1.0);
+    leftBottomKnobs.toneFreqSlider.setSkewFactorFromMidPoint(3000.0);
+    addAndMakeVisible(leftBottomKnobs.toneFreqSlider);
+    if (auto* param = processor.apvts.getParameter("r_TONEFREQ"))
+    {
+        leftBottomKnobs.toneFreqAttachment = std::make_unique<CustomSliderAttachment>(
+            *param, leftBottomKnobs.toneFreqSlider, &undoManager);
+        leftBottomKnobs.toneFreqAttachment->onParameterChange = [this]() { handleParameterChange(); };
+    }
+    
+    // TONE Q slider - nuevo parámetro t_TONEQ
+    leftBottomKnobs.toneQSlider.setComponentID("t_TONEQ");
+    leftBottomKnobs.toneQSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
+    leftBottomKnobs.toneQSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 60, 16);
+    leftBottomKnobs.toneQSlider.setLookAndFeel(&sliderLAFBig);
+    leftBottomKnobs.toneQSlider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colour(0xFF6EB8F6));  // Azul claro TONE
+    leftBottomKnobs.toneQSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colour(0xFF6EB8F6));
+    leftBottomKnobs.toneQSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+    leftBottomKnobs.toneQSlider.setTextBoxIsEditable(true);
+    leftBottomKnobs.toneQSlider.setEnabled(true);
+    leftBottomKnobs.toneQSlider.setDoubleClickReturnValue(true, 0.7071067811865476f);
+    leftBottomKnobs.toneQSlider.setPopupDisplayEnabled(false, false, this);
+    leftBottomKnobs.toneQSlider.setNumDecimalPlacesToDisplay(0);
+    leftBottomKnobs.toneQSlider.textFromValueFunction = [](double value) {
+        // Mapear Q a porcentaje 0-100%
+        float percent = (value - 0.7071067811865476f) / (16.0f - 0.7071067811865476f) * 100.0f;
+        return juce::String(static_cast<int>(percent)) + "%";
+    };
+    leftBottomKnobs.toneQSlider.setRange(0.7071067811865476, 16.0, 0.01);
+    addAndMakeVisible(leftBottomKnobs.toneQSlider);
+    if (auto* param = processor.apvts.getParameter("t_TONEQ"))
+    {
+        leftBottomKnobs.toneQAttachment = std::make_unique<CustomSliderAttachment>(
+            *param, leftBottomKnobs.toneQSlider, &undoManager);
+        leftBottomKnobs.toneQAttachment->onParameterChange = [this]() { handleParameterChange(); };
+    }
+    
+    // Botón TONE - movido desde RightTopControls
+    leftBottomKnobs.toneLpfButton.setComponentID("tonelpf");
+    leftBottomKnobs.toneLpfButton.setLookAndFeel(transparentButtonLAF.get());
+    leftBottomKnobs.toneLpfButton.setButtonText("TONE");
+    leftBottomKnobs.toneLpfButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
+    leftBottomKnobs.toneLpfButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);
+    leftBottomKnobs.toneLpfButton.setColour(juce::TextButton::textColourOffId, juce::Colour(0xFF3C7AE2).withAlpha(0.7f));
+    leftBottomKnobs.toneLpfButton.setColour(juce::TextButton::textColourOnId, juce::Colour(0xFF3C7AE2));
+    leftBottomKnobs.toneLpfButton.setClickingTogglesState(true);
+    addAndMakeVisible(leftBottomKnobs.toneLpfButton);
+    if (auto* param = processor.apvts.getParameter("q_TONEON"))
+    {
+        leftBottomKnobs.toneLpfAttachment = std::make_unique<UndoableButtonAttachment>(
+            *param, leftBottomKnobs.toneLpfButton, &undoManager);
+        leftBottomKnobs.toneLpfAttachment->onStateChange = [](bool /*isOn*/) {};
+        leftBottomKnobs.toneLpfAttachment->onParameterChange = [this]() {
+            handleParameterChange();
+        };
+        leftBottomKnobs.toneLpfButton.setButtonText("TONE");
+    }
+    
+    // Botón TONE POS - nuevo parámetro s_TONEPOS (PRE/POST)
+    leftBottomKnobs.tonePosButton.setComponentID("tonepos");
+    leftBottomKnobs.tonePosButton.setLookAndFeel(transparentButtonLAF.get());
+    leftBottomKnobs.tonePosButton.setButtonText("POST");
+    leftBottomKnobs.tonePosButton.setClickingTogglesState(true);
+    leftBottomKnobs.tonePosButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
+    leftBottomKnobs.tonePosButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);
+    leftBottomKnobs.tonePosButton.setColour(juce::TextButton::textColourOffId, juce::Colour(0xFF6EB8F6));  // Azul claro TONE
+    leftBottomKnobs.tonePosButton.setColour(juce::TextButton::textColourOnId, juce::Colour(0xFF6EB8F6));
+    leftBottomKnobs.tonePosButton.addListener(this);
+    addAndMakeVisible(leftBottomKnobs.tonePosButton);
+    if (auto* param = processor.apvts.getParameter("s_TONEPOS"))
+    {
+        leftBottomKnobs.tonePosAttachment = std::make_unique<UndoableButtonAttachment>(
+            *param, leftBottomKnobs.tonePosButton, &undoManager);
+        leftBottomKnobs.tonePosAttachment->onStateChange = [this](bool isPost) {
+            leftBottomKnobs.tonePosButton.setButtonText(isPost ? "POST" : "PRE");
+        };
+        leftBottomKnobs.tonePosAttachment->onParameterChange = [this]() {
+            handleParameterChange();
+        };
+        // Sincronizar texto inicial con el estado actual del parámetro
+        bool initialState = param->getValue() >= 0.5f;
+        leftBottomKnobs.tonePosButton.setButtonText(initialState ? "POST" : "PRE");
+    }
     
     // === RIGHT TOP CONTROLS ===
     // BITS - bit crusher resolution control
@@ -1788,7 +1932,7 @@ void JCBDistortionAudioProcessorEditor::setupKnobs()
     // DET knob - área derecha superior  
 rightTopControls.tiltSlider.setComponentID("tilt");
     rightTopControls.tiltSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    rightTopControls.tiltSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 70, 16);
+    rightTopControls.tiltSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 16);
     rightTopControls.tiltSlider.setLookAndFeel(&sliderLAFBig);
     rightTopControls.tiltSlider.setTextBoxIsEditable(true);
     rightTopControls.tiltSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
@@ -1842,7 +1986,7 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     }
     
     // DOWNSAMPLE slider - área derecha superior
-    rightTopControls.downsampleSlider.setComponentID("DECI");
+    rightTopControls.downsampleSlider.setComponentID("m_DOWNSAMPLE");
     rightTopControls.downsampleSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
     rightTopControls.downsampleSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 16);
     rightTopControls.downsampleSlider.setLookAndFeel(&sliderLAFBig);
@@ -1896,7 +2040,7 @@ rightTopControls.tiltSlider.setComponentID("tilt");
     // DC slider - área derecha inferior, junto a REL
     rightBottomKnobs.dcSlider.setComponentID("dc");
     rightBottomKnobs.dcSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);
-    rightBottomKnobs.dcSlider.setTextBoxStyle(juce::Slider::TextBoxBelow, false, 70, 16);
+    rightBottomKnobs.dcSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 70, 16);
     rightBottomKnobs.dcSlider.setLookAndFeel(&sliderLAFBig);
     rightBottomKnobs.dcSlider.setTextBoxIsEditable(true);
     rightBottomKnobs.dcSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
@@ -2145,68 +2289,7 @@ rightTopControls.tiltSlider.setComponentID("tilt");
         // Sincronización inicial - texto siempre es "LIMIT"
         rightTopControls.safeLimitButton.setButtonText("LIM");
     }
-    
-    // Botón LPF - filtro tono LPF (q_TONEON) - estilo como BIT CRUSHER
-    rightTopControls.toneLpfButton.setComponentID("tonelpf");
-    rightTopControls.toneLpfButton.setLookAndFeel(transparentButtonLAF.get());  // Usar fondo transparente como BIT CRUSHER
-    rightTopControls.toneLpfButton.setButtonText("TONE LPF");
-    rightTopControls.toneLpfButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);
-    rightTopControls.toneLpfButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);
-    rightTopControls.toneLpfButton.setColour(juce::TextButton::textColourOffId, juce::Colour(0xFF3C7AE2).withAlpha(0.7f));  // Azul TONE apagado
-    rightTopControls.toneLpfButton.setColour(juce::TextButton::textColourOnId, juce::Colour(0xFF3C7AE2));  // Azul TONE encendido
-    rightTopControls.toneLpfButton.setClickingTogglesState(true);
-    addAndMakeVisible(rightTopControls.toneLpfButton);
-    if (auto* param = processor.apvts.getParameter("q_TONEON"))
-    {
-        rightTopControls.toneLpfAttachment = std::make_unique<UndoableButtonAttachment>(
-            *param, rightTopControls.toneLpfButton, &undoManager);
-        
-        // Callback para cambios de estado (texto siempre "LPF")
-        rightTopControls.toneLpfAttachment->onStateChange = [](bool /*isOn*/) {
-            // Texto siempre es "LPF", no cambia con el estado
-        };
-        
-        // Callback para clicks del usuario
-        rightTopControls.toneLpfAttachment->onParameterChange = [this]() {
-            handleParameterChange();
-        };
-        
-        // Sincronización inicial - texto siempre es "LPF"
-        rightTopControls.toneLpfButton.setButtonText("TONE LPF");
-    }
-    
-    // Slider de frecuencia de tono - r_TONEFREQ (5000-20000 Hz) - configurado como knob rotatorio
-    rightTopControls.toneFreqSlider.setComponentID("tonefreq");
-    rightTopControls.toneFreqSlider.setSliderStyle(juce::Slider::RotaryHorizontalVerticalDrag);  // Knob rotatorio
-    rightTopControls.toneFreqSlider.setTextBoxStyle(juce::Slider::TextBoxAbove, false, 60, 16);  // TextBox arriba como XHigh
-    rightTopControls.toneFreqSlider.setLookAndFeel(&sliderLAFBig);  // Usar LAF grande como otros knobs
-    rightTopControls.toneFreqSlider.setColour(juce::Slider::rotarySliderOutlineColourId, juce::Colour(0xFF6EB8F6));  // Azul claro TONE
-    rightTopControls.toneFreqSlider.setColour(juce::Slider::textBoxTextColourId, juce::Colour(0xFF6EB8F6));  // Azul claro TONE
-    rightTopControls.toneFreqSlider.setColour(juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
-    rightTopControls.toneFreqSlider.setTextBoxIsEditable(true);  // Editable como XHigh
-    rightTopControls.toneFreqSlider.setEnabled(true);
-    // Alpha inicial se establecerá en updateToneLpfComponentStates() basado en q_TONEON
-    rightTopControls.toneFreqSlider.setDoubleClickReturnValue(true, 12000.0f);  // Default = 12kHz
-    rightTopControls.toneFreqSlider.setPopupDisplayEnabled(false, false, this);
-    rightTopControls.toneFreqSlider.setNumDecimalPlacesToDisplay(0);
-    // Formato de texto personalizado para frecuencia (como XHigh)
-    rightTopControls.toneFreqSlider.textFromValueFunction = [](double value) {
-        if (value < 1000.0)
-            return juce::String(static_cast<int>(value));
-        else
-            return juce::String(value / 1000.0, 1) + "k";
-    };
-    rightTopControls.toneFreqSlider.setTextValueSuffix(" Hz");
-    // Configurar rango para Tone Freq (5000-20000 Hz)
-    rightTopControls.toneFreqSlider.setRange(5000.0, 20000.0, 1.0);  // Incrementos de 1Hz como XHigh
-    rightTopControls.toneFreqSlider.setSkewFactorFromMidPoint(12000.0);  // 12kHz en el centro
-    addAndMakeVisible(rightTopControls.toneFreqSlider);
-    if (auto* param = processor.apvts.getParameter("r_TONEFREQ"))
-    {
-        rightTopControls.toneFreqAttachment = std::make_unique<CustomSliderAttachment>(
-            *param, rightTopControls.toneFreqSlider, &undoManager);
-        rightTopControls.toneFreqAttachment->onParameterChange = [this]() { handleParameterChange(); };
-    }
+    // NOTA: Botón LPF y Slider de frecuencia de tono movidos a leftBottomKnobs
 }
 
 void JCBDistortionAudioProcessorEditor::setupMeters()
@@ -2433,11 +2516,8 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
                 sidechainControls.bandSlider.setValue(realValue, juce::sendNotificationSync);
             }
-            if (auto* param = processor.apvts.getParameter("f_BYPASS")) {
-                float defaultValue = param->getDefaultValue();
-                bool toggleState = defaultValue >= 0.5f;
-                parameterButtons.bypassButton.setToggleState(toggleState, juce::sendNotificationSync);
-            }
+            // SIEMPRE salir de bypass al cargar DEFAULT
+            parameterButtons.bypassButton.setToggleState(false, juce::sendNotificationSync);
             if (auto* param = processor.apvts.getParameter("h_BITSON")) {
                 float defaultValue = param->getDefaultValue();
                 bool toggleState = defaultValue >= 0.5f;
@@ -2495,13 +2575,26 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
             if (auto* param = processor.apvts.getParameter("q_TONEON")) {
                 float defaultValue = param->getDefaultValue(); // defaultValue = 0 (OFF)
                 bool toggleState = defaultValue >= 0.5f; // false = OFF
-                rightTopControls.toneLpfButton.setToggleState(toggleState, juce::sendNotificationSync);
+                leftBottomKnobs.toneLpfButton.setToggleState(toggleState, juce::sendNotificationSync);
             }
             if (auto* param = processor.apvts.getParameter("r_TONEFREQ")) {
                 float defaultValue = param->getDefaultValue(); // defaultValue = 12000 Hz
                 float realValue = param->getNormalisableRange().convertFrom0to1(defaultValue);
-                rightTopControls.toneFreqSlider.setValue(realValue, juce::sendNotificationSync);
+                leftBottomKnobs.toneFreqSlider.setValue(realValue, juce::sendNotificationSync);
             }
+
+            // Restaurar FFT/CURVES a su estado por defecto (FFT)
+            currentDisplayMode = DisplayMode::FFT;
+            utilityButtons.runGraphicsButton.setToggleState(true, juce::dontSendNotification);
+            utilityButtons.runGraphicsButton.setButtonText("FFT");
+            distortionCurveDisplay.setVisible(false);
+            spectrumAnalyzer.setVisible(true);
+            // Actualizar color del botón para modo FFT
+            utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId, 
+                                                      juce::Colour(0xFF9C27B0).withAlpha(0.3f));  // FFT: púrpura
+            // Habilitar zoom button en modo FFT
+            utilityButtons.zoomButton.setAlpha(1.0f);
+            utilityButtons.zoomButton.setEnabled(true);
 
             // Reactivar undo después carga de preset
             isLoadingPreset = false;
@@ -2545,10 +2638,24 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                         std::unique_ptr<juce::XmlElement> xmlState(xmlDoc.getDocumentElement());
                         
                         if (xmlState != nullptr && xmlState->hasTagName(processor.apvts.state.getType())) {
-                            processor.apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
+                            auto stateTree = juce::ValueTree::fromXml(*xmlState);
+                            processor.apvts.replaceState(stateTree);
                             
-                            // Encolar actualizaciones de parámetros para botones momentáneos
-                            queueParameterUpdate("h_BYPASS", 0.0f);
+                            // Restaurar estado del modo de visualización FFT/CURVES si está presente
+                            auto uiSettings = stateTree.getChildWithName("UISettings");
+                            if (uiSettings.isValid()) {
+                                bool isFFT = uiSettings.getProperty("displayModeIsFFT", false);
+                                currentDisplayMode = isFFT ? DisplayMode::FFT : DisplayMode::Curves;
+                                // Actualizar botón graphics
+                                utilityButtons.runGraphicsButton.setToggleState(isFFT, juce::dontSendNotification);
+                                utilityButtons.runGraphicsButton.setButtonText(isFFT ? "FFT" : "CURVES");
+                                // Actualizar visibilidad de componentes
+                                distortionCurveDisplay.setVisible(!isFFT);
+                                spectrumAnalyzer.setVisible(isFFT);
+                            }
+                            
+                            // SIEMPRE salir de bypass al cargar factory preset
+                            parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
                         }
                     }
                     break;
@@ -2564,10 +2671,24 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 std::unique_ptr<juce::XmlElement> xmlState(xmlDoc.getDocumentElement());
                 
                 if (xmlState != nullptr && xmlState->hasTagName(processor.apvts.state.getType())) {
-                    processor.apvts.replaceState(juce::ValueTree::fromXml(*xmlState));
+                    auto stateTree = juce::ValueTree::fromXml(*xmlState);
+                    processor.apvts.replaceState(stateTree);
                     
-                    // Encolar actualizaciones de parámetros para botones momentáneos
-                    queueParameterUpdate("h_BYPASS", 0.0f);
+                    // Restaurar estado del modo de visualización FFT/CURVES si está presente
+                    auto uiSettings = stateTree.getChildWithName("UISettings");
+                    if (uiSettings.isValid()) {
+                        bool isFFT = uiSettings.getProperty("displayModeIsFFT", false);
+                        currentDisplayMode = isFFT ? DisplayMode::FFT : DisplayMode::Curves;
+                        // Actualizar botón graphics
+                        utilityButtons.runGraphicsButton.setToggleState(isFFT, juce::dontSendNotification);
+                        utilityButtons.runGraphicsButton.setButtonText(isFFT ? "FFT" : "CURVES");
+                        // Actualizar visibilidad de componentes
+                        distortionCurveDisplay.setVisible(!isFFT);
+                        spectrumAnalyzer.setVisible(isFFT);
+                    }
+                    
+                    // SIEMPRE salir de bypass al cargar user preset
+                    parameterButtons.bypassButton.setToggleState(false, juce::sendNotification);
                             // MAXIMIZER: No tiene m_SOLOSC
                 }
             }
@@ -2800,6 +2921,8 @@ void JCBDistortionAudioProcessorEditor::setupParameterButtons()
     // Attachment de BYPASS - excluido del undo (sin UndoManager) y no automatizable
     parameterButtons.bypassAttachment = std::make_unique<UndoableButtonAttachment>(
         *processor.apvts.getParameter("f_BYPASS"), parameterButtons.bypassButton, nullptr);
+    // Marcar preset como modificado cuando se cambia bypass
+    parameterButtons.bypassAttachment->onParameterChange = [this]() { handleParameterChange(); };
     // Tooltip actualizado via getTooltipText("bypass") en updateAllTooltips()
 }
 
@@ -2975,18 +3098,34 @@ void JCBDistortionAudioProcessorEditor::updateDownsampleComponentStates()
 void JCBDistortionAudioProcessorEditor::updateToneLpfComponentStates()
 {
     // Obtener estado del botón TONE LPF (q_TONEON)
-    const bool toneLpfActive = rightTopControls.toneLpfButton.getToggleState();
+    const bool toneLpfActive = leftBottomKnobs.toneLpfButton.getToggleState();
     
-    // TONE slider - siempre interactivo pero con alpha reducido cuando TONE LPF está OFF
-    rightTopControls.toneFreqSlider.setEnabled(true);  // Siempre habilitado para pre-configuración
-    rightTopControls.toneFreqSlider.setAlpha(toneLpfActive ? 1.0f : 0.5f);
+    // TONE FREQ slider - siempre interactivo pero con alpha reducido cuando TONE LPF está OFF
+    leftBottomKnobs.toneFreqSlider.setEnabled(true);  // Siempre habilitado para pre-configuración
+    leftBottomKnobs.toneFreqSlider.setAlpha(toneLpfActive ? 1.0f : 0.5f);
+    
+    // TONE Q slider - siempre interactivo pero con alpha reducido cuando TONE LPF está OFF
+    leftBottomKnobs.toneQSlider.setEnabled(true);  // Siempre habilitado para pre-configuración
+    leftBottomKnobs.toneQSlider.setAlpha(toneLpfActive ? 1.0f : 0.5f);
+    
+    // TONE POS button - siempre interactivo pero con alpha reducido cuando TONE LPF está OFF
+    leftBottomKnobs.tonePosButton.setEnabled(true);  // Siempre habilitado para pre-configuración
+    leftBottomKnobs.tonePosButton.setAlpha(toneLpfActive ? 1.0f : 0.5f);
+    leftBottomKnobs.tonePosButton.setColour(
+        juce::TextButton::textColourOffId,
+        juce::Colour(0xFF6EB8F6).withAlpha(toneLpfActive ? 1.0f : 0.5f)  // Azul claro TONE
+    );
+    leftBottomKnobs.tonePosButton.setColour(
+        juce::TextButton::textColourOnId,
+        juce::Colour(0xFF6EB8F6).withAlpha(toneLpfActive ? 1.0f : 0.5f)  // Azul claro TONE
+    );
     
     // Actualizar alpha del texto del botón TONE LPF según estado
-    rightTopControls.toneLpfButton.setColour(
+    leftBottomKnobs.toneLpfButton.setColour(
         juce::TextButton::textColourOffId,
         DarkTheme::textSecondary.withAlpha(0.7f)
     );
-    rightTopControls.toneLpfButton.setColour(
+    leftBottomKnobs.toneLpfButton.setColour(
         juce::TextButton::textColourOnId,
         DarkTheme::textPrimary
     );
@@ -3295,7 +3434,7 @@ void JCBDistortionAudioProcessorEditor::updateButtonValues()
     // Tone LPF button
     if (auto* param = processor.apvts.getRawParameterValue("q_TONEON")) {
         bool toggleState = param->load() >= 0.5f;
-        rightTopControls.toneLpfButton.setToggleState(toggleState, juce::dontSendNotification);
+        leftBottomKnobs.toneLpfButton.setToggleState(toggleState, juce::dontSendNotification);
     }
     
     // Actualizar estados visuales de los componentes después de cambiar valores
@@ -3518,6 +3657,11 @@ void JCBDistortionAudioProcessorEditor::savePresetFile()
                 // Guardar directamente en el archivo existente
                 auto presetFile = getPresetsFolder().getChildFile(currentPresetName + ".preset");
                 auto state = processor.apvts.copyState();
+                
+                // Añadir estado del modo de visualización FFT/CURVES
+                auto uiSettings = state.getOrCreateChildWithName("UISettings", nullptr);
+                uiSettings.setProperty("displayModeIsFFT", currentDisplayMode == DisplayMode::FFT, nullptr);
+                
                 std::unique_ptr<juce::XmlElement> xml(state.createXml());
                 
                 if (xml != nullptr) {
@@ -3590,6 +3734,11 @@ void JCBDistortionAudioProcessorEditor::saveAsPresetFile()
                     if (shouldOverwrite) {
                         // Guardar el preset
                         auto state = processor.apvts.copyState();
+                        
+                        // Añadir estado del modo de visualización FFT/CURVES
+                        auto uiSettings = state.getOrCreateChildWithName("UISettings", nullptr);
+                        uiSettings.setProperty("displayModeIsFFT", currentDisplayMode == DisplayMode::FFT, nullptr);
+                        
                         std::unique_ptr<juce::XmlElement> xml(state.createXml());
                         
                         if (xml != nullptr) {
@@ -3614,6 +3763,11 @@ void JCBDistortionAudioProcessorEditor::saveAsPresetFile()
             } else {
                 // Guardar directamente si no existe
                 auto state = processor.apvts.copyState();
+                
+                // Añadir estado del modo de visualización FFT/CURVES
+                auto uiSettings = state.getOrCreateChildWithName("UISettings", nullptr);
+                uiSettings.setProperty("displayModeIsFFT", currentDisplayMode == DisplayMode::FFT, nullptr);
+                
                 std::unique_ptr<juce::XmlElement> xml(state.createXml());
                 
                 if (xml != nullptr) {
@@ -3903,8 +4057,10 @@ void JCBDistortionAudioProcessorEditor::updateAllTooltips()
     sidechainControls.xHighSlider.setTooltip(getTooltipText("lpf"));
     sidechainControls.bandSoloButton.setTooltip(getTooltipText("bandsolo"));  // NUEVO - tooltip para SOLO BAND button
     rightTopControls.safeLimitButton.setTooltip(getTooltipText("safelimit"));  // NUEVO - tooltip para LIM button
-    rightTopControls.toneLpfButton.setTooltip(getTooltipText("tonelpf"));  // NUEVO - tooltip para LPF button
-    rightTopControls.toneFreqSlider.setTooltip(getTooltipText("tonefreq"));  // NUEVO - tooltip para TONE FREQ slider
+    leftBottomKnobs.toneLpfButton.setTooltip(getTooltipText("tonelpf"));  // NUEVO - tooltip para LPF button
+    leftBottomKnobs.toneFreqSlider.setTooltip(getTooltipText("tonefreq"));  // NUEVO - tooltip para TONE FREQ slider
+    leftBottomKnobs.toneQSlider.setTooltip(getTooltipText("toneq"));  // NUEVO - tooltip para TONE Q slider
+    leftBottomKnobs.tonePosButton.setTooltip(getTooltipText("tonepos"));  // NUEVO - tooltip para TONE POS button
     // sidechainControls.keyButton.setTooltip(getTooltipText("extkey"));
     // sidechainControls.soloScButton.setTooltip(getTooltipText("solosc"));
     
@@ -3964,7 +4120,7 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "mode") return JUCE_UTF8("MODE: algoritmo de distorsión\n8 tipos diferentes: Soft Clip, Sigmoid, Rectifier, etc.\nRango: 1 a 8 (mostrado) | Por defecto: 1");
         if (key == "diston") return JUCE_UTF8("DIST: activa/desactiva el bloque de distorsión\nON: distorsión activa | OFF: bypass del bloque distorsión\nRango: ON/OFF | Por defecto: ON");
         if (key == "trim") return JUCE_UTF8("TRIM: ganancia de entrada al distorsionador\nAjusta el nivel antes del procesamiento\nRango: -12 a +12 dB | Por defecto: 0 dB");
-        if (key == "makeup") return JUCE_UTF8("MAKEUP: ganancia de salida POST procesador\nAjusta el nivel final después de la distorsión\nRango: -12 a +12 dB | Por defecto: 0 dB");
+        if (key == "makeup") return JUCE_UTF8("MAKEUP: ganancia de salida de la cadena WET\nAjusta el nivel solo del procesamiento (no afecta dry/wet)\nRango: -24 a +12 dB | Por defecto: 0 dB");
         if (key == "sc") return JUCE_UTF8("FILTERS: activa el crossover de 3 bandas.\nDivide la señal en Low/Mid/High para procesamiento selectivo.\nValor por defecto: OFF");
         //if (key == "solosc") return JUCE_UTF8("SOLO SC: escucha filtros sidechain int/ext\nParámetro global, no automatizable\nRango: OFF/ON | Por defecto: OFF");
         if (key == "hpf") return JUCE_UTF8("XLow: punto de cruce bajo del crossover\nDefine la frecuencia de separación entre bandas Low y Mid\nRango: 20 a 1000 Hz | Por defecto: 250 Hz");
@@ -3973,7 +4129,7 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "bandsolo") return JUCE_UTF8("SOLO BAND: solea la banda de filtro activa\nPermite escuchar solo la banda seleccionada (Low/Mid/High) a través de la cadena de procesamiento\nRango: OFF/ON | Por defecto: OFF");
         if (key == "safelimit") return JUCE_UTF8("LIM: limitador brickwall de protección\nLimitador ajustado a -0.1 dBFS para evitar sobremodulación en la salida del plugin (post dry/wet)\nRango: OFF/ON | Por defecto: OFF");
         if (key == "tonelpf") return JUCE_UTF8("LPF: filtro pasa bajos de tono\nFiltro adicional post-distorsión para control tonal\nRango: OFF/ON | Por defecto: OFF");
-        if (key == "tonefreq") return JUCE_UTF8("TONE FREQ: frecuencia del filtro de tono\nDefine la frecuencia de corte del filtro LPF post-distorsión\nRango: 5 kHz a 20 kHz | Por defecto: 12 kHz");
+        if (key == "tonefreq") return JUCE_UTF8("TONE FREQ: frecuencia del filtro de tono\nDefine la frecuencia de corte del filtro LPF post-distorsión\nRango: 2.5 kHz a 20 kHz | Por defecto: 15 kHz");
         if (key == "save") return JUCE_UTF8("SAVE: guarda el preset actual\nSobrescribe el preset seleccionado con valores actuales\nNo funciona con DEFAULT");
         if (key == "saveas") return JUCE_UTF8("SAVE AS: guarda como nuevo preset\nCrea un nuevo archivo de preset con los valores actuales\nPermite crear presets personalizados");
         if (key == "delete") return JUCE_UTF8("BORRAR: elimina el preset seleccionado\nRequiere confirmación antes de borrar");
@@ -4017,7 +4173,7 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "mode") return "MODE: distortion algorithm\n8 different types: Soft Clip, Sigmoid, Rectifier, etc.\nRange: 1 to 8 (displayed) | Default: 1";
         if (key == "diston") return "DIST: enables/disables distortion block\nON: distortion active | OFF: distortion bypassed\nRange: ON/OFF | Default: ON";
         if (key == "trim") return "TRIM: distortion input gain\nAdjusts level before processing\nRange: -12 to +12 dB | Default: 0 dB";
-        if (key == "makeup") return "MAKEUP: output gain POST processor\nAdjusts final level after distortion\nRange: -12 to +12 dB | Default: 0 dB";
+        if (key == "makeup") return "MAKEUP: WET chain output gain\nAdjusts only the processed signal level (doesn't affect dry/wet)\nRange: -24 to +12 dB | Default: 0 dB";
         if (key == "sc") return "FILTERS: activates the 3-band crossover.\nSplits signal into Low/Mid/High for selective processing.\nDefault: OFF";
         //if (key == "solosc") return "SOLO SC: listen to int/ext sidechain filters\nGlobal parameter, non-automatable\nRange: OFF/ON | Default: OFF";
         if (key == "hpf") return "XLow: crossover low frequency point\nDefines the separation frequency between Low and Mid bands\nRange: 20 to 1000 Hz | Default: 250 Hz";
@@ -4050,7 +4206,7 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
         if (key == "bandsolo") return "SOLO BAND: solos the active filter band\nAllows listening only to the selected band (Low/Mid/High) through the processing chain\nRange: OFF/ON | Default: OFF";
         if (key == "safelimit") return "LIM: protection brickwall limiter\nLimiter set to -0.1 dBFS to prevent overmodulation at plugin output (post dry/wet)\nRange: OFF/ON | Default: OFF";
         if (key == "tonelpf") return "LPF: tone low-pass filter\nAdditional post-distortion filter for tonal control\nRange: OFF/ON | Default: OFF";
-        if (key == "tonefreq") return "TONE FREQ: tone filter frequency\nDefines the cutoff frequency of the post-distortion LPF\nRange: 5 kHz to 20 kHz | Default: 12 kHz";
+        if (key == "tonefreq") return "TONE FREQ: tone filter frequency\nDefines the cutoff frequency of the post-distortion LPF\nRange: 2.5 kHz to 20 kHz | Default: 15 kHz";
     }
 
     return "";
@@ -4429,6 +4585,9 @@ void JCBDistortionAudioProcessorEditor::toggleDisplayMode()
         utilityButtons.zoomButton.setAlpha(0.4f);
         utilityButtons.zoomButton.setEnabled(false);
     }
+    
+    // Marcar preset como modificado cuando se cambia entre FFT/CURVES
+    handleParameterChange();
     
     repaint();
 }

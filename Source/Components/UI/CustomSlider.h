@@ -102,7 +102,8 @@ public:
                 accentColour = juce::Colour(0xFFA6DAD5);
             }
             // TONE LPF (Azul claro) - #6EB8F6
-            else if (name == "tonefreq" || id == "tonefreq" || name == "tone" || id == "tone") {
+            else if (name == "tonefreq" || id == "tonefreq" || name == "tone" || id == "tone" ||
+                     name == "toneq" || id == "toneq" || id == "t_toneq") {
                 accentColour = juce::Colour(0xFF6EB8F6);
             }
             // BIT CRUSHER (Verde pálido) - #B2FFB3
@@ -268,7 +269,8 @@ public:
             if (name == "drywet" || id == "drywet") return "D/W";
             if (name == "ceiling" || id == "ceiling") return "CEIL";
             if (name == "tilt" || id == "tilt") return "TILT";
-            if (name == "tonefreq" || id == "tonefreq" || name == "tone" || id == "tone") return "LPF";  // TONE LPF label
+            if (name == "tonefreq" || id == "tonefreq" || name == "tone" || id == "tone") return "TONE";  // TONE label
+            if (name == "toneq" || id == "toneq" || id == "t_toneq") return "Q";  // TONE Q label
             if (name == "bit" || id == "bit") return "BITS";
             if (name == "deci" || id == "deci") return "DECI";
             if (name == "drive" || id == "drive") return "DRIVE";

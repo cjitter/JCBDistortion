@@ -113,6 +113,12 @@ JCBDistortionAudioProcessor::JCBDistortionAudioProcessor()
             else if (paramName == "p_TILTPOS") {
                 value = juce::jlimit(0.0f, 1.0f, value);
             }
+            else if (paramName == "s_TONEPOS") {
+                value = juce::jlimit(0.0f, 1.0f, value);
+            }
+            else if (paramName == "t_TONEQ") {
+                value = juce::jlimit(0.7071067811865476f, 16.0f, value);
+            }
             else if (paramName == "p_DISTON") {
                 value = juce::jlimit(0.0f, 1.0f, value);
             }
@@ -126,7 +132,7 @@ JCBDistortionAudioProcessor::JCBDistortionAudioProcessor()
                 value = juce::jlimit(0.0f, 1.0f, value);
             }
             else if (paramName == "r_TONEFREQ") {
-                value = juce::jlimit(5000.0f, 20000.0f, value);
+                value = juce::jlimit(20.0f, 20000.0f, value);
             }
             
             JCBDistortion::setparameter(m_PluginState, i, value, nullptr);
@@ -164,7 +170,7 @@ JCBDistortionAudioProcessor::~JCBDistortionAudioProcessor()
                 m_InputBuffers[i] = nullptr;
             }
         }
-        delete m_InputBuffers;
+        delete[] m_InputBuffers;
         m_InputBuffers = nullptr;
     }
     
@@ -175,7 +181,7 @@ JCBDistortionAudioProcessor::~JCBDistortionAudioProcessor()
                 m_OutputBuffers[i] = nullptr;
             }
         }
-        delete m_OutputBuffers;
+        delete[] m_OutputBuffers;
         m_OutputBuffers = nullptr;
     }
     
@@ -217,7 +223,7 @@ void JCBDistortionAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
     
     // DISTORTION: Latencia mínima fija - no necesita lookahead variable
     // Solo compensar 1 sample mínimo de Gen~ 
-    setLatencySamples(1);
+    setLatencySamples(0);
 
     // Initialize atomic meter values
     // CRITICAL: Changed from SmoothedValue to atomic - no reset() needed
@@ -818,10 +824,30 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
                                                           juce::CharPointer_UTF8("Tone On"),
                                                           0, 1, 0);
 
-   // r_TONEFREQ @min 5000 @max 20000 @default 12000 (Tone frequency Hz)
+   // r_TONEFREQ @min 20 @max 20000 @default 20000 (Tone frequency Hz)
    auto toneFreq = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("r_TONEFREQ", versionHint),
                                                               juce::CharPointer_UTF8("Tone Frequency"),
-                                                              5000.0f, 20000.0f, 12000.0f);
+                                                              juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 0.3f),
+                                                              20000.0f);
+
+   // s_TONEPOS @min 0 @max 1 @default 1 (Tone LPF position: 0=Pre, 1=Post)
+   auto tonePos = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("s_TONEPOS", versionHint),
+                                                            juce::CharPointer_UTF8("Tone Position"),
+                                                            0, 1, 1);
+
+   // t_TONEQ @min 0.7071067811865476 @max 16.0 @default 0.7071067811865476 (Tone Q resonance)
+   auto toneQ = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID("t_TONEQ", versionHint),
+                                                            juce::CharPointer_UTF8("Tone Q"),
+                                                            juce::NormalisableRange<float>(0.7071067811865476f, 16.0f, 0.01f, 1.0f),
+                                                            0.7071067811865476f,
+                                                            juce::String(),
+                                                            juce::AudioParameterFloat::genericParameter,
+                                                            [](float value, int) {
+                                                                // Mapear Q a porcentaje 0-100%
+                                                                float percent = (value - 0.7071067811865476f) / (16.0f - 0.7071067811865476f) * 100.0f;
+                                                                return juce::String(static_cast<int>(percent)) + "%";
+                                                            },
+                                                            nullptr);
 
    // Añadir parámetros en orden alfabético (exactamente como Gen~)
    params.push_back(std::move(drywet));         // a_DRYWET
@@ -847,6 +873,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
    params.push_back(std::move(safeLimitOn));    // p_SAFELIMITON
    params.push_back(std::move(toneOn));         // q_TONEON
    params.push_back(std::move(toneFreq));       // r_TONEFREQ
+   params.push_back(std::move(tonePos));        // s_TONEPOS
+   params.push_back(std::move(toneQ));          // t_TONEQ
 
    // DISTORTION: No requiere parámetros especiales AAX de gain reduction
 
@@ -928,7 +956,13 @@ void JCBDistortionAudioProcessor::parameterChanged(const juce::String& parameter
         newValue = juce::jlimit(0.0f, 1.0f, newValue);
     }
     else if (parameterID == "r_TONEFREQ") {
-        newValue = juce::jlimit(5000.0f, 20000.0f, newValue);
+        newValue = juce::jlimit(20.0f, 20000.0f, newValue);
+    }
+    else if (parameterID == "s_TONEPOS") {
+        newValue = juce::jlimit(0.0f, 1.0f, newValue);
+    }
+    else if (parameterID == "t_TONEQ") {
+        newValue = juce::jlimit(0.7071067811865476f, 16.0f, newValue);
     }
     
     // Buscar el índice correcto en Gen~ basado en el nombre del parámetro

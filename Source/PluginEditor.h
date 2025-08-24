@@ -364,8 +364,16 @@ private:
     // Controles izquierdos - fila inferior
     struct LeftBottomKnobs {
         CustomSlider drywetSlider{"drywet"};  // DISTORTION: o_DRYWET (D/W)
+        CustomSlider toneFreqSlider{"tonefreq"};  // MOVIDO DESDE RightTopControls - parámetro r_TONEFREQ
+        CustomSlider toneQSlider{"toneQ"};  // NUEVO - parámetro t_TONEQ (resonancia Q del LPF TONE)
+        juce::TextButton toneLpfButton{"TONE"};  // MOVIDO DESDE RightTopControls - parámetro q_TONEON
+        juce::TextButton tonePosButton{"POST"};  // NUEVO - parámetro s_TONEPOS (posición del tone: PRE/POST)
         
         std::unique_ptr<CustomSliderAttachment> drywetAttachment;  // DISTORTION: para o_DRYWET
+        std::unique_ptr<CustomSliderAttachment> toneFreqAttachment;  // MOVIDO DESDE RightTopControls - para r_TONEFREQ
+        std::unique_ptr<CustomSliderAttachment> toneQAttachment;  // NUEVO - attachment para t_TONEQ
+        std::unique_ptr<UndoableButtonAttachment> toneLpfAttachment;  // MOVIDO DESDE RightTopControls - para q_TONEON
+        std::unique_ptr<UndoableButtonAttachment> tonePosAttachment;  // NUEVO - attachment para s_TONEPOS
     } leftBottomKnobs;
 
     
@@ -377,8 +385,6 @@ private:
         CustomSlider downsampleSlider{"DECI"};  // NUEVO - parámetro m_DOWNSAMPLE (factor downsampling 0-99)
         juce::TextButton downsampleButton{"DOWNSAMPLE"};  // NUEVO - parámetro n_DOWNSAMPLEON (activar downsampling)
         juce::TextButton safeLimitButton{"LIMIT"};  // NUEVO - parámetro p_SAFELIMITON (limitador brickwall)
-        juce::TextButton toneLpfButton{"LPF"};  // NUEVO - parámetro q_TONEON (tone LPF on/off)
-        CustomSlider toneFreqSlider{"tonefreq"};  // NUEVO - parámetro r_TONEFREQ (frecuencia del tone LPF)
         
         // MAXIMIZER: rangeAttachment, reactAttachment y smoothAttachment eliminados - parámetros inexistentes
         std::unique_ptr<CustomSliderAttachment> tiltAttachment;  // NUEVO - attachment para i_TILT
@@ -387,8 +393,6 @@ private:
         std::unique_ptr<CustomSliderAttachment> downsampleAttachment;  // NUEVO - attachment para m_DOWNSAMPLE
         std::unique_ptr<UndoableButtonAttachment> downsampleButtonAttachment;  // NUEVO - attachment para n_DOWNSAMPLEON
         std::unique_ptr<UndoableButtonAttachment> safeLimitAttachment;  // NUEVO - attachment para p_SAFELIMITON
-        std::unique_ptr<UndoableButtonAttachment> toneLpfAttachment;  // NUEVO - attachment para q_TONEON
-        std::unique_ptr<CustomSliderAttachment> toneFreqAttachment;  // NUEVO - attachment para r_TONEFREQ
     } rightTopControls;
     
     // Controles derechos, fila inferior
@@ -447,7 +451,7 @@ private:
     // Botones superiores junto a presets (y=15)
     struct TopButtons {
         juce::TextButton abStateButton{"A/B"};
-        juce::TextButton abCopyButton{"A→B"};
+        juce::TextButton abCopyButton{"A->B"};
     } topButtons;
     
     // Botón central inferior (y=163)  
