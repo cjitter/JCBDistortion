@@ -347,13 +347,13 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
         
         utilityButtons.runGraphicsButton.setButtonText("FFT");
         utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId, 
-                                                  juce::Colour(0xFF9C27B0).withAlpha(0.3f));  // FFT: púrpura
+                                                  juce::Colours::transparentBlack);  // FFT: transparente
         utilityButtons.zoomButton.setAlpha(1.0f);
         utilityButtons.zoomButton.setEnabled(true);
     }
     else
     {
-        // Estado por defecto es CURVES (0)
+        // Si displayModeIsFFT es false, configurar modo CURVES
         currentDisplayMode = DisplayMode::Curves;
         
         distortionCurveDisplay.setVisible(true);
@@ -365,9 +365,6 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
         utilityButtons.zoomButton.setAlpha(0.4f);
         utilityButtons.zoomButton.setEnabled(false);
     }
-    
-    // Configurar estado inicial basado en el processor (solo para envolventes)
-    utilityButtons.runGraphicsButton.setToggleState(false, juce::dontSendNotification);
     
     // Actualizar valores de sliders desde APVTS para evitar problemas al cargar sesión
     // Usar MessageManager::callAsync para ejecución thread-safe sin delay
@@ -1650,12 +1647,20 @@ void JCBDistortionAudioProcessorEditor::handleParameterChange()
         // No hay preset seleccionado - verificar el texto actual
         juce::String currentText = presetArea.presetMenu.getTextWhenNothingSelected();
         
-        // Si está vacío o es DEFAULT, no hacer nada
-        if (currentText.isEmpty() || currentText == "DEFAULT") {
+        // Si está vacío, no hacer nada
+        if (currentText.isEmpty()) {
             presetArea.presetMenu.setTextWhenNothingSelected("");
             presetArea.presetMenu.setTextItalic(false);
             processor.setPresetDisplayText("");
             processor.setPresetTextItalic(false);
+        }
+        // Si es DEFAULT, permitir que se marque como modificado
+        else if (currentText == "DEFAULT") {
+            auto modifiedText = "DEFAULT*";
+            presetArea.presetMenu.setTextWhenNothingSelected(modifiedText);
+            presetArea.presetMenu.setTextItalic(true);
+            processor.setPresetDisplayText(modifiedText);
+            processor.setPresetTextItalic(true);
         }
         // Si ya tiene asterisco, no hacer nada más
         else if (!currentText.endsWith("*")) {
@@ -2698,16 +2703,22 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
 
             // Restaurar FFT/CURVES a su estado por defecto (FFT)
             currentDisplayMode = DisplayMode::FFT;
-            utilityButtons.runGraphicsButton.setToggleState(true, juce::dontSendNotification);
             utilityButtons.runGraphicsButton.setButtonText("FFT");
             distortionCurveDisplay.setVisible(false);
             spectrumAnalyzer.setVisible(true);
             // Actualizar color del botón para modo FFT
             utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId, 
-                                                      juce::Colour(0xFF9C27B0).withAlpha(0.3f));  // FFT: púrpura
+                                                      juce::Colours::transparentBlack);  // FFT: transparente
             // Habilitar zoom button en modo FFT
             utilityButtons.zoomButton.setAlpha(1.0f);
             utilityButtons.zoomButton.setEnabled(true);
+            
+            // Establecer modo FFT para preset DEFAULT
+            currentDisplayMode = DisplayMode::FFT;
+            processor.displayModeIsFFT = true;
+            utilityButtons.runGraphicsButton.setButtonText("FFT");
+            distortionCurveDisplay.setVisible(false);
+            spectrumAnalyzer.setVisible(true);
 
             // Reactivar undo después carga de preset
             isLoadingPreset = false;
@@ -2760,8 +2771,10 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                                 bool isFFT = uiSettings.getProperty("displayModeIsFFT", false);
                                 currentDisplayMode = isFFT ? DisplayMode::FFT : DisplayMode::Curves;
                                 // Actualizar botón graphics
-                                utilityButtons.runGraphicsButton.setToggleState(isFFT, juce::dontSendNotification);
-                                utilityButtons.runGraphicsButton.setButtonText(isFFT ? "FFT" : "CURVES");
+                                utilityButtons.runGraphicsButton.setButtonText(isFFT ? "FFT" : "curves");
+                                // Actualizar color del botón
+                                utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId,
+                                                                          isFFT ? juce::Colours::transparentBlack : DarkTheme::accent.withAlpha(0.3f));
                                 // Actualizar visibilidad de componentes
                                 distortionCurveDisplay.setVisible(!isFFT);
                                 spectrumAnalyzer.setVisible(isFFT);
@@ -2793,8 +2806,10 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                         bool isFFT = uiSettings.getProperty("displayModeIsFFT", false);
                         currentDisplayMode = isFFT ? DisplayMode::FFT : DisplayMode::Curves;
                         // Actualizar botón graphics
-                        utilityButtons.runGraphicsButton.setToggleState(isFFT, juce::dontSendNotification);
-                        utilityButtons.runGraphicsButton.setButtonText(isFFT ? "FFT" : "CURVES");
+                        utilityButtons.runGraphicsButton.setButtonText(isFFT ? "FFT" : "curves");
+                        // Actualizar color del botón
+                        utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId,
+                                                                  isFFT ? juce::Colours::transparentBlack : DarkTheme::accent.withAlpha(0.3f));
                         // Actualizar visibilidad de componentes
                         distortionCurveDisplay.setVisible(!isFFT);
                         spectrumAnalyzer.setVisible(isFFT);
@@ -2892,10 +2907,9 @@ void JCBDistortionAudioProcessorEditor::setupUtilityButtons()
     
     // El botón de bypass se ha movido a parameterButtons
 
-    // Ejecutar gráficos - caso especial: invertido (OFF con fondo, ON transparente)
-    utilityButtons.runGraphicsButton.setClickingTogglesState(true);
-    utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId, DarkTheme::accent.withAlpha(0.3f));  // Inicial: azul original consistente (modo curves por defecto)
-    utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonOnColourId, juce::Colours::transparentBlack);  // ON: transparente
+    // Ejecutar gráficos - botón normal (no toggle) para control manual completo
+    utilityButtons.runGraphicsButton.setClickingTogglesState(false);
+    utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId, juce::Colours::transparentBlack);  // Inicial: transparente (modo FFT por defecto)
     utilityButtons.runGraphicsButton.setColour(juce::TextButton::textColourOffId, DarkTheme::textPrimary);
     utilityButtons.runGraphicsButton.setColour(juce::TextButton::textColourOnId, DarkTheme::textPrimary);
     utilityButtons.runGraphicsButton.addListener(this);
@@ -4706,9 +4720,9 @@ void JCBDistortionAudioProcessorEditor::toggleDisplayMode()
         // Actualizar texto y color del botón FFT
         utilityButtons.runGraphicsButton.setButtonText("FFT");
         
-        // Color púrpura/rosa distintivo para modo FFT (mismo que botón A activo)
+        // Sin color de fondo para modo FFT (transparente)
         utilityButtons.runGraphicsButton.setColour(juce::TextButton::buttonColourId, 
-                                                  juce::Colour(0xFF9E35B0));  // FFT: púrpura/rosa exacto como botón A
+                                                  juce::Colours::transparentBlack);  // FFT: transparente
         
         // Habilitar botón zoom para modo FFT
         utilityButtons.zoomButton.setAlpha(1.0f);

@@ -181,7 +181,7 @@ public:
     bool isInitialized() const noexcept { return m_PluginState != nullptr; }
     
     // Estado del modo de visualización (no es parámetro automatizable)
-    bool displayModeIsFFT = false;
+    bool displayModeIsFFT = true;
     
 private:
     //==============================================================================
@@ -292,6 +292,51 @@ private:
     ParameterState stateA;
     ParameterState stateB;
     bool isStateA{true};
+    
+    //==============================================================================
+    // SISTEMA DE BYPASS SUAVE - Implementación sin lookahead/latencia
+    //==============================================================================
+    
+    // --- Scratch Buffers RT-safe ---
+    juce::AudioBuffer<float> scratchIn;          // Buffer temporal para entrada (2ch: L/R)
+    juce::AudioBuffer<float> scratchDry;         // Buffer temporal para DRY (2ch: L/R)
+    int scratchCapacitySamples { 0 };            // Capacidad actual de los scratch buffers
+    
+    // Helper: asegura capacidad de scratch sin allocations en audio thread
+    inline void ensureScratchCapacity(int numSamples)
+    {
+        if (numSamples > scratchCapacitySamples)
+        {
+            scratchIn.setSize(2, numSamples, false, false, true);
+            scratchDry.setSize(2, numSamples, false, false, true);
+            scratchIn.clear();
+            scratchDry.clear();
+            scratchCapacitySamples = numSamples;
+        }
+    }
+    
+    // --- FSM de Bypass con Fade ---
+    enum class BypassState { Active, FadingToBypass, Bypassed, FadingToActive };
+    BypassState bypassState { BypassState::Active };  // Estado actual del bypass
+    int bypassFadeLen { 384 };                        // Longitud del fade en samples (~7ms @ 48kHz)
+    float bypassFadeMs { 7.0f };                      // Duración del fade en ms
+    int bypassFadePos { 0 };                          // Posición actual del fade (0 a bypassFadeLen)
+    
+    // --- Control y sincronización ---
+    std::atomic<bool> hostBypassMirror { false };     // Espejo atómico del estado de bypass del host
+    bool lastWantsBypass { false };                   // Estado anterior para detección de flancos
+    
+    // Helper para leer el parámetro de bypass del host
+    inline bool isHostBypassed() const noexcept
+    {
+        if (auto* p = getBypassParameter())          // JUCE crea un parámetro estándar de bypass
+            return p->getValue() >= 0.5f;            // 0..1
+        return false;
+    }
+    
+    // Método común de procesamiento con bypass suave
+    void processBlockCommon(juce::AudioBuffer<float>& buffer, bool hostWantsBypass);
+    void processBlockBypassed(juce::AudioBuffer<float>&, juce::MidiBuffer&) override;
     
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(JCBDistortionAudioProcessor)

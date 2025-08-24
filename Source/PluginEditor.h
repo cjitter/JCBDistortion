@@ -340,7 +340,7 @@ private:
         Curves,      // DistortionCurveComponent visible
         FFT          // SpectrumAnalyzerComponent visible
     };
-    DisplayMode currentDisplayMode = DisplayMode::Curves;
+    DisplayMode currentDisplayMode = DisplayMode::FFT;
     
     //==========================================================================
     // COMPONENTES DE METERS

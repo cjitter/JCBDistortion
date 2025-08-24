@@ -227,6 +227,23 @@ void JCBDistortionAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
     // DISTORTION: Latencia mínima fija - no necesita lookahead variable
     // Solo compensar 1 sample mínimo de Gen~ 
     setLatencySamples(0);
+    
+    // === INICIALIZACIÓN DEL SISTEMA DE BYPASS SUAVE ===
+    // Pre-asignar scratch buffers para evitar allocations en audio thread
+    ensureScratchCapacity(juce::jmax(static_cast<int>(samplesPerBlock), 4096));
+    
+    // Configurar longitud del fade desde bypassFadeMs (7ms por defecto)
+    {
+        const int lenFromMs = juce::roundToInt(bypassFadeMs * static_cast<float>(sampleRate) / 1000.0f);
+        bypassFadeLen = juce::jlimit(128, 512, lenFromMs > 0 ? lenFromMs : 128);
+    }
+    bypassFadePos = 0;
+    
+    // Estado inicial coherente con el host
+    const bool hb = isHostBypassed();
+    hostBypassMirror.store(hb, std::memory_order_relaxed);
+    bypassState = hb ? BypassState::Bypassed : BypassState::Active;
+    lastWantsBypass = hb;
 
     // Initialize atomic meter values
     // CRITICAL: Changed from SmoothedValue to atomic - no reset() needed
@@ -277,39 +294,232 @@ void JCBDistortionAudioProcessor::releaseResources()
 //==============================================================================
 void JCBDistortionAudioProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
 {
-    juce::ScopedNoDenormals noDenormals;
-    
-    const int numSamples = buffer.getNumSamples();
-    assureBufferSize(numSamples);
+    juce::ignoreUnused(midiMessages);
+    processBlockCommon(buffer, /*hostWantsBypass*/ false);
+}
 
-    // Procesar audio usando métodos separados
+void JCBDistortionAudioProcessor::processBlockBypassed(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midiMessages)
+{
+    juce::ignoreUnused(midiMessages);
+    processBlockCommon(buffer, /*hostWantsBypass*/ true);
+}
+
+void JCBDistortionAudioProcessor::processBlockCommon(juce::AudioBuffer<float>& buffer, bool hostWantsBypass)
+{
+    juce::ScopedNoDenormals noDenormals;
+    const int numSamples = buffer.getNumSamples();
+    const int numChannels = buffer.getNumChannels();
+    
+    // Ajustar buffers auxiliares si es necesario
+    assureBufferSize(numSamples);
+    
+    // === 1. SIEMPRE capturar entrada ANTES de procesar (crítico para bypass) ===
+    ensureScratchCapacity(numSamples);
+    float* inL = scratchIn.getWritePointer(0);
+    float* inR = scratchIn.getWritePointer(1);
+    {
+        const float* srcL = buffer.getReadPointer(0);
+        const float* srcR = (numChannels > 1) ? buffer.getReadPointer(1) : srcL;
+        std::memcpy(inL, srcL, sizeof(float) * static_cast<size_t>(numSamples));
+        if (numChannels > 1) 
+            std::memcpy(inR, srcR, sizeof(float) * static_cast<size_t>(numSamples));
+        else
+            std::memcpy(inR, inL, sizeof(float) * static_cast<size_t>(numSamples));
+    }
+    
+    // === 2. Procesar WET con Gen~ (siempre activo, f_BYPASS interno manejado por Gen~) ===
     fillGenInputBuffers(buffer);
     processGenAudio(numSamples);
-    fillOutputBuffers(buffer);
+    fillOutputBuffers(buffer); // buffer = WET procesado
     
-    // Feed spectrum analyzer with output samples (if callback is set)
+    auto* wetL = buffer.getWritePointer(0);
+    auto* wetR = (numChannels > 1) ? buffer.getWritePointer(1) : wetL;
+    
+    // === 3. DRY sin compensación (JCBDistortion no tiene latencia/lookahead) ===
+    float* dryL = scratchDry.getWritePointer(0);
+    float* dryR = scratchDry.getWritePointer(1);
+    // DRY = entrada capturada (sin delay porque no hay latencia)
+    for (int n = 0; n < numSamples; ++n) {
+        dryL[n] = inL[n];
+        if (numChannels > 1) 
+            dryR[n] = inR[n];
+    }
+    
+    // === 4. FSM de Bypass y mezcla equal-power (como JCBCompressor) ===
+    const bool wantsBypass = hostWantsBypass;
+    hostBypassMirror.store(wantsBypass, std::memory_order_relaxed);
+    const bool bypassEdge = (wantsBypass != lastWantsBypass);
+    lastWantsBypass = wantsBypass;
+    
+    // Transiciones de estado en flancos (al inicio del bloque)
+    switch (bypassState)
+    {
+        case BypassState::Active:
+            if (bypassEdge && wantsBypass) {
+                bypassState = BypassState::FadingToBypass;
+                bypassFadePos = 0;
+            }
+            break;
+            
+        case BypassState::Bypassed:
+            if (bypassEdge && !wantsBypass) {
+                bypassState = BypassState::FadingToActive;
+                bypassFadePos = 0;
+            }
+            break;
+            
+        case BypassState::FadingToBypass:
+            if (bypassEdge && !wantsBypass) {
+                // Revertir fade en curso
+                bypassState = BypassState::FadingToActive;
+                bypassFadePos = juce::jmax(0, bypassFadeLen - bypassFadePos);
+            }
+            break;
+            
+        case BypassState::FadingToActive:
+            if (bypassEdge && wantsBypass) {
+                // Revertir fade en curso
+                bypassState = BypassState::FadingToBypass;
+                bypassFadePos = juce::jmax(0, bypassFadeLen - bypassFadePos);
+            }
+            break;
+    }
+    
+    // === 5. Aplicar estado o fade ===
+    const bool fading = (bypassState == BypassState::FadingToBypass || 
+                         bypassState == BypassState::FadingToActive);
+    
+    if (!fading)
+    {
+        // Estados estables
+        if (bypassState == BypassState::Active)
+        {
+            // WET tal cual (ya está en buffer)
+        }
+        else // Bypassed
+        {
+            for (int n = 0; n < numSamples; ++n) {
+                wetL[n] = dryL[n];
+                if (numChannels > 1) wetR[n] = dryR[n];
+            }
+        }
+    }
+    else
+    {
+        // === Fade con detección de cruce por cero (como JCBCompressor) ===
+        int fadeStartOffset = 0;
+        const bool startingFadeThisBlock = 
+            ((bypassEdge && wantsBypass && bypassState == BypassState::FadingToBypass) ||
+             (bypassEdge && !wantsBypass && bypassState == BypassState::FadingToActive)) &&
+            (bypassFadePos == 0);
+        
+        if (startingFadeThisBlock)
+        {
+            // Buscar cruce por cero en primeras 32 muestras
+            const float* refL = (bypassState == BypassState::FadingToBypass) ? dryL : wetL;
+            const float* refR = (numChannels > 1) ?
+                               ((bypassState == BypassState::FadingToBypass) ? dryR : wetR) : refL;
+            
+            auto nearZero = [](float x) noexcept { return std::abs(x) < 1.0e-5f; };
+            const int searchMax = juce::jmin(32, numSamples - 1);
+            
+            for (int i = 1; i <= searchMax; ++i)
+            {
+                const float l0 = refL[i-1], l1 = refL[i];
+                const float r0 = refR[i-1], r1 = refR[i];
+                const bool zcL = (nearZero(l0) || nearZero(l1) || (l0 * l1 <= 0.0f));
+                const bool zcR = (nearZero(r0) || nearZero(r1) || (r0 * r1 <= 0.0f));
+                if (zcL || zcR) {
+                    fadeStartOffset = i;
+                    break;
+                }
+            }
+        }
+        
+        // Aplicar fade con ventana Hann
+        for (int n = 0; n < numSamples; ++n)
+        {
+            float wWet = 0.0f, wDry = 0.0f;
+            
+            // Antes del offset, mantener pesos fijos
+            if (n < fadeStartOffset)
+            {
+                if (bypassState == BypassState::FadingToBypass) {
+                    wWet = 1.0f; wDry = 0.0f;
+                } else {
+                    wWet = 0.0f; wDry = 1.0f;
+                }
+                const float outL = wWet * wetL[n] + wDry * dryL[n];
+                const float outR = wWet * wetR[n] + wDry * (numChannels > 1 ? dryR[n] : dryL[n]);
+                wetL[n] = outL;
+                if (numChannels > 1) wetR[n] = outR;
+                continue;
+            }
+            
+            // Calcular pesos del fade
+            const float t = juce::jlimit(0.0f, 1.0f,
+                                         static_cast<float>(bypassFadePos) / 
+                                         static_cast<float>(juce::jmax(1, bypassFadeLen)));
+            
+            // Ventana Hann (sin²/cos²) para mantener amplitud estable
+            const float s = std::sin(t * juce::MathConstants<float>::halfPi);
+            const float c = std::cos(t * juce::MathConstants<float>::halfPi);
+            
+            if (bypassState == BypassState::FadingToBypass) {
+                wWet = c * c;  // cos² (de 1 a 0)
+                wDry = s * s;  // sin² (de 0 a 1)
+            } else {
+                wWet = s * s;  // sin² (de 0 a 1)
+                wDry = c * c;  // cos² (de 1 a 0)
+            }
+            
+            const float outL = wWet * wetL[n] + wDry * dryL[n];
+            const float outR = wWet * wetR[n] + wDry * (numChannels > 1 ? dryR[n] : dryL[n]);
+            wetL[n] = outL;
+            if (numChannels > 1) wetR[n] = outR;
+            
+            // Avanzar fade
+            ++bypassFadePos;
+            if (bypassFadePos >= bypassFadeLen)
+            {
+                bypassState = (bypassState == BypassState::FadingToBypass) ? 
+                             BypassState::Bypassed : BypassState::Active;
+                
+                // Resto del bloque ya en estado final
+                if (bypassState == BypassState::Bypassed) {
+                    for (int k = n + 1; k < numSamples; ++k) {
+                        wetL[k] = dryL[k];
+                        if (numChannels > 1) wetR[k] = dryR[k];
+                    }
+                }
+                // Si Active, WET ya está correcto
+                break;
+            }
+        }
+    }
+    
+    // === 6. Análisis y medición post-procesamiento ===
+    
+    // Feed spectrum analyzer con salida final
     if (spectrumAnalyzerCallback && buffer.getNumChannels() > 0)
     {
-        auto* outputSamples = buffer.getReadPointer(0); // Use left channel
+        auto* outputSamples = buffer.getReadPointer(0);
         for (int sample = 0; sample < numSamples; ++sample)
         {
             spectrumAnalyzerCallback(outputSamples[sample]);
         }
     }
     
-    // Capturar DESPUÉS del procesamiento para usar salidas de Gen~
-    // Capturar entrada post-TRIM desde salidas 3 y 4 de Gen~
+    // Capturar formas de onda
     captureInputWaveformData(buffer, numSamples);
-    // Capturar salida procesada para visualización
     captureOutputWaveformData(numSamples);
     
-    // Actualizar clip detection (debe ser DESPUÉS del procesamiento completo)
-    updateClipDetection(buffer, buffer);  // input y output son el mismo buffer al final
+    // Actualizar detección de clipping
+    updateClipDetection(buffer, buffer);
     
     // Actualizar medidores
     updateInputMeters(buffer);
     updateOutputMeters(buffer);
-    
 }
 
 //==============================================================================
@@ -822,7 +1032,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
                                                                 juce::CharPointer_UTF8("Safety Limiter"),
                                                                 0, 1, 0);
 
-   // q_TONEON @min 0 @max 1 @default 0 (Tone on/off: 0=off, 1=on)
+// q_TONEON @min 0 @max 1 @default 0 (Tone on/off: 0=off, 1=on)
    auto toneOn = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("q_TONEON", versionHint),
                                                           juce::CharPointer_UTF8("Tone On"),
                                                           0, 1, 0);

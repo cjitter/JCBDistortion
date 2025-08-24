@@ -7,6 +7,7 @@
 // Dry/Wet mezcla señal original (pre-trim) con señal completamente procesada
 // =============================================================================
 
+
 // -----------------------------------------------------------------------------
 // FUNCIONES DE DISTORSIÓN (asimetría por pendiente usando DC)
 // -----------------------------------------------------------------------------
@@ -397,8 +398,9 @@ hBitson = hBitson * smoothFactor + h_BITSON * (1 - smoothFactor);
 bitson = hBitson;
 hTilt = hTilt * smoothFactor + i_TILT * (1 - smoothFactor);
 tiltDb = hTilt;
-// Smoothing independiente para el activador de Tilt
-onSmoothTilt = 0.9; // respuesta rápida (~10% por muestra) solo para Tilt ON/OFF
+// Smoothing independiente para el activador de Tilt y toggles
+toggleSmooth = 0.99; // ~1% por muestra (~20-30 ms @48k) para toggles (declick)
+onSmoothTilt = toggleSmooth; // usado solo para Tilt ON/OFF
 hTiltOn   = hTiltOn * onSmoothTilt + s_TILTON * (1 - onSmoothTilt);
 tiltOn    = clamp(hTiltOn, 0, 1);
 hInput = hInput * smoothFactor + k_INPUT * (1 - smoothFactor);
@@ -419,6 +421,7 @@ hDownsample = hDownsample * smoothFactor + m_DOWNSAMPLE * (1 - smoothFactor);
 onSmooth = 0.9; // respuesta rápida (~10% por muestra)
 hDownsampleOn = hDownsampleOn * onSmooth + n_DOWNSAMPLEON * (1 - onSmooth);
 downsampleOn = hDownsampleOn;
+toneSmooth = 0.99; // suavizado específico para activadores tipo TONE ON/OFF
 
 // Suavizado del bypass
 hBypass = hBypass * smoothFactor + (1 - f_BYPASS) * (1 - smoothFactor);
@@ -449,7 +452,7 @@ hSafeLimitOn = hSafeLimitOn * smoothFactor + p_SAFELIMITON * (1 - smoothFactor);
 safeOn = clamp(hSafeLimitOn, 0, 1);
 
 // Smoothing LPF global (toggle y frecuencia)
-hToneOn   = hToneOn   * onSmooth     + q_TONEON   * (1 - onSmooth);
+hToneOn   = hToneOn   * toneSmooth   + q_TONEON   * (1 - toneSmooth);
 toneOn    = clamp(hToneOn, 0, 1);
 
 hToneFreq = hToneFreq * smoothFactor + r_TONEFREQ * (1 - smoothFactor);
@@ -925,11 +928,16 @@ sumBandsL = lowL + midL + highL;
 sumBandsR = lowR + midR + highR;
 
 // Solo activo solo tiene sentido con el crossover activo (scSm ~1)
-soloOn = (wBandSolo > 0.5) * (scSm > 0.5);
-
+//soloOn = (wBandSolo > 0.5) * (scSm > 0.5);
 // Si Solo está ON: las otras bandas NO pasan al WET por bypassWhenActive
-bypassWhenActiveL = soloOn ? 0 : (sumBandsL - preBandL);
-bypassWhenActiveR = soloOn ? 0 : (sumBandsR - preBandR);
+//bypassWhenActiveL = soloOn ? 0 : (sumBandsL - preBandL);
+//bypassWhenActiveR = soloOn ? 0 : (sumBandsR - preBandR);
+
+// Solo como cantidad continua (0..1), ya suavizada, y dependiente del crossover
+soloAmt = clamp(hBandSolo * scSm, 0, 1);
+// Atenúa progresivamente lo que NO es la banda seleccionada
+bypassWhenActiveL = (sumBandsL - preBandL) * (1 - soloAmt);
+bypassWhenActiveR = (sumBandsR - preBandR) * (1 - soloAmt);
 
 // Conmutación por enable (scSm): si desactivado, banda ancha
 preDistInL = mix(lTrimmed, preBandL, scSm);
