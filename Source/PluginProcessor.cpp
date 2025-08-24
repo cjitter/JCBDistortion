@@ -113,7 +113,7 @@ JCBDistortionAudioProcessor::JCBDistortionAudioProcessor()
             else if (paramName == "p_TILTPOS") {
                 value = juce::jlimit(0.0f, 1.0f, value);
             }
-            else if (paramName == "s_TONEPOS") {
+            else if (paramName == "u_TONEPOS") {
                 value = juce::jlimit(0.0f, 1.0f, value);
             }
             else if (paramName == "t_TONEQ") {
@@ -133,6 +133,9 @@ JCBDistortionAudioProcessor::JCBDistortionAudioProcessor()
             }
             else if (paramName == "r_TONEFREQ") {
                 value = juce::jlimit(20.0f, 20000.0f, value);
+            }
+            else if (paramName == "s_TILTON") {
+                value = juce::jlimit(0.0f, 1.0f, value);
             }
             
             JCBDistortion::setparameter(m_PluginState, i, value, nullptr);
@@ -830,8 +833,13 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
                                                               juce::NormalisableRange<float>(20.0f, 20000.0f, 1.0f, 0.3f),
                                                               20000.0f);
 
-   // s_TONEPOS @min 0 @max 1 @default 1 (Tone LPF position: 0=Pre, 1=Post)
-   auto tonePos = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("s_TONEPOS", versionHint),
+   // s_TILTON @min 0 @max 1 @default 1 (Tilt on/off: 0=off, 1=on)
+   auto tiltOn = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("s_TILTON", versionHint),
+                                                          juce::CharPointer_UTF8("Tilt On"),
+                                                          0, 1, 1);
+
+   // u_TONEPOS @min 0 @max 1 @default 1 (Tone LPF position: 0=Pre, 1=Post)
+   auto tonePos = std::make_unique<juce::AudioParameterInt>(juce::ParameterID("u_TONEPOS", versionHint),
                                                             juce::CharPointer_UTF8("Tone Position"),
                                                             0, 1, 1);
 
@@ -873,7 +881,8 @@ juce::AudioProcessorValueTreeState::ParameterLayout JCBDistortionAudioProcessor:
    params.push_back(std::move(safeLimitOn));    // p_SAFELIMITON
    params.push_back(std::move(toneOn));         // q_TONEON
    params.push_back(std::move(toneFreq));       // r_TONEFREQ
-   params.push_back(std::move(tonePos));        // s_TONEPOS
+   params.push_back(std::move(tiltOn));         // s_TILTON
+   params.push_back(std::move(tonePos));        // u_TONEPOS
    params.push_back(std::move(toneQ));          // t_TONEQ
 
    // DISTORTION: No requiere parámetros especiales AAX de gain reduction
@@ -958,7 +967,10 @@ void JCBDistortionAudioProcessor::parameterChanged(const juce::String& parameter
     else if (parameterID == "r_TONEFREQ") {
         newValue = juce::jlimit(20.0f, 20000.0f, newValue);
     }
-    else if (parameterID == "s_TONEPOS") {
+    else if (parameterID == "s_TILTON") {
+        newValue = juce::jlimit(0.0f, 1.0f, newValue);
+    }
+    else if (parameterID == "u_TONEPOS") {
         newValue = juce::jlimit(0.0f, 1.0f, newValue);
     }
     else if (parameterID == "t_TONEQ") {

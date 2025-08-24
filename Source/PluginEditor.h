@@ -82,6 +82,7 @@ public:
     void updateDistortionComponentStates();
     void updateBitCrusherComponentStates();
     void updateDownsampleComponentStates();
+    void updateTiltComponentStates();
     void updateToneLpfComponentStates();
     
 private:
@@ -230,6 +231,23 @@ private:
         juce::Colour getInterpolatedBandColour(float bandValue) const;
     };
     
+    // LookAndFeel personalizado para botón SOLO con gradiente invertido de púrpura
+    class SoloButtonLookAndFeel : public juce::LookAndFeel_V4
+    {
+    public:
+        SoloButtonLookAndFeel() {}
+        
+        void drawButtonBackground(juce::Graphics& g, juce::Button& button,
+                                const juce::Colour& backgroundColour,
+                                bool shouldDrawButtonAsHighlighted,
+                                bool shouldDrawButtonAsDown) override;
+        
+    private:
+        // Colores de las bandas (consistentes con FiltersButtonLookAndFeel)
+        const juce::Colour lowBandColour{0xFF9C27B0};   // Púrpura (graves)
+        const juce::Colour highBandColour{0xFF2196F3};  // Azul (agudos)
+    };
+    
     // LookAndFeel personalizado para botones con gradiente invertido (azul a la izquierda, púrpura a la derecha)
     class ReversedGradientButtonLookAndFeel : public juce::LookAndFeel_V4
     {
@@ -367,19 +385,20 @@ private:
         CustomSlider toneFreqSlider{"tonefreq"};  // MOVIDO DESDE RightTopControls - parámetro r_TONEFREQ
         CustomSlider toneQSlider{"toneQ"};  // NUEVO - parámetro t_TONEQ (resonancia Q del LPF TONE)
         juce::TextButton toneLpfButton{"TONE"};  // MOVIDO DESDE RightTopControls - parámetro q_TONEON
-        juce::TextButton tonePosButton{"POST"};  // NUEVO - parámetro s_TONEPOS (posición del tone: PRE/POST)
+        juce::TextButton tonePosButton{"POST"};  // NUEVO - parámetro u_TONEPOS (posición del tone: PRE/POST)
         
         std::unique_ptr<CustomSliderAttachment> drywetAttachment;  // DISTORTION: para o_DRYWET
         std::unique_ptr<CustomSliderAttachment> toneFreqAttachment;  // MOVIDO DESDE RightTopControls - para r_TONEFREQ
         std::unique_ptr<CustomSliderAttachment> toneQAttachment;  // NUEVO - attachment para t_TONEQ
         std::unique_ptr<UndoableButtonAttachment> toneLpfAttachment;  // MOVIDO DESDE RightTopControls - para q_TONEON
-        std::unique_ptr<UndoableButtonAttachment> tonePosAttachment;  // NUEVO - attachment para s_TONEPOS
+        std::unique_ptr<UndoableButtonAttachment> tonePosAttachment;  // NUEVO - attachment para u_TONEPOS
     } leftBottomKnobs;
 
     
     // Controles derechos - fila superior
     struct RightTopControls {
         CustomSlider tiltSlider{"tilt"};  // NUEVO - parámetro i_TILT (Tilt EQ)
+        juce::TextButton tiltOnButton{"TILT"};  // NUEVO - parámetro s_TILTON (activador de Tilt: ON/OFF)
         juce::TextButton tiltPosButton{"PRE"};  // NUEVO - parámetro p_TILTPOS (posición del tilt: PRE/POST)
         CustomSlider bitsSlider{"BIT"};  // NUEVO - parámetro g_BITS (Bit crusher resolution)
         CustomSlider downsampleSlider{"DECI"};  // NUEVO - parámetro m_DOWNSAMPLE (factor downsampling 0-99)
@@ -388,6 +407,7 @@ private:
         
         // MAXIMIZER: rangeAttachment, reactAttachment y smoothAttachment eliminados - parámetros inexistentes
         std::unique_ptr<CustomSliderAttachment> tiltAttachment;  // NUEVO - attachment para i_TILT
+        std::unique_ptr<UndoableButtonAttachment> tiltOnAttachment;  // NUEVO - attachment para s_TILTON
         std::unique_ptr<UndoableButtonAttachment> tiltPosButtonAttachment;  // NUEVO - attachment para p_TILTPOS
         std::unique_ptr<CustomSliderAttachment> bitsAttachment;  // NUEVO - attachment para g_BITS
         std::unique_ptr<CustomSliderAttachment> downsampleAttachment;  // NUEVO - attachment para m_DOWNSAMPLE
@@ -424,7 +444,7 @@ private:
         juce::Label bandLowLabel;     // Label para "Low"
         juce::Label bandMidLabel;     // Label para "Mid"
         juce::Label bandHighLabel;    // Label para "High"
-        juce::TextButton scButton{"FILTERS"};
+        juce::TextButton scButton{"XOVER"};
         juce::TextButton bandSoloButton{"SOLO"};  // NUEVO - parámetro p_BANDSOLO
         
         std::unique_ptr<CustomSliderAttachment> xLowAttachment;
@@ -1009,6 +1029,7 @@ private:
     SmallButtonLAF smallButtonLAF;
     BandSliderLookAndFeel bandSliderLAF;
     std::unique_ptr<FiltersButtonLookAndFeel> filtersButtonLAF;  // Unique_ptr porque necesita APVTS en constructor
+    std::unique_ptr<SoloButtonLookAndFeel> soloButtonLAF;  // LookAndFeel para botón SOLO con gradiente invertido
     std::unique_ptr<ReversedGradientButtonLookAndFeel> reversedGradientButtonLAF;  // LookAndFeel con gradiente invertido
     std::unique_ptr<TealGradientButtonLookAndFeel> tealGradientButtonLAF;  // LookAndFeel con gradiente teal para PRE/POST
     std::unique_ptr<CoralGradientButtonLookAndFeel> coralGradientButtonLAF;  // LookAndFeel con gradiente coral para DIST ON
@@ -1060,6 +1081,7 @@ private:
     class DistortionParameterListener;
     class BitCrusherParameterListener;
     class DownsampleParameterListener;
+    class TiltParameterListener;
     class ToneLpfParameterListener;
     
     // Listeners especializados
@@ -1068,6 +1090,7 @@ private:
     std::unique_ptr<DistortionParameterListener> distortionParameterListener;
     std::unique_ptr<BitCrusherParameterListener> bitCrusherParameterListener;
     std::unique_ptr<DownsampleParameterListener> downsampleParameterListener;
+    std::unique_ptr<TiltParameterListener> tiltParameterListener;
     std::unique_ptr<ToneLpfParameterListener> toneLpfParameterListener;
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (JCBDistortionAudioProcessorEditor)

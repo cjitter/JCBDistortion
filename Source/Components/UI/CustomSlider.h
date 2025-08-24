@@ -269,7 +269,7 @@ public:
             if (name == "drywet" || id == "drywet") return "D/W";
             if (name == "ceiling" || id == "ceiling") return "CEIL";
             if (name == "tilt" || id == "tilt") return "TILT";
-            if (name == "tonefreq" || id == "tonefreq" || name == "tone" || id == "tone") return "TONE";  // TONE label
+            if (name == "tonefreq" || id == "tonefreq" || name == "tone" || id == "tone") return "RLPF";  // RLPF label
             if (name == "toneq" || id == "toneq" || id == "t_toneq") return "Q";  // TONE Q label
             if (name == "bit" || id == "bit") return "BITS";
             if (name == "deci" || id == "deci") return "DECI";
@@ -288,7 +288,6 @@ public:
 
 /**
  * Custom attachment usando ParameterAttachment + UndoableParameterHelper
- * Solución probada y testeada en jr-granular
  * APVTS con nullptr = no undo automático, undo manual solo para gestos de usuario
  */
 class CustomSliderAttachment : private juce::Slider::Listener
