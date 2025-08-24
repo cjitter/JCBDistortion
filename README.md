@@ -83,7 +83,8 @@ cmake --build build-release   # Para Release
 - Procesamiento estéreo con parámetros unificados.
 - Tooltips bilingües (ES/EN) conmutables.
 - Diagrama de bloques interactivo con acceso a GenExpr para estudio en Max.
-## Cambios recientes v0.9.2
+
+### Cambios recientes v0.9.3
 
 - EVEN refinado: asimetría por pendiente (skew) con normalización y tanh-shaping → armónicos pares más “finos” y controlables, sin golpes DC incluso a altos drives.
 - Ruta Pre/Post Tilt con morph: mismo juego de coeficientes y normalización al pivote para que Pre y Post se combinen sin saltos.
@@ -94,6 +95,16 @@ cmake --build build-release   # Para Release
 - Gestión de banda: Band Solo encaminado por el core (solo la banda seleccionada en wet, dry full-range), más útil para diseño de sonido y A/B.
 - Robustez numérica: fixdenorm() en todos los estados de biquads y smoothing afinado (incl. MODE con factor específico) para evitar clicks/zipper.
 
+- Implementación de **RLPF (Resonant Low-Pass Filter)** para el control de *Tone*:
+  - Basado en coeficientes RBJ de 2º orden, con parámetro de **Q ajustable** (0.707 – 16).
+  - Funciona tanto en **PRE** (antes de la distorsión) como en **POST** (después de la distorsión).
+  - Incluye **compensación de fase** mediante un allpass en la ruta DRY, evitando *notches* al mezclar en 50% Dry/Wet.
+  - Compatible con la activación/desactivación independiente de la distorsión: el filtro se aplica siempre que *Tone* esté activado.
+  - Conmutación **suavizada (smoothing)** de parámetros (frecuencia, Q, posición PRE/POST y toggle ON/OFF) para evitar clicks en cambios de estado.
+
+- Activador dedicado de **Tilt** con suavizado rápido (10% por muestra) para transiciones limpias.
+- Correcciones en el ruteo de señales: interacción consistente entre *Tilt*, *Tone* y el crossover **LR4** con preservación de fase.
+- Implementación en JUCE de sistema buypass suavizado para Pro Tools, portado de JCBComrpessor y adaptado.
 
 ![Diagrama de Bloques](Assets/screenshotDiagram.png)
 
@@ -140,5 +151,5 @@ Los tests validan los formatos VST3 y AU del plugin.
 
 ---
 
-*© 2025 Juan Carlos Blancas – JCBDistortion v0.9.2 beta*
+*© 2025 Juan Carlos Blancas – JCBDistortion v0.9.3 beta*
 
