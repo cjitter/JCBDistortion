@@ -133,16 +133,28 @@ juce_add_binary_data(JCBDistortion_BinaryData
         Assets/code/CrossoverStage.txt
         #Assets/code/LR4.txt
         #Assets/code/LR4-DRY-AllpassCompensated.txt
+
         # Presets de fábrica con prefijos de categoría
-        Assets/FactoryPresets/Drums_PlusSixAll.preset
-        Assets/FactoryPresets/Drums_Kick.preset
-        Assets/FactoryPresets/Drums_Snare.preset
-        Assets/FactoryPresets/Voces_Ali.preset
-        Assets/FactoryPresets/Voces_Warm.preset
-        Assets/FactoryPresets/Fx_Spark.preset
-        Assets/FactoryPresets/Fx_Crush.preset
-        Assets/FactoryPresets/Synth_BrightLight.preset
-        Assets/FactoryPresets/General_Midy.preset
+#        Assets/FactoryPresets/Drums_PlusSixAll.preset
+#        Assets/FactoryPresets/Drums_Kick.preset
+#        Assets/FactoryPresets/Drums_Snare.preset
+#        Assets/FactoryPresets/Voces_Ali.preset
+#        Assets/FactoryPresets/Voces_Warm.preset
+#        Assets/FactoryPresets/Fx_Spark.preset
+#        Assets/FactoryPresets/Fx_Crush.preset
+#        Assets/FactoryPresets/Synth_BrightLight.preset
+#        Assets/FactoryPresets/General_Midy.preset
+
+        # Presets de fábrica José Peña
+        Assets/FactoryPresets/Drums_Snare_Broken_Bottom.preset
+        Assets/FactoryPresets/Drums_Kick_Bright.preset
+        Assets/FactoryPresets/Bass_Bass_Destroyer.preset
+        Assets/FactoryPresets/Bass_Bass_Destroyer_2.preset
+        Assets/FactoryPresets/Drums_Acoustic_Kick_Long.preset
+        Assets/FactoryPresets/Guitars_Strat_Overdrive.preset
+        Assets/FactoryPresets/Guitars_Strat_Distortion.preset
+        Assets/FactoryPresets/Guitars_Guitar_Overdrive.preset
+        Assets/FactoryPresets/Guitars_Guitar_Distortion.preset
 )
 
 # Linkear binary data al plugin

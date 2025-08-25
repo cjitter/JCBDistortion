@@ -1048,21 +1048,21 @@ void JCBDistortionAudioProcessorEditor::resized()
     spectrumAnalyzer.setBounds(getScaledBounds(x, y, w, h));
 
     // === LEFT SIDE KNOBS === (Between SC meters and transfer function)
-    leftBottomKnobs.toneLpfButton.setBounds(getScaledBounds(138, 118, 25, 15));  // Botón TONE entre D/W y FREQ
-    leftBottomKnobs.tonePosButton.setBounds(getScaledBounds(148, 138, 20, 10));  // Botón PRE/POST más pequeño
-    leftBottomKnobs.toneFreqSlider.setBounds(getScaledBounds(158, 102, 53, 53));  // Slider FREQ más pequeño
-    leftBottomKnobs.toneQSlider.setBounds(getScaledBounds(205, 102, 53, 53));  // Slider Q más pequeño
+    leftBottomKnobs.toneLpfButton.setBounds(getScaledBounds(126, 118, 25, 15));  // Botón TONE entre D/W y FREQ
+    leftBottomKnobs.tonePosButton.setBounds(getScaledBounds(136, 138, 20, 10));  // Botón PRE/POST más pequeño
+    leftBottomKnobs.toneFreqSlider.setBounds(getScaledBounds(146, 102, 53, 53));  // Slider FREQ más pequeño
+    leftBottomKnobs.toneQSlider.setBounds(getScaledBounds(193, 102, 53, 53));  // Slider Q más pequeño
 
-    rightTopControls.tiltSlider.setBounds(getScaledBounds(85, 102, 53, 53));  // TILT más pequeño para consistencia
-    rightTopControls.tiltOnButton.setBounds(getScaledBounds(65, 118, 25, 15));  // Botón activador TILT
-    rightTopControls.tiltPosButton.setBounds(getScaledBounds(75, 138, 20, 10));  // Botón PRE/POST de TILT
+    rightTopControls.tiltSlider.setBounds(getScaledBounds(73, 102, 53, 53));  // TILT más pequeño para consistencia
+    rightTopControls.tiltOnButton.setBounds(getScaledBounds(53, 118, 25, 15));  // Botón activador TILT
+    rightTopControls.tiltPosButton.setBounds(getScaledBounds(63, 138, 20, 10));  // Botón PRE/POST de TILT
 
     // === RIGHT SIDE CONTROLS ===
-    rightBottomKnobs.distOnButton.setBounds(getScaledBounds(45, 68, 25, 20));
-    rightBottomKnobs.modeSlider.setBounds(getScaledBounds(64, 49, 53, 53));
-    rightBottomKnobs.driveSlider.setBounds(getScaledBounds(112, 49, 53, 53));
-    rightBottomKnobs.dcSlider.setBounds(getScaledBounds(158, 49, 53, 53));
-    leftTopKnobs.ceilingSlider.setBounds(getScaledBounds(205, 49, 53, 53));  // NUEVO - e_CEILING slider
+    rightBottomKnobs.distOnButton.setBounds(getScaledBounds(33, 68, 25, 20));
+    rightBottomKnobs.modeSlider.setBounds(getScaledBounds(52, 49, 53, 53));
+    rightBottomKnobs.driveSlider.setBounds(getScaledBounds(100, 49, 53, 53));
+    rightBottomKnobs.dcSlider.setBounds(getScaledBounds(146, 49, 53, 53));
+    leftTopKnobs.ceilingSlider.setBounds(getScaledBounds(193, 49, 53, 53));  // NUEVO - e_CEILING slider
 
     rightTopControls.bitsSlider.setBounds(getScaledBounds(475, 51, 53, 53));
     rightBottomKnobs.bitButton.setBounds(getScaledBounds(525, 73, 57, 15));
@@ -1109,16 +1109,16 @@ void JCBDistortionAudioProcessorEditor::resized()
     sidechainControls.bandSoloButton.setBounds(getScaledBounds(centerX + spacing/2, 8, buttonWidth, 12));
 
     // === PRESET AREA (TOP LEFT) ===
-    presetArea.saveButton.setBounds(getScaledBounds(15, 15, 20, 12));  // Alineado con undo
-    presetArea.saveAsButton.setBounds(getScaledBounds(37, 15, 25, 12));
-    presetArea.deleteButton.setBounds(getScaledBounds(64, 15, 25, 12));
-    presetArea.backButton.setBounds(getScaledBounds(91, 15, 18, 12));
-    presetArea.nextButton.setBounds(getScaledBounds(112, 15, 18, 12));
-    presetArea.presetMenu.setBounds(getScaledBounds(133, 15, 65, 12));
+    presetArea.saveButton.setBounds(getScaledBounds(5, 15, 20, 12));  // Alineado con undo
+    presetArea.saveAsButton.setBounds(getScaledBounds(27, 15, 25, 12));
+    presetArea.deleteButton.setBounds(getScaledBounds(54, 15, 25, 12));
+    presetArea.backButton.setBounds(getScaledBounds(81, 15, 14, 12));
+    presetArea.nextButton.setBounds(getScaledBounds(98, 15, 14, 12));
+    presetArea.presetMenu.setBounds(getScaledBounds(114, 15, 95, 12));
     
     // Botones A/B junto al menú de preset
-    topButtons.abStateButton.setBounds(getScaledBounds(202, 15, 18, 12));
-    topButtons.abCopyButton.setBounds(getScaledBounds(222, 15, 22, 12));
+    topButtons.abStateButton.setBounds(getScaledBounds(213, 15, 18, 12));
+    topButtons.abCopyButton.setBounds(getScaledBounds(233, 15, 22, 12));
     
     // === BOTONES DE UTILIDAD (INFERIOR IZQUIERDA) ===
     utilityButtons.undoButton.setBounds(getScaledBounds(30, 175, 22, 12));
@@ -2742,7 +2742,8 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                 }
             }
         } 
-        else if (presetName.startsWith("Drums_") || presetName.startsWith("Voces_") || 
+        else if (presetName.startsWith("Bass_") || presetName.startsWith("Drums_") || 
+                 presetName.startsWith("Guitars_") || presetName.startsWith("Voces_") || 
                  presetName.startsWith("Fx_") || presetName.startsWith("Synth_") || 
                  presetName.startsWith("General_")) {
             // Es un factory preset con prefijo de categoría - cargar desde BinaryData
@@ -2827,8 +2828,12 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
         
         // Para mostrar en el menú, usar nombre limpio sin prefijos
         juce::String displayName = presetName;
-        if (presetName.startsWith("Drums_")) {
+        if (presetName.startsWith("Bass_")) {
+            displayName = "[F] " + presetName.substring(5).replace("_", " ");
+        } else if (presetName.startsWith("Drums_")) {
             displayName = "[F] " + presetName.substring(6).replace("_", " ");
+        } else if (presetName.startsWith("Guitars_")) {
+            displayName = "[F] " + presetName.substring(8).replace("_", " ");
         } else if (presetName.startsWith("Voces_")) {
             displayName = "[F] " + presetName.substring(6).replace("_", " ");
         } else if (presetName.startsWith("Fx_")) {
@@ -3688,10 +3693,20 @@ void JCBDistortionAudioProcessorEditor::refreshPresetMenu()
             juce::String category = "General";
             juce::String presetName = cleanName;
             
-            if (cleanName.startsWith("Drums_"))
+            if (cleanName.startsWith("Bass_"))
+            {
+                category = "Bass";
+                presetName = cleanName.substring(5).replace("_", " ");
+            }
+            else if (cleanName.startsWith("Drums_"))
             {
                 category = "Drums";
                 presetName = cleanName.substring(6).replace("_", " ");
+            }
+            else if (cleanName.startsWith("Guitars_"))
+            {
+                category = "Guitars";
+                presetName = cleanName.substring(8).replace("_", " ");
             }
             else if (cleanName.startsWith("Voces_"))
             {
@@ -3720,7 +3735,7 @@ void JCBDistortionAudioProcessorEditor::refreshPresetMenu()
     }
     
     // Añadir categorías al menú
-    juce::StringArray categoryOrder = {"Drums", "Voces", "Fx", "Synth", "General"};
+    juce::StringArray categoryOrder = {"Bass", "Drums", "Guitars"};
     
     for (const auto& category : categoryOrder)
     {
