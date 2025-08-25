@@ -3735,7 +3735,7 @@ void JCBDistortionAudioProcessorEditor::refreshPresetMenu()
     }
     
     // Añadir categorías al menú
-    juce::StringArray categoryOrder = {"Bass", "Drums", "Guitars"};
+    juce::StringArray categoryOrder = {"Bass", "Drums", "Fx", "Guitars"};
     
     for (const auto& category : categoryOrder)
     {

@@ -155,6 +155,12 @@ juce_add_binary_data(JCBDistortion_BinaryData
         Assets/FactoryPresets/Guitars_Strat_Distortion.preset
         Assets/FactoryPresets/Guitars_Guitar_Overdrive.preset
         Assets/FactoryPresets/Guitars_Guitar_Distortion.preset
+        # Presets Fx
+        Assets/FactoryPresets/Fx_808_SnLike_Warmer.preset
+        Assets/FactoryPresets/Fx_808_Bd_Crush.preset
+        Assets/FactoryPresets/Fx_808_Bd_Only_Transient.preset
+        Assets/FactoryPresets/Fx_808_Sn_High_Hat.preset
+        Assets/FactoryPresets/Fx_808_Sn_Sand.preset
 )
 
 # Linkear binary data al plugin

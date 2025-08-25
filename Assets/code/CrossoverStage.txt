@@ -1,7 +1,8 @@
 // =============================================================================
-// CROSSOVER STAGE - LR4 3-Band Crossover with Band Selection - COMPLETO
+// CROSSOVER STAGE - LR4 3-Band Crossover with Band Selection - ACTUALIZADO
 // =============================================================================
-// ENTRADAS: in1=L trimmed, in2=R trimmed, in3=L dry, in4=R dry | SALIDAS: out1=L banda, out2=R banda, out3=L dry comp, out4=R dry comp, out5=L bypass, out6=R bypass
+// ENTRADAS: in1=L trimmed, in2=R trimmed, in3=L dry, in4=R dry
+// SALIDAS: out1=L banda, out2=R banda, out3=L dry comp, out4=R dry comp, out5=L bypass, out6=R bypass
 
 // PARÁMETROS
 Param j_HPF(250, min=20, default=250, max=1000);
@@ -81,7 +82,7 @@ rTrimmed = in2;
 lIn = in3;
 rIn = in4;
 
-// Smoothing
+// Smoothing - ACTUALIZAR para incluir Band Solo
 smoothHpfFreq = (hpfFreqHistory * smoothFactor) + (j_HPF * (1 - smoothFactor));
 hpfFreqHistory = fixdenorm(smoothHpfFreq);
 smoothLpfFreq = (lpfFreqHistory * smoothFactor) + (k_LPF * (1 - smoothFactor));
@@ -90,8 +91,11 @@ smoothScEnable = (scEnableHistory * smoothFactor) + (l_SC * (1 - smoothFactor));
 scEnableHistory = fixdenorm(smoothScEnable);
 hBand = hBand * smoothFactor + o_BAND * (1 - smoothFactor);
 smoothedBand = hBand;
+
+// NUEVO: Smoothing para Band Solo
 hBandSolo = hBandSolo * smoothFactor + p_BANDSOLO * (1 - smoothFactor);
-wBandSolo = clamp(hBandSolo, 0, 1);
+
+// PROCESAMIENTO (después del smoothing)
 
 // Proteger frecuencias
 sr = samplerate;
@@ -228,6 +232,9 @@ lowL = L_low;
 midL = L_mid;
 highL = L_high;
 
+// CROSSOVER LR4 CANAL R (igual estructura que L)
+R_x = rTrimmed;
+
 // CROSSOVER LR4 CANAL R
 R_x = rTrimmed;
 
@@ -315,7 +322,7 @@ lowR = R_low;
 midR = R_mid;
 highR = R_high;
 
-// SELECTOR DE BANDA Y SOLO
+// SELECTOR DE BANDA Y SOLO - SECCIÓN ACTUALIZADA
 wLow = max(0, 1 - abs(smoothedBand - 0));
 wMid = max(0, 1 - abs(smoothedBand - 1));
 wHigh = max(0, 1 - abs(smoothedBand - 2));
@@ -330,12 +337,14 @@ preBandR = wLow*lowR + wMid*midR + wHigh*highR;
 sumBandsL = lowL + midL + highL;
 sumBandsR = lowR + midR + highR;
 
-// Solo activo tiene sentido solo con crossover activo
-soloOn = (wBandSolo > 0.5) * (smoothScEnable > 0.5);
+// ACTUALIZACIÓN: Solo continuo en lugar de binario
+// Solo como cantidad continua (0..1), dependiente del crossover
+//soloAmt = clamp(hBandSolo * smoothScEnable, 0, 1);
+soloAmt = clamp((1 - hBandSolo) * smoothScEnable, 0, 1);  // Añadir (1 - ...)
 
-// Bandas bypass para cuando Solo está activo
-bypassWhenActiveL = soloOn ? 0 : (sumBandsL - preBandL);
-bypassWhenActiveR = soloOn ? 0 : (sumBandsR - preBandR);
+// Atenúa progresivamente lo que NO es la banda seleccionada
+bypassWhenActiveL = (sumBandsL - preBandL) * soloAmt;  // Sin el (1 - ...)
+bypassWhenActiveR = (sumBandsR - preBandR) * soloAmt;
 
 // Conmutación por enable: si desactivado, banda ancha
 preDistInL = mix(lTrimmed, preBandL, smoothScEnable);
@@ -442,14 +451,14 @@ R_ap2_hp2_x2 = R_ap2_hp2_x1p; R_ap2_hp2_x1 = R_ap2_hp_s1; R_ap2_hp2_y2 = R_ap2_h
 
 dryAllpassR = R_ap2_lp + R_ap2_hp;
 
-// Mezcla con “enable” suavizado: si el crossover está OFF, dry pasa directo
+// Mezcla con enable suavizado: si el crossover está OFF, dry pasa directo
 dryCompL = mix(lIn, dryAllpassL, smoothScEnable);
 dryCompR = mix(rIn, dryAllpassR, smoothScEnable);
 
 // SALIDAS
-out1 = preDistInL;
-out2 = preDistInR;
-out3 = dryCompL;
-out4 = dryCompR;
-out5 = bypassWhenActiveL;
-out6 = bypassWhenActiveR;
+out1 = preDistInL;      // L banda seleccionada o full band
+out2 = preDistInR;      // R banda seleccionada o full band
+out3 = dryCompL;        // L dry compensado
+out4 = dryCompR;        // R dry compensado
+out5 = bypassWhenActiveL; // L bandas bypass (para multiband)
+out6 = bypassWhenActiveR; // R bandas bypass (para multiband)

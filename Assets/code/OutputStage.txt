@@ -1,21 +1,5 @@
 // =============================================================================
-// OUTPUT STAGE BLOCK - Dry/Wet Mix, Output Gain, Bypass & Safety Limiter
-// =============================================================================
-// Procesamiento de salida con mezcla dry/wet, makeup gain, bypass y limitador
-//
-// ENTRADAS:
-// - in1: Wet L (desde EffectsChain out1)
-// - in2: Wet R (desde EffectsChain out2)
-// - in3: Dry L compensado (desde CrossoverStage out3)
-// - in4: Dry R compensado (desde CrossoverStage out4)
-// - in5: Bypass bandas L (desde CrossoverStage out5) - para multiband
-// - in6: Bypass bandas R (desde CrossoverStage out6) - para multiband
-//
-// SALIDAS:
-// - out1: L final → DAW/hardware
-// - out2: R final → DAW/hardware
-// - out3: L post-trim (para medidores, opcional)
-// - out4: R post-trim (para medidores, opcional)
+// OUTPUT STAGE BLOCK - Dry/Wet Mix, Output Gain, Bypass & Safety Limiter - ACTUALIZADO
 // =============================================================================
 
 // PARÁMETROS
@@ -60,17 +44,13 @@ hSafeLimitOn = hSafeLimitOn * smoothFactor + p_SAFELIMITON * (1 - smoothFactor);
 safeOn = clamp(hSafeLimitOn, 0, 1);
 
 // -----------------------------------------------------------------------------
-// AGREGAR BANDAS BYPASS (para multiband processing)
+// AGREGAR BANDAS BYPASS Y OUTPUT MAKEUP
 // -----------------------------------------------------------------------------
-// Si hay bandas bypass (cuando Solo está activo), agregarlas al wet
-wetWithBandsL = wetL + bypassBandsL;
-wetWithBandsR = wetR + bypassBandsR;
+// Las bandas bypass ya vienen correctamente escaladas desde CrossoverStage
+// Solo aplicamos makeup al wet y luego sumamos las bandas bypass
 
-// -----------------------------------------------------------------------------
-// OUTPUT MAKEUP GAIN (SOLO A LA SEÑAL WET)
-// -----------------------------------------------------------------------------
-wetWithMakeupL = wetWithBandsL * outputMakeupLinear;
-wetWithMakeupR = wetWithBandsR * outputMakeupLinear;
+wetWithMakeupL = (wetL * outputMakeupLinear) + bypassBandsL;
+wetWithMakeupR = (wetR * outputMakeupLinear) + bypassBandsR;
 
 // -----------------------------------------------------------------------------
 // MEZCLA DRY/WET
@@ -101,9 +81,3 @@ finalDcBlockedR = dcblock(safeR);
 // El bypass mezcla entre la señal original sin procesar y la señal procesada
 out1 = mix(dryL, finalDcBlockedL, bypass);
 out2 = mix(dryR, finalDcBlockedR, bypass);
-
-// -----------------------------------------------------------------------------
-// SALIDAS ADICIONALES (OPCIONALES)
-// -----------------------------------------------------------------------------
-out3 = wetL;  // L post-effects (para medidores, sin makeup)
-out4 = wetR;  // R post-effects (para medidores, sin makeup)
