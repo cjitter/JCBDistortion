@@ -84,7 +84,7 @@ cmake --build build-release   # Para Release
 - Tooltips bilingües (ES/EN) conmutables.
 - Diagrama de bloques interactivo con acceso a GenExpr para estudio en Max.
 
-### Cambios recientes v0.9.3
+### Cambios recientes v1.0.0-alpha.1
 
 - EVEN refinado: asimetría por pendiente (skew) con normalización y tanh-shaping → armónicos pares más “finos” y controlables, sin golpes DC incluso a altos drives.
 - Ruta Pre/Post Tilt con morph: mismo juego de coeficientes y normalización al pivote para que Pre y Post se combinen sin saltos.
@@ -151,5 +151,5 @@ Los tests validan los formatos VST3 y AU del plugin.
 
 ---
 
-*© 2025 Juan Carlos Blancas – JCBDistortion v0.9.3 beta*
+*© 2025 Juan Carlos Blancas – JCBDistortion v1.0.0-alpha.1*
 

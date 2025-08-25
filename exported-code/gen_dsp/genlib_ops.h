@@ -1234,11 +1234,11 @@ struct Delay {
 		// plus extra 1 sample compensation for 4-point interpolation
 		const t_sample r = t_sample(size + reader) - clamp(d, t_sample(1.) + t_sample(reader != writer), t_sample(maxdelay));
 		long r0 = long(r);
-		long r1 = r1+1;
-		long r2 = r1+2;
-		long r3 = r1+3;
-		long r4 = r1+4;
-		long r5 = r1+5;
+		long r1 = r0 + 1;
+		long r2 = r0 + 2;
+		long r3 = r0 + 3;
+		long r4 = r0 + 4;
+		long r5 = r0 + 5;
 		t_sample a = r - (t_sample)r0;
 		t_sample y0 = memory[r0 & wrap];
 		t_sample y1 = memory[r1 & wrap];
