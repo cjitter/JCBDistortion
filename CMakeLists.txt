@@ -53,6 +53,7 @@ FetchContent_MakeAvailable(JUCE)
 # Opciones de configuración
 option(JUCE_BUILD_AAX "Build AAX format (requires AAX SDK and Pro Tools Developer)" ON)
 option(JUCE_AUTO_INSTALL_PLUGINS "Auto-install plugins after build" ON)
+option(JCB_DISABLE_SANITIZER "Disable runtime output sanitizer (only when debugging issues)" OFF)
 
 # SDK externo opcional (AAX) para macOS
 set(JUCE_AAX_SDK_PATH "$ENV{HOME}/SDK/aax-sdk-2-8-1" CACHE PATH "Ruta al SDK de AAX")
@@ -150,11 +151,14 @@ juce_add_binary_data(JCBDistortion_BinaryData
         Assets/FactoryPresets/Drums_Kick_Bright.preset
         Assets/FactoryPresets/Bass_Bass_Destroyer.preset
         Assets/FactoryPresets/Bass_Bass_Destroyer_2.preset
+        Assets/FactoryPresets/Bass_Bass_Hard.preset
+        Assets/FactoryPresets/Bass_Bass_Hard_2.preset
         Assets/FactoryPresets/Drums_Acoustic_Kick_Long.preset
         Assets/FactoryPresets/Guitars_Strat_Overdrive.preset
         Assets/FactoryPresets/Guitars_Strat_Distortion.preset
         Assets/FactoryPresets/Guitars_Guitar_Overdrive.preset
         Assets/FactoryPresets/Guitars_Guitar_Distortion.preset
+        Assets/FactoryPresets/Guitars_Guitar_Distortion_2.preset
         # Presets Fx
         Assets/FactoryPresets/Fx_808_SnLike_Warmer.preset
         Assets/FactoryPresets/Fx_808_Bd_Crush.preset
@@ -203,6 +207,10 @@ target_compile_definitions(JCBDistortion PUBLIC
         # Optimización de rendimiento
         JUCE_STRICT_REFCOUNTEDPTR=1
 )
+
+if(JCB_DISABLE_SANITIZER)
+    target_compile_definitions(JCBDistortion PRIVATE JCB_DISABLE_SANITIZER=1)
+endif()
 
 # Flags del compilador para macOS (Clang)
 target_compile_options(JCBDistortion PRIVATE

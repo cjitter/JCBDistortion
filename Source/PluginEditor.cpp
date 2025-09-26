@@ -201,9 +201,9 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     // Verificar si el host es Logic Pro
     juce::PluginHostType hostInfo;
     if (hostInfo.isLogic()) {
-        titleText = "v1.0.0-alpha.1";  // Solo versión para Logic Pro
+        titleText = "v1.0.0-alpha.2";  // Solo versión para Logic Pro
     } else {
-        titleText = "JCBDistortion v1.0.0-alpha.1";  // Nombre completo para otros DAWs
+        titleText = "JCBDistortion v1.0.0-alpha.2";  // Nombre completo para otros DAWs
     }
     
     titleLink.setButtonText(titleText);
@@ -883,7 +883,10 @@ JCBDistortionAudioProcessorEditor::~JCBDistortionAudioProcessorEditor()
 {
     // CRÍTICO: Detener timer PRIMERO para prevenir crashes durante destrucción
     stopTimer();
-    
+
+    processor.setSpectrumAnalyzerCallback({});
+    processor.setSampleRateChangedCallback({});
+
     // Eliminar parameter listeners
     processor.apvts.removeParameterListener("g_BITS", this);
     
@@ -2987,11 +2990,12 @@ void JCBDistortionAudioProcessorEditor::setupUtilityButtons()
     
     // A/B State button
     topButtons.abStateButton.setClickingTogglesState(false);  // No es toggle, es un indicador
-    topButtons.abStateButton.setColour(juce::TextButton::buttonColourId, juce::Colour(0xff9c27b0));  // Comenzar con púrpura para A
+    topButtons.abStateButton.setColour(juce::TextButton::buttonColourId,
+        processor.getIsStateA() ? juce::Colour(0xff9E35B0) : juce::Colour(0xff2196f3));  // Sync colour with current state
     topButtons.abStateButton.setColour(juce::TextButton::textColourOffId, juce::Colours::white);
     topButtons.abStateButton.setColour(juce::TextButton::textColourOnId, juce::Colours::white);
     topButtons.abStateButton.addListener(this);
-    topButtons.abStateButton.setButtonText("A");  // Comenzar con A
+    topButtons.abStateButton.setButtonText(processor.getIsStateA() ? "A" : "B");
     addAndMakeVisible(topButtons.abStateButton);
     topButtons.abStateButton.setEnabled(true);  // Now implemented!
     
@@ -3001,7 +3005,7 @@ void JCBDistortionAudioProcessorEditor::setupUtilityButtons()
     topButtons.abCopyButton.setColour(juce::TextButton::textColourOffId, DarkTheme::textPrimary);
     topButtons.abCopyButton.setColour(juce::TextButton::textColourOnId, DarkTheme::textPrimary);
     topButtons.abCopyButton.addListener(this);
-    topButtons.abCopyButton.setButtonText("A-B");  // Start showing A to B
+    topButtons.abCopyButton.setButtonText(processor.getIsStateA() ? "A-B" : "B-A");
     addAndMakeVisible(topButtons.abCopyButton);
     // Tooltip actualizado dinámicamente en updateAbButtonState()
     
@@ -4281,7 +4285,7 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
     if (currentLanguage == TooltipLanguage::Spanish)
     {
         // Spanish tooltips
-        if (key == "title") return JUCE_UTF8("JCBDistortion: distorsionador multimodal v1.0.0-alpha.1\nPlugin de audio open source\nClick para créditos");
+        if (key == "title") return JUCE_UTF8("JCBDistortion: distorsionador multimodal v1.0.0-alpha.2\nPlugin de audio open source\nClick para créditos");
         if (key == "drywet") return JUCE_UTF8("DRY/WET: mezcla entre señal original y procesada\nControla el balance final de salida\nRango: 0 a 100% | Por defecto: 100%");
         if (key == "lookahead") return JUCE_UTF8("LOOKAHEAD: anticipación para evitar distorsión\nEvita overshooting en transitorios rápidos\nRango: 0 a 5 ms | Por defecto: 0 ms");
         if (key == "drive") return JUCE_UTF8("DRIVE: intensidad de distorsión\nControla la ganancia antes de la saturación\nRango: 1 a 50 | Por defecto: 1");
@@ -4337,7 +4341,7 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
     else
     {
         // English tooltips
-        if (key == "title") return "JCBDistortion: multimodal distortion v1.0.0-alpha.1\nOpen source audio plugin\nClick for credits";
+        if (key == "title") return "JCBDistortion: multimodal distortion v1.0.0-alpha.2\nOpen source audio plugin\nClick for credits";
         if (key == "drywet") return "DRY/WET: mix between original and processed signal\nControls final output balance\nRange: 0 to 100% | Default: 100%";
         if (key == "lookahead") return "LOOKAHEAD: anticipation to prevent distortion\nPrevents overshooting on fast transients\nRange: 0 to 5 ms | Default: 0 ms";
         if (key == "drive") return "DRIVE: distortion intensity\nControls gain before saturation\nRange: 1 to 50 | Default: 1";
@@ -4661,10 +4665,13 @@ int JCBDistortionAudioProcessorEditor::getControlParameterIndex(juce::Component&
     // else if (&control == &rightTopControls.smoothSlider) parameterID = "z_SMOOTH";
     else if (&control == &rightTopControls.tiltSlider) parameterID = "i_TILT";  // NUEVO - tilt EQ slider
     else if (&control == &rightTopControls.bitsSlider) parameterID = "g_BITS";  // NUEVO - bit crusher resolution
+    else if (&control == &leftBottomKnobs.toneFreqSlider) parameterID = "r_TONEFREQ";
+    else if (&control == &leftBottomKnobs.toneQSlider) parameterID = "t_TONEQ";
     
     // Perillas Inferiores Derechas (attack, release, hold)
     else if (&control == &rightBottomKnobs.driveSlider) parameterID = "b_DRIVE";
     else if (&control == &rightBottomKnobs.modeSlider) parameterID = "d_MODE";
+    else if (&control == &rightTopControls.downsampleSlider) parameterID = "m_DOWNSAMPLE";
     // else if (&control == &rightBottomKnobs.holdSlider) parameterID = "f_HOLD";
     
     // Controles de filtro de entrada
@@ -4680,11 +4687,19 @@ int JCBDistortionAudioProcessorEditor::getControlParameterIndex(juce::Component&
     
     // Botones Automatizables
     else if (&control == &sidechainControls.scButton) parameterID = "l_SC";
+    else if (&control == &rightTopControls.tiltOnButton) parameterID = "s_TILTON";
+    else if (&control == &rightTopControls.tiltPosButton) parameterID = "p_TILTPOS";
+    else if (&control == &leftBottomKnobs.toneLpfButton) parameterID = "q_TONEON";
+    else if (&control == &leftBottomKnobs.tonePosButton) parameterID = "u_TONEPOS";
+    else if (&control == &sidechainControls.bandSoloButton) parameterID = "p_BANDSOLO";
+    else if (&control == &rightBottomKnobs.distOnButton) parameterID = "p_DISTON";
+    else if (&control == &rightBottomKnobs.bitButton) parameterID = "h_BITSON";
+    else if (&control == &rightTopControls.downsampleButton) parameterID = "n_DOWNSAMPLEON";
+    else if (&control == &rightTopControls.safeLimitButton) parameterID = "p_SAFELIMITON";
     
     // Parámetros no automatizables (retornar -1)
     // Estos son parámetros globales/utility que no deberían mostrar carriles de automatización
     // else if (&control == &sidechainControls.soloScButton) return -1;  // m_SOLOSC (no automatizable)
-    else if (&control == &rightBottomKnobs.bitButton) return -1;      // g_DITHER (no automatizable)
     else if (&control == &rightBottomKnobs.dcSlider) parameterID = "c_DC";  // c_DC (continuo 0-1)
     else if (&control == &parameterButtons.bypassButton) return -1;     // h_BYPASS (no automatizable)
     
@@ -4773,5 +4788,3 @@ void JCBDistortionAudioProcessorEditor::toggleDisplayMode()
     
     repaint();
 }
-
-

@@ -21,6 +21,8 @@
 #include <array>
 #include <atomic>
 #include <functional>
+#include <memory>
+#include <cmath>
 
 // Archivos del proyecto
 #include "JCBDistortion.h"
@@ -78,10 +80,11 @@ public:
     
     //==============================================================================
     // FFT Spectrum Analyzer Support
-    std::function<void(float)> spectrumAnalyzerCallback;
-    std::function<void(double)> sampleRateChangedCallback;
-    void setSpectrumAnalyzerCallback(std::function<void(float)> callback) { spectrumAnalyzerCallback = callback; }
-    void setSampleRateChangedCallback(std::function<void(double)> callback) { sampleRateChangedCallback = callback; }
+    using SpectrumCallback = std::function<void(float)>;
+    using SampleRateCallback = std::function<void(double)>;
+
+    void setSpectrumAnalyzerCallback(SpectrumCallback callback);
+    void setSampleRateChangedCallback(SampleRateCallback callback);
     double getCurrentSampleRate() const noexcept { return m_PluginState ? m_PluginState->sr : 44100.0; }
     
     //==============================================================================
@@ -194,7 +197,30 @@ private:
     void fillGenInputBuffers(const juce::AudioBuffer<float>& buffer);
     void processGenAudio(int numSamples);
     void fillOutputBuffers(juce::AudioBuffer<float>& buffer);
-    
+
+    std::shared_ptr<SpectrumCallback> spectrumAnalyzerCallbackShared;
+    std::shared_ptr<SampleRateCallback> sampleRateChangedCallbackShared;
+
+    // Safety: sanitize audio to avoid NaN/Inf bursts
+    inline void sanitizeStereo(float* L, float* R, int n, std::atomic<bool>& tripped) noexcept
+    {
+        bool localTrip = false;
+        for (int i = 0; i < n; ++i)
+        {
+            float xL = L[i];
+            float xR = R ? R[i] : xL;
+
+            if (!std::isfinite(xL) || xL > 8.0f || xL < -8.0f) { xL = 0.0f; localTrip = true; }
+            if (!std::isfinite(xR) || xR > 8.0f || xR < -8.0f) { xR = 0.0f; localTrip = true; }
+
+            L[i] = xL;
+            if (R) R[i] = xR;
+        }
+
+        if (localTrip)
+            tripped.store(true, std::memory_order_release);
+    }
+
     // Actualizaciones de medidores
     void updateInputMeters(const juce::AudioBuffer<float>& buffer);
     void updateOutputMeters(const juce::AudioBuffer<float>& buffer);
@@ -301,6 +327,9 @@ private:
     juce::AudioBuffer<float> scratchIn;          // Buffer temporal para entrada (2ch: L/R)
     juce::AudioBuffer<float> scratchDry;         // Buffer temporal para DRY (2ch: L/R)
     int scratchCapacitySamples { 0 };            // Capacidad actual de los scratch buffers
+
+    // Failsafe sanitizer flag
+    std::atomic<bool> nanTripped { false };
     
     // Helper: asegura capacidad de scratch sin allocations en audio thread
     inline void ensureScratchCapacity(int numSamples)

@@ -14,6 +14,38 @@
 #include "Helpers/UTF8Helper.h"
 
 //==============================================================================
+// CALLBACK SETTERS (THREAD-SAFE)
+//==============================================================================
+
+void JCBDistortionAudioProcessor::setSpectrumAnalyzerCallback(SpectrumCallback callback)
+{
+    if (callback)
+    {
+        auto holder = std::make_shared<SpectrumCallback>(std::move(callback));
+        std::atomic_store_explicit(&spectrumAnalyzerCallbackShared, holder, std::memory_order_release);
+    }
+    else
+    {
+        std::shared_ptr<SpectrumCallback> empty;
+        std::atomic_store_explicit(&spectrumAnalyzerCallbackShared, empty, std::memory_order_release);
+    }
+}
+
+void JCBDistortionAudioProcessor::setSampleRateChangedCallback(SampleRateCallback callback)
+{
+    if (callback)
+    {
+        auto holder = std::make_shared<SampleRateCallback>(std::move(callback));
+        std::atomic_store_explicit(&sampleRateChangedCallbackShared, holder, std::memory_order_release);
+    }
+    else
+    {
+        std::shared_ptr<SampleRateCallback> empty;
+        std::atomic_store_explicit(&sampleRateChangedCallbackShared, empty, std::memory_order_release);
+    }
+}
+
+//==============================================================================
 // CONSTRUCTOR Y DESTRUCTOR
 //==============================================================================
 JCBDistortionAudioProcessor::JCBDistortionAudioProcessor()
@@ -150,7 +182,10 @@ JCBDistortionAudioProcessor::~JCBDistortionAudioProcessor()
 {
     // CRÍTICO: Primero indicar que estamos destruyendo para evitar race conditions
     isBeingDestroyed = true;
-    
+
+    setSpectrumAnalyzerCallback({});
+    setSampleRateChangedCallback({});
+
     // Detener timer AAX inmediatamente (antes que cualquier otra cosa)
     #if JucePlugin_Build_AAX
     stopTimer();
@@ -207,8 +242,10 @@ void JCBDistortionAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
     m_PluginState->vs = samplesPerBlock;
     
     // Notify spectrum analyzer of sample rate change
-    if (sampleRateChangedCallback) {
-        sampleRateChangedCallback(sampleRate);
+    if (auto callback = std::atomic_load_explicit(&sampleRateChangedCallbackShared, std::memory_order_acquire))
+    {
+        auto& cb = *callback;
+        cb(sampleRate);
     }
     
     // Pre-asignar buffers con tamaño máximo esperado para evitar allocations en audio thread
@@ -498,15 +535,36 @@ void JCBDistortionAudioProcessor::processBlockCommon(juce::AudioBuffer<float>& b
         }
     }
     
+    // Safety: sanitize final output and recover Gen state on trips
+    #if !defined(JCB_DISABLE_SANITIZER)
+    sanitizeStereo(wetL, (numChannels > 1 ? wetR : nullptr), numSamples, nanTripped);
+    #endif
+
+    if (nanTripped.exchange(false, std::memory_order_acq_rel))
+    {
+        JCBDistortion::reset(m_PluginState);
+
+        for (int i = 0; i < JCBDistortion::num_params(); ++i)
+        {
+            const char* raw = JCBDistortion::getparametername(m_PluginState, i);
+            if (auto* p = apvts.getRawParameterValue(juce::String(raw ? raw : "")))
+                JCBDistortion::setparameter(m_PluginState, i, p->load(), nullptr);
+        }
+    }
+
     // === 6. Análisis y medición post-procesamiento ===
     
     // Feed spectrum analyzer con salida final
-    if (spectrumAnalyzerCallback && buffer.getNumChannels() > 0)
+    if (buffer.getNumChannels() > 0)
     {
-        auto* outputSamples = buffer.getReadPointer(0);
-        for (int sample = 0; sample < numSamples; ++sample)
+        if (auto callback = std::atomic_load_explicit(&spectrumAnalyzerCallbackShared, std::memory_order_acquire))
         {
-            spectrumAnalyzerCallback(outputSamples[sample]);
+            auto& cb = *callback;
+            auto* outputSamples = buffer.getReadPointer(0);
+            for (int sample = 0; sample < numSamples; ++sample)
+            {
+                cb(outputSamples[sample]);
+            }
         }
     }
     

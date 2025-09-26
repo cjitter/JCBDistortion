@@ -549,7 +549,7 @@ private:
     //==========================================================================
     
     // Título y versión en la parte inferior (combinado como ExpansorGate)
-    juce::TextButton titleLink{"JCBDistortion v1.0.0-alpha.1"};
+        juce::TextButton titleLink{"JCBDistortion v1.0.0-alpha.2"};
     
     // Imágenes de fondo
     juce::ImageComponent backgroundImage;
@@ -1135,4 +1135,3 @@ private:
     
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (JCBDistortionAudioProcessorEditor)
 };
-
