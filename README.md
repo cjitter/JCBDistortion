@@ -72,7 +72,6 @@ cmake --build build-release   # Para Release
 - Output: ceiling ajustable (−20 a +6 dB) + limitador de seguridad opcional (−0.1 dB), trim ±12 dB, mezcla Dry/Wet.
 - Pipeline modular: Input → Crossover → Distorsión → Efectos → Output (fácil de depurar/extender).
 - Robustez numérica: smoothing crítico (incl. MODE), fixdenorm en biquads y bypass suavizado compatible con Pro Tools.
-- UI/UX:
 - Analizador FFT 2048 pt con líneas de crossover arrastrables.
 - Curvas de distorsión en tiempo real.
 - Medidores In/Out RMS/Peak.
