@@ -201,9 +201,9 @@ JCBDistortionAudioProcessorEditor::JCBDistortionAudioProcessorEditor (JCBDistort
     // Verificar si el host es Logic Pro
     juce::PluginHostType hostInfo;
     if (hostInfo.isLogic()) {
-        titleText = "v1.0.0";  // Solo versión para Logic Pro
+        titleText = "v1.0.1";  // Solo versión para Logic Pro
     } else {
-        titleText = "JCBDistortion v1.0.0";  // Nombre completo para otros DAWs
+        titleText = "JCBDistortion v1.0.1";  // Nombre completo para otros DAWs
     }
     
     titleLink.setButtonText(titleText);
@@ -4269,7 +4269,7 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
     if (currentLanguage == TooltipLanguage::Spanish)
     {
         // Spanish tooltips
-        if (key == "title") return JUCE_UTF8("JCBDistortion: distorsionador multimodal v1.0.0\nPlugin de audio open source\nClick para créditos");
+        if (key == "title") return JUCE_UTF8("JCBDistortion: distorsionador multimodal v1.0.1\nPlugin de audio open source\nClick para créditos");
         if (key == "drywet") return JUCE_UTF8("DRY/WET: mezcla entre señal original y procesada\nControla el balance final de salida\nRango: 0 a 100% | Por defecto: 100%");
         if (key == "lookahead") return JUCE_UTF8("LOOKAHEAD: anticipación para evitar distorsión\nEvita overshooting en transitorios rápidos\nRango: 0 a 5 ms | Por defecto: 0 ms");
         if (key == "drive") return JUCE_UTF8("DRIVE: intensidad de distorsión\nControla la ganancia antes de la saturación\nRango: 1 a 50 | Por defecto: 1");
@@ -4325,7 +4325,7 @@ juce::String JCBDistortionAudioProcessorEditor::getTooltipText(const juce::Strin
     else
     {
         // English tooltips
-        if (key == "title") return "JCBDistortion: multimodal distortion v1.0.0\nOpen source audio plugin\nClick for credits";
+        if (key == "title") return "JCBDistortion: multimodal distortion v1.0.1\nOpen source audio plugin\nClick for credits";
         if (key == "drywet") return "DRY/WET: mix between original and processed signal\nControls final output balance\nRange: 0 to 100% | Default: 100%";
         if (key == "lookahead") return "LOOKAHEAD: anticipation to prevent distortion\nPrevents overshooting on fast transients\nRange: 0 to 5 ms | Default: 0 ms";
         if (key == "drive") return "DRIVE: distortion intensity\nControls gain before saturation\nRange: 1 to 50 | Default: 1";

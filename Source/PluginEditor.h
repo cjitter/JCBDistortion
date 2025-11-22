@@ -549,7 +549,7 @@ private:
     //==========================================================================
     
     // Título y versión en la parte inferior (combinado como ExpansorGate)
-        juce::TextButton titleLink{"JCBDistortion v1.0.0"};
+        juce::TextButton titleLink{"JCBDistortion v1.0.1"};
     
     // Imágenes de fondo
     juce::ImageComponent backgroundImage;
