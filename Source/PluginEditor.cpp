@@ -2726,14 +2726,13 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
             // Reactivar undo después carga de preset
             isLoadingPreset = false;
             
-            // IMPORTANTE: Forzar la sincronización directa de Gen~ para asegurar valores correctos de los parámetros
-            // Esto replica la misma sincronización realizada durante la instanciación del plugin
+            // IMPORTANTE: Re-encolar parámetros hacia Gen~ usando el helper del processor
             for (int i = 0; i < JCBDistortion::num_params(); i++) {
                 auto paramName = juce::String(JCBDistortion::getparametername(processor.getPluginState(), i));
                 if (auto* param = processor.apvts.getRawParameterValue(paramName)) {
                     float value = param->load();
                     
-                    // Aplicar la misma validación que en parameterChanged() (DISTORTION)
+                    // Validación específica Distortion
                     if (paramName == "b_DRIVE" && value < 1.0f) {
                         value = 1.0f;  // Drive mínimo 1x
                     }
@@ -2741,7 +2740,7 @@ void JCBDistortionAudioProcessorEditor::setupPresetArea()
                         value = 7.0f;   // Mode máximo 7
                     }
                     
-                    JCBDistortion::setparameter(processor.getPluginState(), i, value, nullptr);
+                    processor.pushGenParamByName(paramName, value);
                 }
             }
         } 
@@ -3515,13 +3514,6 @@ void JCBDistortionAudioProcessorEditor::updateSliderValues()
     if (auto* param = processor.apvts.getRawParameterValue("j_HPF"))
         sidechainControls.xLowSlider.setValue(param->load(), juce::dontSendNotification);
         
-    if (auto* param = processor.apvts.getRawParameterValue("k_LPF"))
-        sidechainControls.xHighSlider.setValue(param->load(), juce::dontSendNotification);
-    
-    if (auto* param = processor.apvts.getRawParameterValue("o_BAND"))
-        sidechainControls.bandSlider.setValue(param->load(), juce::dontSendNotification);
-    
-
     // Slider de trims (both linked to the same parameter)
     if (auto* param = processor.apvts.getRawParameterValue("k_INPUT")) {
         float trimValue = param->load();
@@ -3532,14 +3524,6 @@ void JCBDistortionAudioProcessorEditor::updateSliderValues()
         float makeupValue = param->load();
         makeupSlider.setValue(makeupValue, juce::dontSendNotification);
     }
-    
-    /*
-    // Slider de trim de sidechain
-    if (auto* param = processor.apvts.getRawParameterValue("y_SCTRIM")) {
-        float scTrimValue = param->load();
-        scTrimSlider.setValue(scTrimValue, juce::dontSendNotification);
-    }
-    */
     
     // NUEVO: Actualizar alpha del REL slider basado en estado inicial de AUTOREL
 }
@@ -4488,10 +4472,6 @@ void JCBDistortionAudioProcessorEditor::processPendingParameterUpdates()
             // Convertir valor normalizado a valor real usando el rango del parámetro
             if (auto* floatParam = dynamic_cast<juce::AudioParameterFloat*>(param)) {
                 float realValue = floatParam->getNormalisableRange().convertFrom0to1(update.normalizedValue);
-                
-                if (update.paramID == "d_ATK" || update.paramID == "e_REL") {
-                    // Debug info for DEFAULT preset parameter updates
-                }
                 
                 // Llamar al método parameterChanged del processor para sincronizar con Gen~
                 processor.parameterChanged(update.paramID, realValue);

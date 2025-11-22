@@ -64,6 +64,8 @@ JCBDistortionAudioProcessor::JCBDistortionAudioProcessor()
     m_PluginState = (CommonState *)JCBDistortion::create(44100, 64);
     JCBDistortion::reset(m_PluginState);
 
+    rebuildGenParameterLookup();
+
     // Inicializar buffers de Gen~
     m_InputBuffers = new t_sample *[JCBDistortion::num_inputs()];
     m_OutputBuffers = new t_sample *[JCBDistortion::num_outputs()];
@@ -309,6 +311,7 @@ void JCBDistortionAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
     
     // IMPORTANTE: Re-sincronizar todos los parámetros con Gen~ en prepareToPlay
     // Esto asegura que los valores estén correctos cuando el DAW comienza a reproducir
+    rebuildGenParameterLookup();
     for (int i = 0; i < JCBDistortion::num_params(); i++)
     {
         auto paramName = juce::String(JCBDistortion::getparametername(m_PluginState, i));
@@ -317,6 +320,51 @@ void JCBDistortionAudioProcessor::prepareToPlay(double sampleRate, int samplesPe
             JCBDistortion::setparameter(m_PluginState, i, value, nullptr);
         }
     }
+}
+
+//==============================================================================
+// CACHÉ Y HELPERS DE PARÁMETROS GEN~
+//==============================================================================
+void JCBDistortionAudioProcessor::rebuildGenParameterLookup()
+{
+    genIndexByName.clear();
+    genParameterList.clear();
+
+    if (m_PluginState == nullptr)
+        return;
+
+    const int numParams = JCBDistortion::num_params();
+    genParameterList.reserve(static_cast<size_t>(numParams));
+
+    for (int i = 0; i < numParams; ++i)
+    {
+        const char* rawName = JCBDistortion::getparametername(m_PluginState, i);
+        juce::String name(rawName ? rawName : "");
+        genIndexByName[name] = i;
+        genParameterList.push_back(name);
+    }
+}
+
+void JCBDistortionAudioProcessor::enqueueAllParametersForAudioThread()
+{
+    for (const auto& name : genParameterList)
+    {
+        if (auto* param = apvts.getRawParameterValue(name))
+            pushGenParamByName(name, param->load());
+    }
+}
+
+void JCBDistortionAudioProcessor::pushGenParamByName(const juce::String& paramName, float value)
+{
+    if (m_PluginState == nullptr)
+        return;
+
+    const auto it = genIndexByName.find(paramName);
+    jassert(it != genIndexByName.end());
+    if (it == genIndexByName.end())
+        return;
+
+    JCBDistortion::setparameter(m_PluginState, it->second, value, nullptr);
 }
 
 void JCBDistortionAudioProcessor::releaseResources()
@@ -1468,7 +1516,7 @@ void JCBDistortionAudioProcessor::getStateInformation(juce::MemoryBlock& destDat
     // Estos botones no deben persistir entre sesiones
     auto paramsNode = stateCopy.getChildWithName("PARAMETERS");
     if (paramsNode.isValid()) {
-        auto param = paramsNode.getChildWithProperty("id", "h_BYPASS");
+        auto param = paramsNode.getChildWithProperty("id", "f_BYPASS");
         if (param.isValid())
             param.setProperty("value", 0.0f, nullptr);
         
@@ -1571,35 +1619,7 @@ void JCBDistortionAudioProcessor::setStateInformation(const void* data, int size
         }
         
         // IMPORTANTE: Sincronizar todos los parámetros con Gen~ después de cargar el estado
-        for (int i = 0; i < JCBDistortion::num_params(); i++) {
-            auto paramName = juce::String(JCBDistortion::getparametername(m_PluginState, i));
-            if (auto* param = apvts.getRawParameterValue(paramName)) {
-                float value = param->load();
-                
-                // Corregir valores muy pequeños en ATK y REL
-                if (paramName == "d_ATK") {
-                    if (value < 0.1f) {
-                        value = 0.1f;
-                        // Actualizar el parámetro en el APVTS
-                        if (auto* audioParam = apvts.getParameter(paramName)) {
-                            audioParam->setValueNotifyingHost(audioParam->convertTo0to1(value));
-                        }
-                    }
-                }
-                if (paramName == "e_REL") {
-                    if (value < 0.1f) {
-                        value = 0.1f;
-                        // Actualizar el parámetro en el APVTS
-                        if (auto* audioParam = apvts.getParameter(paramName)) {
-                            audioParam->setValueNotifyingHost(audioParam->convertTo0to1(value));
-                        }
-                    }
-                }
-                // NOTA: El compresor no tiene parámetro HOLD (es del expansor/gate)
-                
-                parameterChanged(paramName, value);
-            }
-        }
+        enqueueAllParametersForAudioThread();
         
         
         // Forzar actualización del editor de forma thread-safe
