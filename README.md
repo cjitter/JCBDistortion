@@ -97,4 +97,4 @@ cmake --build build-release   # Para Release
 
 ---
 
-*© 2025 Juan Carlos Blancas – JCBDistortion v1.0.0*
+*© 2025 Juan Carlos Blancas – JCBDistortion v1.0.1*
